@@ -58,6 +58,361 @@
   }
 }
 
+/* 3D Utilities and Animations */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.rotate-x-2 {
+  transform: rotateX(2deg);
+}
+
+.rotate-x-1 {
+  transform: rotateX(1deg);
+}
+
+.rotate-y-3 {
+  transform: rotateY(3deg);
+}
+
+.rotate-y-6 {
+  transform: rotateY(6deg);
+}
+
+.rotate-y-12 {
+  transform: rotateY(12deg);
+}
+
+.translate-z-0 {
+  transform: translateZ(0);
+}
+
+/* Gradient Animation */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 3s ease infinite;
+}
+
+/* Float Animations */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+@keyframes float-medium {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(90deg);
+  }
+}
+
+@keyframes float-fast {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(270deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 4s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 3s ease-in-out infinite;
+}
+
+/* 3D Grid Pattern */
+.grid-3d {
+  background-image: 
+    linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+/* Seasonal Particle Animations */
+@keyframes seasonal-particle-petals {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes seasonal-particle-leaves {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes seasonal-particle-snow {
+  0% {
+    transform: translateY(-100vh) translateX(0px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(100px);
+    opacity: 0;
+  }
+}
+
+@keyframes seasonal-particle-pollen {
+  0% {
+    transform: translateY(-100vh) translateX(0px) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-90vh) translateX(10px) scale(1);
+  }
+  50% {
+    transform: translateY(50vh) translateX(-20px) scale(1.2);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(30px) scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-seasonal-particle-petals {
+  animation: seasonal-particle-petals var(--seasonal-animation-duration, 8s) var(--seasonal-animation-easing, ease-in-out) infinite;
+}
+
+.animate-seasonal-particle-leaves {
+  animation: seasonal-particle-leaves var(--seasonal-animation-duration, 10s) var(--seasonal-animation-easing, ease-in-out) infinite;
+}
+
+.animate-seasonal-particle-snow {
+  animation: seasonal-particle-snow var(--seasonal-animation-duration, 12s) linear infinite;
+}
+
+.animate-seasonal-particle-pollen {
+  animation: seasonal-particle-pollen var(--seasonal-animation-duration, 6s) var(--seasonal-animation-easing, ease-out) infinite;
+}
+
+/* Seasonal Pattern Overlays */
+.seasonal-pattern-spring {
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(244, 114, 182, 0.1) 2px, transparent 2px),
+    radial-gradient(circle at 80% 80%, rgba(34, 197, 94, 0.1) 2px, transparent 2px);
+  background-size: 40px 40px, 60px 60px;
+  animation: pattern-spring 15s ease-in-out infinite;
+}
+
+.seasonal-pattern-summer {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(251, 191, 36, 0.15) 3px, transparent 3px),
+    linear-gradient(45deg, rgba(34, 197, 94, 0.05) 25%, transparent 25%);
+  background-size: 50px 50px, 30px 30px;
+  animation: pattern-summer 10s ease-in-out infinite;
+}
+
+.seasonal-pattern-fall {
+  background-image: 
+    radial-gradient(ellipse at 30% 70%, rgba(234, 88, 12, 0.1) 4px, transparent 4px),
+    radial-gradient(ellipse at 70% 30%, rgba(245, 158, 11, 0.1) 3px, transparent 3px);
+  background-size: 45px 45px, 35px 35px;
+  animation: pattern-fall 12s ease-in-out infinite;
+}
+
+.seasonal-pattern-winter {
+  background-image: 
+    radial-gradient(circle at 40% 40%, rgba(226, 232, 240, 0.2) 2px, transparent 2px),
+    linear-gradient(30deg, rgba(148, 163, 184, 0.05) 50%, transparent 50%);
+  background-size: 35px 35px, 25px 25px;
+  animation: pattern-winter 20s linear infinite;
+}
+
+@keyframes pattern-spring {
+  0%, 100% { background-position: 0% 0%, 0% 0%; }
+  50% { background-position: 100% 100%, 50% 50%; }
+}
+
+@keyframes pattern-summer {
+  0%, 100% { background-position: 0% 0%, 0% 0%; }
+  50% { background-position: 75% 75%, 25% 25%; }
+}
+
+@keyframes pattern-fall {
+  0%, 100% { background-position: 0% 0%, 100% 0%; }
+  50% { background-position: 100% 100%, 0% 100%; }
+}
+
+@keyframes pattern-winter {
+  0% { background-position: 0% 0%, 0% 0%; }
+  100% { background-position: 100% 100%, 100% 100%; }
+}
+
+/* Enhanced Hover Effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Glassmorphism Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Animation Delays */
+.animation-delay-75 {
+  animation-delay: 75ms;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+/* VR Tour Specific Styles */
+.vr-hotspot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.vr-hotspot::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.3;
+  animation: vr-pulse 2s infinite;
+}
+
+@keyframes vr-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Nature Sounds Visualizer */
+.sound-wave {
+  position: relative;
+  display: inline-block;
+}
+
+.sound-wave::before,
+.sound-wave::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: sound-ripple 2s infinite;
+}
+
+.sound-wave::before {
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+}
+
+.sound-wave::after {
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  animation-delay: 1s;
+}
+
+@keyframes sound-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
 /* Animated Background Elements */
 
 /* Subtle background pattern */
@@ -389,4 +744,39 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* 3D Card Hover Effects */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.card-3d:hover {
+  transform: rotateY(10deg) rotateX(10deg);
+}
+
+/* Parallax Scroll Effects */
+.parallax-slow {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.7);
 }

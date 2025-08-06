@@ -1,282 +1,301 @@
-import type React from "react"
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { LogOut, UserCircle, Store } from 'lucide-react'
+import { usePathname } from "next/navigation"
+import { Search, ShoppingCart, Heart, User, Menu, Sun, Moon, Bell, MapPin, Phone, Mail, Facebook, Twitter, Instagram, Youtube } from 'lucide-react'
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { useAuthRedux } from "@/hooks/use-auth-redux"
+import { useAppSelector } from "@/lib/hooks"
 import MobileMenu from "@/components/mobile-menu"
-import SearchBar from "@/components/search-bar"
-import Image from "next/image"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+interface MainLayoutProps {
+  children: React.ReactNode
+}
+
+export default function MainLayout({ children }: MainLayoutProps) {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const { isAuthenticated, user } = useAuthRedux()
+  const pathname = usePathname()
+
+  // Mock cart and wishlist counts
+  const cartCount = 3
+  const wishlistCount = 5
+  const notificationCount = 2
+
+  useEffect(() => {
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true)
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode)
+    if (!isDarkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`
+    }
+  }
+
+  const navigationLinks = [
+    { href: "/", label: "Home" },
+    { href: "/products", label: "Products" },
+    { href: "/categories", label: "Categories" },
+    { href: "/stores", label: "Stores" },
+    { href: "/rentals", label: "Rentals" },
+    { href: "/season", label: "Seasonal" },
+    { href: "/community", label: "Community" },
+    { href: "/about", label: "About" }
+  ]
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="md:hidden">
-              <MobileMenu />
-            </div>
-            <Link href="/" className="flex items-center">
-              <div className="h-10 w-32 relative">
-                <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-aBt882nZbdTyKgTaeHTCYc1Lih27bD.png"
-                  alt="Nanbakadai Logo"
-                  fill
-                  className="object-contain"
-                />
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="h-8 w-8 bg-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">N</span>
               </div>
+              <span className="font-bold text-xl text-green-600">Nanbakadai</span>
             </Link>
-          </div>
 
-          <div className="hidden md:block mx-4 flex-1 max-w-md">
-            <SearchBar />
-          </div>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-6">
+              {navigationLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors hover:text-green-600 ${
+                    pathname === link.href ? 'text-green-600' : 'text-muted-foreground'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
 
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-700 hover:text-green-600 transition-colors">
-              Home
-            </Link>
-            <Link href="/products" className="text-gray-700 hover:text-green-600 transition-colors">
-              Products
-            </Link>
-            <Link href="/stores" className="text-gray-700 hover:text-green-600 transition-colors">
-              Stores
-            </Link>
-            <Link href="/season" className="text-gray-700 hover:text-green-600 transition-colors">
-              Season
-            </Link>
-            <Link href="/rentals" className="text-gray-700 hover:text-green-600 transition-colors">
-              Rentals
-            </Link>
-            <Link href="/community" className="text-gray-700 hover:text-green-600 transition-colors">
-              Community
-            </Link>
-            <Link href="/about" className="text-gray-700 hover:text-green-600 transition-colors">
-              About
-            </Link>
-          </nav>
+            {/* Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-md mx-8">
+              <form onSubmit={handleSearch} className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="search"
+                  placeholder="Search products, stores..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4"
+                />
+              </form>
+            </div>
 
-          <div className="flex items-center space-x-4">
-            {/* User Profile Avatar with Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                  <div className="relative h-10 w-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-colors">
-                    <Image src="/placeholder.svg?height=40&width=40" alt="User avatar" fill className="object-cover" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">John Farmer</p>
-                    <p className="text-xs leading-none text-muted-foreground">john@example.com</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center cursor-pointer">
-                    <UserCircle className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/store/dashboard" className="flex items-center cursor-pointer">
-                    <Store className="mr-2 h-4 w-4" />
-                    <span>Store Dashboard</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex items-center cursor-pointer text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="hidden sm:flex items-center space-x-2">
-              <Button variant="ghost" className="text-gray-700" asChild>
-                <Link href="/login">Login</Link>
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-4">
+              {/* Theme Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="hidden md:flex"
+              >
+                {isDarkMode ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
               </Button>
-              <Button className="bg-green-500 hover:bg-green-600" asChild>
-                <Link href="/signup">Sign Up</Link>
+
+              {/* Notifications */}
+              {isAuthenticated && (
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-4 w-4" />
+                  {notificationCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
+                      {notificationCount}
+                    </Badge>
+                  )}
+                </Button>
+              )}
+
+              {/* Wishlist */}
+              <Button variant="ghost" size="icon" className="relative" asChild>
+                <Link href="/wishlist">
+                  <Heart className="h-4 w-4" />
+                  {wishlistCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
+                      {wishlistCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              {/* Cart */}
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-4 w-4" />
+                {cartCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-green-500">
+                    {cartCount}
+                  </Badge>
+                )}
+              </Button>
+
+              {/* User Menu */}
+              {isAuthenticated ? (
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/profile">
+                    <User className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <div className="hidden md:flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </div>
+              )}
+
+              {/* Mobile Menu Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setShowMobileMenu(true)}
+              >
+                <Menu className="h-4 w-4" />
               </Button>
             </div>
-            <Button variant="outline" className="hidden md:flex items-center border-green-500 text-green-600" asChild>
-              <Link href="/seller/register">Sell</Link>
-            </Button>
           </div>
-        </div>
 
-        {/* Mobile search bar */}
-        <div className="md:hidden px-4 pb-3">
-          <SearchBar />
+          {/* Mobile Search */}
+          <div className="md:hidden pb-4">
+            <form onSubmit={handleSearch} className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="search"
+                placeholder="Search products, stores..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4"
+              />
+            </form>
+          </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-grow bg-gray-50">{children}</main>
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={showMobileMenu} 
+        onClose={() => setShowMobileMenu(false)}
+        navigationLinks={navigationLinks}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onThemeToggle={toggleTheme}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Main Content */}
+      <main className="flex-1">
+        {children}
+      </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-            <div className="md:col-span-2">
-              <div className="flex items-center mb-4">
-                <div className="h-12 w-40 relative">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-aBt882nZbdTyKgTaeHTCYc1Lih27bD.png"
-                    alt="Nanbakadai Logo"
-                    fill
-                    className="object-contain"
-                  />
+      <footer className="bg-muted/50 border-t">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Company Info */}
+            <div className="space-y-4">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="h-8 w-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">N</span>
                 </div>
-              </div>
-              <p className="text-gray-600 mb-4 max-w-md">
-                Nanbakadai connects farmers, consumers, and agricultural enthusiasts in a vibrant marketplace dedicated
-                to sustainable farming and community growth.
+                <span className="font-bold text-xl text-green-600">Nanbakadai</span>
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                Connecting farmers and consumers through sustainable agriculture and fresh, local produce.
               </p>
               <div className="flex space-x-4">
-                {["facebook", "twitter", "instagram", "youtube"].map((social) => (
-                  <a
-                    key={social}
-                    href={`#${social}`}
-                    className="bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors"
-                  >
-                    <span className="sr-only">{social}</span>
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z" />
-                    </svg>
-                  </a>
-                ))}
+                <Button variant="ghost" size="icon">
+                  <Facebook className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Twitter className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Instagram className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Youtube className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Marketplace</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/products" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Products
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/stores" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Stores
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/season" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Seasonal Crops
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/rentals" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Equipment Rentals
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/categories" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Categories
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/community" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Community
-                  </Link>
-                </li>
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/products" className="text-muted-foreground hover:text-foreground">Products</Link></li>
+                <li><Link href="/categories" className="text-muted-foreground hover:text-foreground">Categories</Link></li>
+                <li><Link href="/stores" className="text-muted-foreground hover:text-foreground">Stores</Link></li>
+                <li><Link href="/rentals" className="text-muted-foreground hover:text-foreground">Equipment Rentals</Link></li>
+                <li><Link href="/season" className="text-muted-foreground hover:text-foreground">Seasonal Guide</Link></li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Account</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/login" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Login
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/signup" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Sign Up
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/profile" className="text-gray-600 hover:text-green-600 transition-colors">
-                    My Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/seller/register" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Become a Seller
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/wishlist" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Wishlist
-                  </Link>
-                </li>
+            {/* Support */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Support</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact Us</Link></li>
+                <li><Link href="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Company</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/about" className="text-gray-600 hover:text-green-600 transition-colors">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Contact
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/faq" className="text-gray-600 hover:text-green-600 transition-colors">
-                    FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Terms & Conditions
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-gray-600 hover:text-green-600 transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-              </ul>
+            {/* Contact Info */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Contact Info</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center space-x-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>Bangalore, Karnataka, India</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Phone className="h-4 w-4" />
+                  <span>+91 98765 43210</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-4 w-4" />
+                  <span>info@nanbakadai.com</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-500 text-sm mb-4 md:mb-0">
-              © {new Date().getFullYear()} Nanbakadai. All rights reserved.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/terms" className="text-gray-500 hover:text-green-600 text-sm transition-colors">
-                Terms
-              </Link>
-              <Link href="/privacy" className="text-gray-500 hover:text-green-600 text-sm transition-colors">
-                Privacy
-              </Link>
-              <Link href="/cookies" className="text-gray-500 hover:text-green-600 text-sm transition-colors">
-                Cookies
-              </Link>
-              <Link href="/sitemap" className="text-gray-500 hover:text-green-600 text-sm transition-colors">
-                Sitemap
-              </Link>
-            </div>
+          <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2024 Nanbakadai. All rights reserved.</p>
           </div>
         </div>
       </footer>
