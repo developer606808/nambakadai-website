@@ -1,0 +1,392 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142.1 76.2% 36.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 142.4 71.8% 29.2%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Animated Background Elements */
+
+/* Subtle background pattern */
+.bg-pattern {
+  background-image: radial-gradient(rgba(34, 197, 94, 0.05) 2px, transparent 2px);
+  background-size: 30px 30px;
+  height: 100%;
+  width: 100%;
+  opacity: 0.5;
+}
+
+/* Animated leaves */
+.leaf {
+  position: absolute;
+  background-color: rgba(34, 197, 94, 0.15);
+  border-radius: 100% 0 100% 0;
+  animation: float 15s infinite ease-in-out;
+}
+
+.leaf-1 {
+  width: 100px;
+  height: 100px;
+  top: -50px;
+  left: 10%;
+  animation-delay: 0s;
+  transform: rotate(45deg);
+}
+
+.leaf-2 {
+  width: 150px;
+  height: 150px;
+  bottom: -75px;
+  right: 15%;
+  animation-delay: 2s;
+  transform: rotate(135deg);
+}
+
+.leaf-3 {
+  width: 80px;
+  height: 80px;
+  top: 30%;
+  left: -40px;
+  animation-delay: 4s;
+  transform: rotate(225deg);
+}
+
+.leaf-4 {
+  width: 120px;
+  height: 120px;
+  top: 20%;
+  right: -60px;
+  animation-delay: 6s;
+  transform: rotate(315deg);
+}
+
+.leaf-5 {
+  width: 60px;
+  height: 60px;
+  bottom: 20%;
+  left: 20%;
+  animation-delay: 8s;
+  transform: rotate(45deg);
+}
+
+/* Animated circles */
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.1);
+  animation: pulse 10s infinite ease-in-out;
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -100px;
+  right: 10%;
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  width: 150px;
+  height: 150px;
+  bottom: -75px;
+  left: 5%;
+  animation-delay: 3s;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  top: 40%;
+  right: 20%;
+  animation-delay: 6s;
+}
+
+/* Farm pattern */
+.farm-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgba(34, 197, 94, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  animation: moveBg 30s linear infinite;
+}
+
+/* Floating seeds */
+.floating-seed {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.2);
+  animation: floatSeed 20s infinite ease-in-out;
+}
+
+.floating-seed-1 {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.floating-seed-2 {
+  top: 50%;
+  right: 15%;
+  animation-delay: 5s;
+}
+
+.floating-seed-3 {
+  bottom: 30%;
+  left: 30%;
+  animation-delay: 10s;
+}
+
+/* Growing plants animation */
+.growing-plant {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  background-color: rgba(34, 197, 94, 0.6);
+  transform-origin: bottom center;
+  animation: grow 8s infinite ease-out;
+}
+
+.growing-plant::before,
+.growing-plant::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 10px;
+  background-color: rgba(34, 197, 94, 0.6);
+  border-radius: 50% 50% 0 0;
+  transform-origin: center bottom;
+}
+
+.growing-plant::before {
+  left: -18px;
+  transform: rotate(-30deg);
+}
+
+.growing-plant::after {
+  right: -18px;
+  transform: rotate(30deg);
+}
+
+.growing-plant-1 {
+  height: 0;
+  left: 15%;
+  animation-delay: 0s;
+}
+
+.growing-plant-2 {
+  height: 0;
+  left: 50%;
+  animation-delay: 2s;
+}
+
+.growing-plant-3 {
+  height: 0;
+  left: 85%;
+  animation-delay: 4s;
+}
+
+/* Floating particles */
+.floating-particle {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.15);
+  filter: blur(1px);
+  animation: floatParticle 15s infinite linear;
+}
+
+.floating-particle-1 {
+  width: 30px;
+  height: 30px;
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.floating-particle-2 {
+  width: 20px;
+  height: 20px;
+  top: 60%;
+  left: 5%;
+  animation-delay: 3s;
+}
+
+.floating-particle-3 {
+  width: 25px;
+  height: 25px;
+  top: 30%;
+  right: 10%;
+  animation-delay: 6s;
+}
+
+.floating-particle-4 {
+  width: 15px;
+  height: 15px;
+  bottom: 20%;
+  right: 15%;
+  animation-delay: 9s;
+}
+
+.floating-particle-5 {
+  width: 35px;
+  height: 35px;
+  bottom: 40%;
+  left: 50%;
+  animation-delay: 12s;
+}
+
+/* Animations */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(45deg);
+  }
+  50% {
+    transform: translateY(20px) rotate(45deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.2;
+  }
+}
+
+@keyframes moveBg {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100px 100px;
+  }
+}
+
+@keyframes floatSeed {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(10px, 15px) rotate(90deg);
+  }
+  50% {
+    transform: translate(20px, 0) rotate(180deg);
+  }
+  75% {
+    transform: translate(10px, -15px) rotate(270deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(360deg);
+  }
+}
+
+@keyframes grow {
+  0% {
+    height: 0;
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    height: 100px;
+    opacity: 0.8;
+  }
+  100% {
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(50px, 25px);
+  }
+  50% {
+    transform: translate(0, 50px);
+  }
+  75% {
+    transform: translate(-50px, 25px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
