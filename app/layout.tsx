@@ -1,11 +1,11 @@
-import type React from "react"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { ReduxProvider } from "@/components/providers/redux-provider"
-import { Suspense } from "react"
+import type React from "react";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Suspense } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "@/components/providers";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Nanbakadai - Farm to Table Classified Ads Marketplace",
@@ -41,29 +41,28 @@ export const metadata = {
     images: ["/placeholder.svg?height=630&width=1200"],
   },
     generator: 'v0.dev'
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#10b981" />
       </head>
       <body className={inter.className}>
-        <ReduxProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <Suspense>
-              <main>{children}</main>
-            </Suspense>
-          </ThemeProvider>
-        </ReduxProvider>
+        <Providers>
+          <Suspense>
+            <main>{children}</main>
+          </Suspense>
+          <Toaster />
+        </Providers>
       </body>
     </html>
-  )
+  );
 }

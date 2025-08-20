@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,8 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Pagination,
   PaginationContent,
@@ -34,208 +35,327 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  Filter,
   Loader2,
+  Plus,
+  Upload,
+  X,
   Car,
   MapPin,
   DollarSign,
+  Filter,
 } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { ImageCropModal } from '@/components/ui/image-crop-modal';
 
-// Mock data for rentals
-const mockRentals = [
-  {
-    id: 1,
-    name: "Tractor - John Deere",
-    owner: "Green Farm",
-    location: "Tokyo",
-    status: "available",
-    price: 15000,
-    type: "Tractor",
-    rating: 4.5,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    name: "Harvester - New Holland",
-    owner: "Orchard Fresh",
-    location: "Osaka",
-    status: "available",
-    price: 25000,
-    type: "Harvester",
-    rating: 4.2,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    name: "Pickup Truck - Toyota",
-    owner: "Happy Cows",
-    location: "Kyoto",
-    status: "rented",
-    price: 8000,
-    type: "Truck",
-    rating: 3.8,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    name: "Mini Excavator",
-    owner: "Grain Valley",
-    location: "Nagoya",
-    status: "available",
-    price: 12000,
-    type: "Excavator",
-    rating: 4.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    name: "ATV - Honda",
-    owner: "Free Range Farms",
-    location: "Sapporo",
-    status: "maintenance",
-    price: 5000,
-    type: "ATV",
-    rating: 4.1,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 6,
-    name: "Utility Vehicle - Kubota",
-    owner: "Ocean Fresh",
-    location: "Fukuoka",
-    status: "available",
-    price: 7500,
-    type: "Utility Vehicle",
-    rating: 4.3,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 7,
-    name: "Sprayer - John Deere",
-    owner: "Herb Garden",
-    location: "Yokohama",
-    status: "rented",
-    price: 9000,
-    type: "Sprayer",
-    rating: 3.9,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 8,
-    name: "Trailer - Heavy Duty",
-    owner: "Nut House",
-    location: "Kobe",
-    status: "available",
-    price: 6000,
-    type: "Trailer",
-    rating: 4.4,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 9,
-    name: "Compact Tractor - Kubota",
-    owner: "Bee Happy",
-    location: "Hiroshima",
-    status: "available",
-    price: 10000,
-    type: "Tractor",
-    rating: 4.6,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 10,
-    name: "Forklift - Toyota",
-    owner: "Mountain Dairy",
-    location: "Sendai",
-    status: "maintenance",
-    price: 8500,
-    type: "Forklift",
-    rating: 3.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+// Define interfaces based on your Prisma schema and API responses
+interface RentalProduct {
+  id: number;
+  name: string;
+  description?: string;
+  rentalRate: number;
+  rentalUnit: string;
+  availabilityStart?: string | null;
+  availabilityEnd?: string | null;
+  depositAmount?: number | null;
+  images: string[];
+  categoryId: number;
+  storeId: number;
+  createdAt: string;
+  updatedAt: string;
+  category?: { id: number; name_en: string; type: string }; // Include category details
+  store?: { id: number; name: string; ownerId: number }; // Include store details
+}
+
+interface Category {
+  id: number;
+  name_en: string;
+  type: string;
+}
+
+interface Store {
+  id: number;
+  name: string;
+  ownerId: number;
+}
+
+// Zod schema for form validation
+const rentalProductFormSchema = z.object({
+  id: z.number().int().optional(), // Optional for create, required for edit
+  name: z.string().min(1, { message: "Rental Product Name is required." }),
+  description: z.string().optional(),
+  rentalRate: z.number().min(0, { message: "Rental Rate must be a non-negative number." }),
+  rentalUnit: z.string().min(1, { message: "Rental Unit is required." }),
+  availabilityStart: z.string().datetime().optional().nullable(),
+  availabilityEnd: z.string().datetime().optional().nullable(),
+  depositAmount: z.number().min(0).optional().nullable(),
+  categoryId: z.number().int({ message: "Category is required." }),
+  storeId: z.number().int({ message: "Store is required." }),
+});
+
+type RentalProductFormData = z.infer<typeof rentalProductFormSchema>;
 
 export default function RentalsPage() {
-  const [rentals, setRentals] = useState(mockRentals)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentRental, setCurrentRental] = useState<any>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [isLoading, setIsLoading] = useState(false)
+  const [rentals, setRentals] = useState<RentalProduct[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentRental, setCurrentRental] = useState<RentalProduct | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // Assuming status is derived or added
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [storeFilter, setStoreFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10); // Items per page
+
+  // Image states for add/edit dialogs
+  const [imageToCropSrc, setImageToCropSrc] = useState<string | null>(null);
+  const [isImageCropModalOpen, setIsImageCropModalOpen] = useState(false);
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null); // Index of image being edited
+  const [rentalImages, setRentalImages] = useState<string[]>([]); // For existing images
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]); // For new images to upload
+
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<RentalProductFormData>({
+    resolver: zodResolver(rentalProductFormSchema),
+  });
+
+  // Fetch data on component mount and when page changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const rentalsRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/rentals?page=${currentPage}&limit=${limit}`);
+        if (!rentalsRes.ok) throw new Error(`Failed to fetch rentals: ${rentalsRes.statusText}`);
+        const rentalPayload = await rentalsRes.json();
+        setRentals(rentalPayload.data);
+        setTotalPages(rentalPayload.pagination.totalPages);
+
+        if (categories.length === 0) {
+            const categoriesRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/categories`);
+            if (categoriesRes.ok) setCategories(await categoriesRes.json());
+        }
+        if (stores.length === 0) {
+            const storesRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/stores`);
+            if (storesRes.ok) setStores(await storesRes.json());
+        }
+
+      } catch (err: any) {
+        setApiError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentPage, limit, categories.length, stores.length]);
 
   // Filter rentals based on search query and filters
   const filteredRentals = rentals.filter((rental) => {
     const matchesSearch =
       rental.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rental.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rental.location.toLowerCase().includes(searchQuery.toLowerCase())
+      (rental.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      rental.category?.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rental.store?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || rental.status === statusFilter
-    const matchesType = typeFilter === "all" || rental.type === typeFilter
+    // Assuming rental status is derived or a new field
+    const matchesStatus = statusFilter === "all" || 
+                          (statusFilter === "available" && rental.availabilityStart && new Date(rental.availabilityStart) <= new Date() && (!rental.availabilityEnd || new Date(rental.availabilityEnd) >= new Date())) ||
+                          (statusFilter === "rented" && rental.availabilityEnd && new Date(rental.availabilityEnd) < new Date()); // Simplified logic
 
-    return matchesSearch && matchesStatus && matchesType
-  })
+    const matchesCategory = categoryFilter === "all" || rental.categoryId === parseInt(categoryFilter);
+    const matchesStore = storeFilter === "all" || rental.storeId === parseInt(storeFilter);
 
-  const handleEditRental = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.map((rental) =>
-        rental.id === currentRental.id ? { ...rental, ...currentRental } : rental,
-      )
-      setRentals(updatedRentals)
-      setIsEditDialogOpen(false)
-      setCurrentRental(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+    return matchesSearch && matchesStatus && matchesCategory && matchesStore;
+  });
 
-  const handleDeleteRental = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.filter((rental) => rental.id !== currentRental.id)
-      setRentals(updatedRentals)
-      setIsDeleteDialogOpen(false)
-      setCurrentRental(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+  const handleAddRental = async (data: RentalProductFormData) => {
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("description", data.description || '');
+      formData.append("rentalRate", data.rentalRate.toString());
+      formData.append("rentalUnit", data.rentalUnit);
+      formData.append("availabilityStart", data.availabilityStart || '');
+      formData.append("availabilityEnd", data.availabilityEnd || '');
+      formData.append("depositAmount", (data.depositAmount || 0).toString());
+      formData.append("categoryId", data.categoryId.toString());
+      formData.append("storeId", data.storeId.toString());
 
-  const handleChangeStatus = (rental: any, newStatus: string) => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.map((r) => (r.id === rental.id ? { ...r, status: newStatus } : r))
-      setRentals(updatedRentals)
-      setIsLoading(false)
-    }, 500)
-  }
+      newImageFiles.forEach((file) => {
+        formData.append("images", file);
+      });
 
-  // Get unique types for filter
-  const types = Array.from(new Set(rentals.map((rental) => rental.type)))
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/rentals`, {
+        method: 'POST',
+        body: formData,
+      });
 
-  // Status badge variant
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "available":
-        return "success"
-      case "rented":
-        return "warning"
-      case "maintenance":
-        return "destructive"
-      default:
-        return "secondary"
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add rental product');
+      }
+
+      const newRental: RentalProduct = await res.json();
+      setRentals((prev) => [...prev, newRental]);
+      setIsAddDialogOpen(false);
+      reset(); // Clear form fields
+      setRentalImages([]);
+      setNewImageFiles([]);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
+  const handleEditRental = async (data: RentalProductFormData) => {
+    if (!currentRental) return;
+
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const formData = new FormData();
+      formData.append("id", currentRental.id.toString());
+      formData.append("name", data.name);
+      formData.append("description", data.description || '');
+      formData.append("rentalRate", data.rentalRate.toString());
+      formData.append("rentalUnit", data.rentalUnit);
+      formData.append("availabilityStart", data.availabilityStart || '');
+      formData.append("availabilityEnd", data.availabilityEnd || '');
+      formData.append("depositAmount", (data.depositAmount || 0).toString());
+      formData.append("categoryId", data.categoryId.toString());
+      formData.append("storeId", data.storeId.toString());
+      formData.append("existingImageUrls", JSON.stringify(rentalImages)); // Send existing image URLs
+
+      newImageFiles.forEach((file) => {
+        formData.append("newImages", file); // Append new image files
+      });
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/rentals`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update rental product');
+      }
+
+      const updatedRental: RentalProduct = await res.json();
+      setRentals((prev) =>
+        prev.map((prod) => (prod.id === updatedRental.id ? updatedRental : prod))
+      );
+      setIsEditDialogOpen(false);
+      reset();
+      setRentalImages([]);
+      setNewImageFiles([]);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRental = async () => {
+    if (!currentRental) return;
+
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/rentals?id=${currentRental.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete rental product');
+      }
+
+      setRentals((prev) => prev.filter((prod) => prod.id !== currentRental.id));
+      setIsDeleteDialogOpen(false);
+      reset();
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle image selection for cropping
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageToCropSrc(reader.result?.toString() || '');
+        setIsImageCropModalOpen(true);
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  // Handle crop complete from modal
+  const handleCropComplete = (blob: Blob) => {
+    setCroppedImageBlob(blob);
+    // Add the new cropped image to the list of new image files
+    setNewImageFiles((prev) => [...prev, new File([blob], `rental_image_${Date.now()}.png`, { type: 'image/png' })]);
+    setIsImageCropModalOpen(false);
+    setImageToCropSrc(null);
+  };
+
+  // Remove an image from the list
+  const handleRemoveImage = (indexToRemove: number, isNew: boolean) => {
+    if (isNew) {
+      setNewImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+    } else {
+      setRentalImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    }
+  };
+
+  // Set form values when editing a rental product
+  useEffect(() => {
+    if (isEditDialogOpen && currentRental) {
+      reset({
+        ...currentRental,
+        availabilityStart: currentRental.availabilityStart ? new Date(currentRental.availabilityStart).toISOString().slice(0, 16) : '',
+        availabilityEnd: currentRental.availabilityEnd ? new Date(currentRental.availabilityEnd).toISOString().slice(0, 16) : '',
+      });
+      setRentalImages(currentRental.images || []); // Set existing images
+      setNewImageFiles([]); // Clear new images when opening edit dialog
+    } else if (isAddDialogOpen) {
+      reset(); // Clear form fields for add form
+      setRentalImages([]);
+      setNewImageFiles([]);
+    }
+  }, [isEditDialogOpen, isAddDialogOpen, currentRental, reset]);
 
   return (
     <div className="flex flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Rental Vehicles</h2>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => {
+                setCurrentRental(null); // Clear current rental for add form
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Rental Vehicle
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
@@ -251,96 +371,127 @@ export default function RentalsPage() {
           </div>
 
           <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
-            <div className="flex items-center space-x-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="rented">Rented</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="rented">Rented</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name_en}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setSearchQuery("")
-                  setStatusFilter("all")
-                  setTypeFilter("all")
-                }}
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
+            <Select value={storeFilter} onValueChange={setStoreFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Store" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stores</SelectItem>
+                {stores.map((store) => (
+                  <SelectItem key={store.id} value={store.id.toString()}>
+                    {store.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setCategoryFilter("all");
+                setStoreFilter("all");
+              }}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+
+        {apiError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {apiError}</span>
+          </div>
+        )}
 
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Vehicle</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Price/Day</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Store</TableHead>
+                <TableHead>Rate</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Images</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRentals.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No rentals found.
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    Loading rental vehicles...
+                  </TableCell>
+                </TableRow>
+              ) : filteredRentals.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    No rental vehicles found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredRentals.map((rental) => (
                   <TableRow key={rental.id}>
+                    <TableCell>{rental.id}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 overflow-hidden rounded-md">
                           <Image
-                            src={rental.image || "/placeholder.svg"}
+                            src={rental.images[0] || "/placeholder.svg"}
                             alt={rental.name}
                             width={40}
                             height={40}
-                            className="h-full w-full object-cover"
+                            className="object-cover"
                           />
                         </div>
                         <div>
                           <div className="font-medium">{rental.name}</div>
-                          <div className="text-xs text-muted-foreground">ID: {rental.id}</div>
+                          <div className="text-xs text-muted-foreground">{rental.description?.substring(0, 50)}...</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{rental.owner}</TableCell>
-                    <TableCell>{rental.location}</TableCell>
-                    <TableCell>{rental.type}</TableCell>
-                    <TableCell>¥{rental.price.toLocaleString()}</TableCell>
+                    <TableCell>{rental.category?.name_en || '-'}</TableCell>
+                    <TableCell>{rental.store?.name || '-'}</TableCell>
+                    <TableCell>¥{rental.rentalRate.toFixed(2)}</TableCell>
+                    <TableCell>{rental.rentalUnit}</TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(rental.status)}>
-                        {rental.status.charAt(0).toUpperCase() + rental.status.slice(1)}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {rental.images.map((img, idx) => (
+                          <Image key={idx} src={img} alt={`Rental ${idx}`} width={30} height={30} className="rounded-sm object-cover" />
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -353,40 +504,25 @@ export default function RentalsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => {
-                              setCurrentRental(rental)
-                              setIsEditDialogOpen(true)
+                              setCurrentRental(rental);
+                              reset({
+                                ...rental,
+                                availabilityStart: rental.availabilityStart ? new Date(rental.availabilityStart).toISOString().slice(0, 16) : '',
+                                availabilityEnd: rental.availabilityEnd ? new Date(rental.availabilityEnd).toISOString().slice(0, 16) : '',
+                              });
+                              setRentalImages(rental.images || []);
+                              setNewImageFiles([]);
+                              setIsEditDialogOpen(true);
                             }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          {rental.status !== "available" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "available")}>
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Mark Available
-                            </DropdownMenuItem>
-                          )}
-                          {rental.status !== "rented" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "rented")}>
-                              <Car className="mr-2 h-4 w-4" />
-                              Mark Rented
-                            </DropdownMenuItem>
-                          )}
-                          {rental.status !== "maintenance" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "maintenance")}>
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Mark Maintenance
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => {
-                              setCurrentRental(rental)
-                              setIsDeleteDialogOpen(true)
+                              setCurrentRental(rental);
+                              setIsDeleteDialogOpen(true);
                             }}
                           >
                             <Trash className="mr-2 h-4 w-4" />
@@ -402,28 +538,158 @@ export default function RentalsPage() {
           </Table>
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="flex items-center justify-end pt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)); }} disabled={currentPage === 1} />
+                </PaginationItem>
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink href="#" isActive={currentPage === i + 1} onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1); }}>
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)); }} disabled={currentPage === totalPages} />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+        </div>
       </div>
+
+      {/* Add Rental Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add Rental Vehicle</DialogTitle>
+            <DialogDescription>Create a new rental vehicle listing.</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh] p-4">
+            <form onSubmit={handleSubmit(handleAddRental)} className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Vehicle Name</Label>
+                  <Input id="name" placeholder="Vehicle name" {...register("name")} />
+                  {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="rentalRate">Rental Rate</Label>
+                  <Input id="rentalRate" type="number" step="0.01" placeholder="0.00" {...register("rentalRate", { valueAsNumber: true })} />
+                  {errors.rentalRate && <p className="text-red-500 text-sm">{errors.rentalRate.message}</p>}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="rentalUnit">Rental Unit</Label>
+                <Input id="rentalUnit" placeholder="e.g., per day, per hour" {...register("rentalUnit")} />
+                {errors.rentalUnit && <p className="text-red-500 text-sm">{errors.rentalUnit.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" placeholder="Vehicle description" {...register("description")} rows={3} />
+                {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="availabilityStart">Available From</Label>
+                  <Input id="availabilityStart" type="datetime-local" {...register("availabilityStart")} />
+                  {errors.availabilityStart && <p className="text-red-500 text-sm">{errors.availabilityStart.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="availabilityEnd">Available Until</Label>
+                  <Input id="availabilityEnd" type="datetime-local" {...register("availabilityEnd")} />
+                  {errors.availabilityEnd && <p className="text-red-500 text-sm">{errors.availabilityEnd.message}</p>}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="depositAmount">Deposit Amount</Label>
+                <Input id="depositAmount" type="number" step="0.01" placeholder="0.00" {...register("depositAmount", { valueAsNumber: true })} />
+                {errors.depositAmount && <p className="text-red-500 text-sm">{errors.depositAmount.message}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="categoryId">Category</Label>
+                  <Select
+                    onValueChange={(value) => setValue("categoryId", parseInt(value))}
+                  >
+                    <SelectTrigger id="categoryId">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name_en}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="storeId">Store</Label>
+                  <Select
+                    onValueChange={(value) => setValue("storeId", parseInt(value))}
+                  >
+                    <SelectTrigger id="storeId">
+                      <SelectValue placeholder="Select store" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stores.map((store) => (
+                        <SelectItem key={store.id} value={store.id.toString()}>
+                          {store.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.storeId && <p className="text-red-500 text-sm">{errors.storeId.message}</p>}
+                </div>
+              </div>
+
+              {/* Image Upload Section */}
+              <div className="grid gap-2">
+                <Label>Rental Images</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {newImageFiles.map((file, index) => (
+                    <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                      <Image src={URL.createObjectURL(file)} alt={`New Rental ${index}`} fill className="object-cover" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleRemoveImage(index, true)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <label
+                    htmlFor="image-upload"
+                    className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload className="h-8 w-8 text-gray-400" />
+                    <span className="text-xs text-gray-500">Add Image</span>
+                    <Input id="image-upload" type="file" className="hidden" accept="image/*" onChange={onSelectFile} />
+                  </label>
+                </div>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...</>
+                  ) : (
+                    <><Plus className="mr-2 h-4 w-4" /> Add Rental Vehicle</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Rental Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -432,136 +698,145 @@ export default function RentalsPage() {
             <DialogTitle>Edit Rental Vehicle</DialogTitle>
             <DialogDescription>Make changes to the rental vehicle information.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 overflow-hidden rounded-md">
-                <Image
-                  src={currentRental?.image || "/placeholder.svg?height=64&width=64"}
-                  alt={currentRental?.name || "Rental"}
-                  width={64}
-                  height={64}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium">{currentRental?.name}</h3>
-                <p className="text-sm text-muted-foreground">ID: {currentRental?.id}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Vehicle Name</Label>
-                <div className="relative">
-                  <Car className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="edit-name"
-                    value={currentRental?.name || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, name: e.target.value })}
-                    className="pl-8"
-                  />
+          <ScrollArea className="max-h-[70vh] p-4">
+            <form onSubmit={handleSubmit(handleEditRental)} className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Vehicle Name</Label>
+                  <Input id="edit-name" placeholder="Vehicle name" {...register("name")} />
+                  {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-rentalRate">Rental Rate</Label>
+                  <Input id="edit-rentalRate" type="number" step="0.01" placeholder="0.00" {...register("rentalRate", { valueAsNumber: true })} />
+                  {errors.rentalRate && <p className="text-red-500 text-sm">{errors.rentalRate.message}</p>}
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-owner">Owner</Label>
-                <Input
-                  id="edit-owner"
-                  value={currentRental?.owner || ""}
-                  onChange={(e) => setCurrentRental({ ...currentRental, owner: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-type">Type</Label>
-                <Select
-                  value={currentRental?.type || ""}
-                  onValueChange={(value) => setCurrentRental({ ...currentRental, type: value })}
-                >
-                  <SelectTrigger id="edit-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {types.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="edit-rentalUnit">Rental Unit</Label>
+                <Input id="edit-rentalUnit" placeholder="e.g., per day, per hour" {...register("rentalUnit")} />
+                {errors.rentalUnit && <p className="text-red-500 text-sm">{errors.rentalUnit.message}</p>}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={currentRental?.status || ""}
-                  onValueChange={(value) => setCurrentRental({ ...currentRental, status: value })}
-                >
-                  <SelectTrigger id="edit-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="rented">Rented</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea id="edit-description" placeholder="Vehicle description" {...register("description")} rows={3} />
+                {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-price">Price per Day</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="edit-price"
-                    type="number"
-                    value={currentRental?.price || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, price: Number.parseInt(e.target.value) })}
-                    className="pl-8"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-availabilityStart">Available From</Label>
+                  <Input id="edit-availabilityStart" type="datetime-local" {...register("availabilityStart")} />
+                  {errors.availabilityStart && <p className="text-red-500 text-sm">{errors.availabilityStart.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-availabilityEnd">Available Until</Label>
+                  <Input id="edit-availabilityEnd" type="datetime-local" {...register("availabilityEnd")} />
+                  {errors.availabilityEnd && <p className="text-red-500 text-sm">{errors.availabilityEnd.message}</p>}
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-location">Location</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="edit-location"
-                    value={currentRental?.location || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, location: e.target.value })}
-                    className="pl-8"
-                  />
+                <Label htmlFor="edit-depositAmount">Deposit Amount</Label>
+                <Input id="edit-depositAmount" type="number" step="0.01" placeholder="0.00" {...register("depositAmount", { valueAsNumber: true })} />
+                {errors.depositAmount && <p className="text-red-500 text-sm">{errors.depositAmount.message}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-categoryId">Category</Label>
+                  <Select
+                    defaultValue={currentRental?.categoryId?.toString() || ''}
+                    onValueChange={(value) => setValue("categoryId", parseInt(value))}
+                  >
+                    <SelectTrigger id="edit-categoryId">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name_en}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-storeId">Store</Label>
+                  <Select
+                    defaultValue={currentRental?.storeId?.toString() || ''}
+                    onValueChange={(value) => setValue("storeId", parseInt(value))}
+                  >
+                    <SelectTrigger id="edit-storeId">
+                      <SelectValue placeholder="Select store" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stores.map((store) => (
+                        <SelectItem key={store.id} value={store.id.toString()}>
+                          {store.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.storeId && <p className="text-red-500 text-sm">{errors.storeId.message}</p>}
                 </div>
               </div>
-            </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={currentRental?.description || ""}
-                onChange={(e) => setCurrentRental({ ...currentRental, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditRental} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </DialogFooter>
+              {/* Image Upload Section for Edit */}
+              <div className="grid gap-2">
+                <Label>Rental Images</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {rentalImages.map((imgUrl, index) => (
+                    <div key={imgUrl} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                      <Image src={imgUrl} alt={`Rental ${index}`} fill className="object-cover" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleRemoveImage(index, false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {newImageFiles.map((file, index) => (
+                    <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                      <Image src={URL.createObjectURL(file)} alt={`New Rental ${index}`} fill className="object-cover" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleRemoveImage(index, true)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <label
+                    htmlFor="edit-image-upload"
+                    className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload className="h-8 w-8 text-gray-400" />
+                    <span className="text-xs text-gray-500">Add Image</span>
+                    <Input id="edit-image-upload" type="file" className="hidden" accept="image/*" onChange={onSelectFile} />
+                  </label>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
@@ -577,7 +852,7 @@ export default function RentalsPage() {
           <div className="flex items-center space-x-3 rounded-md border p-4">
             <div className="h-10 w-10 overflow-hidden rounded-md">
               <Image
-                src={currentRental?.image || "/placeholder.svg?height=40&width=40"}
+                src={currentRental?.images[0] || "/placeholder.svg?height=40&width=40"}
                 alt={currentRental?.name || "Rental"}
                 width={40}
                 height={40}
@@ -587,12 +862,12 @@ export default function RentalsPage() {
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium leading-none">{currentRental?.name}</p>
               <p className="text-sm text-muted-foreground">
-                ¥{currentRental?.price?.toLocaleString()} per day • {currentRental?.type}
+                ¥{currentRental?.rentalRate?.toFixed(2)} per {currentRental?.rentalUnit} • {currentRental?.category?.name_en || '-'}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeleteRental} disabled={isLoading}>
@@ -608,6 +883,23 @@ export default function RentalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {imageToCropSrc && (
+        <ImageCropModal
+          isOpen={isImageCropModalOpen}
+          onClose={() => setIsImageCropModalOpen(false)}
+          imageSrc={imageToCropSrc}
+          onCropComplete={(blob) => {
+            setCroppedImageBlob(blob);
+            // Add the new cropped image to the list of new image files
+            setNewImageFiles((prev) => [...prev, new File([blob], `rental_image_${Date.now()}.png`, { type: 'image/png' })]);
+            setIsImageCropModalOpen(false);
+            setImageToCropSrc(null);
+          }}
+          aspectRatio={1} // Default aspect ratio for rental images
+          circularCrop={false}
+        />
+      )}
     </div>
-  )
+  );
 }

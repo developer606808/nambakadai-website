@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,246 +26,310 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Badge } from "@/components/ui/badge"
-import { Search, MoreHorizontal, Edit, Trash, Eye, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { Search, MoreHorizontal, Edit, Trash, Eye, CheckCircle, XCircle, Loader2, Plus, Upload, X, Filter } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { ImageCropModal } from '@/components/ui/image-crop-modal';
 
-// Mock data for products
-const mockProducts = [
-  {
-    id: 1,
-    name: "Fresh Organic Tomatoes",
-    price: 2.99,
-    category: "Vegetables",
-    store: "Green Farm",
-    state: "Tokyo",
-    city: "Shibuya",
-    status: "active",
-    stock: 45,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    name: "Red Apples",
-    price: 1.49,
-    category: "Fruits",
-    store: "Orchard Fresh",
-    state: "Osaka",
-    city: "Osaka City",
-    status: "active",
-    stock: 120,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    name: "Organic Milk",
-    price: 3.99,
-    category: "Dairy",
-    store: "Happy Cows",
-    state: "Hokkaido",
-    city: "Sapporo",
-    status: "active",
-    stock: 24,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    name: "Brown Rice",
-    price: 5.99,
-    category: "Grains",
-    store: "Grain Valley",
-    state: "Kyoto",
-    city: "Kyoto City",
-    status: "active",
-    stock: 56,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    name: "Fresh Chicken",
-    price: 8.99,
-    category: "Poultry",
-    store: "Free Range Farms",
-    state: "Fukuoka",
-    city: "Fukuoka City",
-    status: "inactive",
-    stock: 0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 6,
-    name: "Atlantic Salmon",
-    price: 12.99,
-    category: "Seafood",
-    store: "Ocean Fresh",
-    state: "Kanagawa",
-    city: "Yokohama",
-    status: "active",
-    stock: 18,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 7,
-    name: "Fresh Basil",
-    price: 1.99,
-    category: "Herbs",
-    store: "Herb Garden",
-    state: "Aichi",
-    city: "Nagoya",
-    status: "active",
-    stock: 30,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 8,
-    name: "Almonds",
-    price: 7.99,
-    category: "Nuts",
-    store: "Nut House",
-    state: "Tokyo",
-    city: "Shinjuku",
-    status: "active",
-    stock: 42,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 9,
-    name: "Organic Carrots",
-    price: 2.49,
-    category: "Vegetables",
-    store: "Green Farm",
-    state: "Osaka",
-    city: "Osaka City",
-    status: "inactive",
-    stock: 0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 10,
-    name: "Honey",
-    price: 9.99,
-    category: "Other",
-    store: "Bee Happy",
-    state: "Hokkaido",
-    city: "Hakodate",
-    status: "active",
-    stock: 15,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+// Define interfaces based on your Prisma schema and API responses
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  categoryId: number;
+  storeId: number;
+  images: string[];
+  createdAt: string;
+  updatedAt: string;
+  category?: { id: number; name_en: string; type: string }; // Include category details
+  store?: { id: number; name: string; ownerId: number }; // Include store details
+}
 
-// Mock data for stores, states, and cities
-const mockStores = [
-  "All Stores",
-  "Green Farm",
-  "Orchard Fresh",
-  "Happy Cows",
-  "Grain Valley",
-  "Free Range Farms",
-  "Ocean Fresh",
-  "Herb Garden",
-  "Nut House",
-  "Bee Happy",
-]
-const mockStates = ["All States", "Tokyo", "Osaka", "Hokkaido", "Kyoto", "Fukuoka", "Kanagawa", "Aichi"]
-const mockCities = [
-  "All Cities",
-  "Shibuya",
-  "Shinjuku",
-  "Osaka City",
-  "Sapporo",
-  "Kyoto City",
-  "Fukuoka City",
-  "Yokohama",
-  "Nagoya",
-  "Hakodate",
-]
+interface Category {
+  id: number;
+  name_en: string;
+  type: string;
+}
+
+interface Store {
+  id: number;
+  name: string;
+  ownerId: number;
+}
+
+// Zod schema for form validation
+const productFormSchema = z.object({
+  id: z.number().int().optional(), // Optional for create, required for edit
+  name: z.string().min(1, { message: "Product Name is required." }),
+  description: z.string().min(1, { message: "Description is required." }),
+  price: z.number().min(0, { message: "Price must be a non-negative number." }),
+  categoryId: z.number().int({ message: "Category is required." }),
+  storeId: z.number().int({ message: "Store is required." }),
+  // images are handled separately via file inputs
+});
+
+type ProductFormData = z.infer<typeof productFormSchema>;
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState(mockProducts)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentProduct, setCurrentProduct] = useState<any>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [storeFilter, setStoreFilter] = useState("All Stores")
-  const [stateFilter, setStateFilter] = useState("All States")
-  const [cityFilter, setCityFilter] = useState("All Cities")
-  const [isLoading, setIsLoading] = useState(false)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [storeFilter, setStoreFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [limit] = useState(10); // Products per page
+
+  // Image states for add/edit dialogs
+  const [imageToCropSrc, setImageToCropSrc] = useState<string | null>(null);
+  const [isImageCropModalOpen, setIsImageCropModalOpen] = useState(false);
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null); // Index of image being edited
+  const [productImages, setProductImages] = useState<string[]>([]); // For existing images
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]); // For new images to upload
+
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
+  });
+
+  // Fetch products, categories, and stores on component mount and when page changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        // Fetch categories and stores once, but products per page
+        const productsRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products?page=${currentPage}&limit=${limit}`);
+        if (!productsRes.ok) throw new Error(`Failed to fetch products: ${productsRes.statusText}`);
+        const productsPayload = await productsRes.json();
+        setProducts(productsPayload.data);
+        setTotalPages(productsPayload.pagination.totalPages);
+        setTotalProducts(productsPayload.pagination.totalProducts);
+
+        // Fetch categories and stores if they haven't been fetched yet
+        if (categories.length === 0) {
+            const categoriesRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/categories`);
+            if (!categoriesRes.ok) throw new Error(`Failed to fetch categories: ${categoriesRes.statusText}`);
+            setCategories(await categoriesRes.json());
+        }
+        if (stores.length === 0) {
+            const storesRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/stores`);
+            if (!storesRes.ok) throw new Error(`Failed to fetch stores: ${storesRes.statusText}`);
+            setStores(await storesRes.json());
+        }
+
+      } catch (err: any) {
+        setApiError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentPage, limit, categories.length, stores.length]);
 
   // Filter products based on search query and filters
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.store.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.store?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || product.status === statusFilter
-    const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
-    const matchesStore = storeFilter === "All Stores" || product.store === storeFilter
-    const matchesState = stateFilter === "All States" || product.state === stateFilter
-    const matchesCity = cityFilter === "All Cities" || product.city === cityFilter
+    // Assuming product status is derived from stock or a new field
+    const matchesStatus = statusFilter === "all" || 
+                          (statusFilter === "active" && product.price > 0) || // Example: active if price > 0
+                          (statusFilter === "inactive" && product.price === 0); // Example: inactive if price is 0
 
-    return matchesSearch && matchesStatus && matchesCategory && matchesStore && matchesState && matchesCity
-  })
+    const matchesCategory = categoryFilter === "all" || product.categoryId === parseInt(categoryFilter);
+    const matchesStore = storeFilter === "all" || product.storeId === parseInt(storeFilter);
 
-  const handleEditProduct = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedProducts = products.map((product) =>
-        product.id === currentProduct.id ? { ...product, ...currentProduct } : product,
-      )
-      setProducts(updatedProducts)
-      setIsEditDialogOpen(false)
-      setCurrentProduct(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+    return matchesSearch && matchesStatus && matchesCategory && matchesStore;
+  });
 
-  const handleDeleteProduct = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedProducts = products.filter((product) => product.id !== currentProduct.id)
-      setProducts(updatedProducts)
-      setIsDeleteDialogOpen(false)
-      setCurrentProduct(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+  const handleAddProduct = async (data: ProductFormData) => {
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("price", data.price.toString());
+      formData.append("categoryId", data.categoryId.toString());
+      formData.append("storeId", data.storeId.toString());
 
-  const handleToggleStatus = (product: any) => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedProducts = products.map((p) =>
-        p.id === product.id ? { ...p, status: p.status === "active" ? "inactive" : "active" } : p,
-      )
-      setProducts(updatedProducts)
-      setIsLoading(false)
-    }, 500)
-  }
+      newImageFiles.forEach((file) => {
+        formData.append("images", file);
+      });
 
-  const resetFilters = () => {
-    setSearchQuery("")
-    setStatusFilter("all")
-    setCategoryFilter("all")
-    setStoreFilter("All Stores")
-    setStateFilter("All States")
-    setCityFilter("All Cities")
-  }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products`, {
+        method: 'POST',
+        body: formData,
+      });
 
-  const categories = ["Vegetables", "Fruits", "Dairy", "Grains", "Poultry", "Seafood", "Herbs", "Nuts", "Other"]
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add product');
+      }
+
+      const newProduct: Product = await res.json();
+      setProducts((prev) => [...prev, newProduct]);
+      setIsAddDialogOpen(false);
+      reset(); // Clear form fields
+      setProductImages([]);
+      setNewImageFiles([]);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditProduct = async (data: ProductFormData) => {
+    if (!currentProduct) return;
+
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const formData = new FormData();
+      formData.append("id", currentProduct.id.toString());
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("price", data.price.toString());
+      formData.append("categoryId", data.categoryId.toString());
+      formData.append("storeId", data.storeId.toString());
+      formData.append("existingImageUrls", JSON.stringify(productImages)); // Send existing image URLs
+
+      newImageFiles.forEach((file) => {
+        formData.append("newImages", file); // Append new image files
+      });
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update product');
+      }
+
+      const updatedProduct: Product = await res.json();
+      setProducts((prev) =>
+        prev.map((prod) => (prod.id === updatedProduct.id ? updatedProduct : prod))
+      );
+      setIsEditDialogOpen(false);
+      reset();
+      setProductImages([]);
+      setNewImageFiles([]);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!currentProduct) return;
+
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products?id=${currentProduct.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete product');
+      }
+
+      setProducts((prev) => prev.filter((prod) => prod.id !== currentProduct.id));
+      setIsDeleteDialogOpen(false);
+      reset();
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle image selection for cropping
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageToCropSrc(reader.result?.toString() || '');
+        setIsImageCropModalOpen(true);
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  // Handle crop complete from modal
+  const handleCropComplete = (blob: Blob) => {
+    setCroppedImageBlob(blob);
+    // Add the new cropped image to the list of new image files
+    setNewImageFiles((prev) => [...prev, new File([blob], `product_image_${Date.now()}.png`, { type: 'image/png' })]);
+    setIsImageCropModalOpen(false);
+    setImageToCropSrc(null);
+  };
+
+  // Remove an image from the list
+  const handleRemoveImage = (indexToRemove: number, isNew: boolean) => {
+    if (isNew) {
+      setNewImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+    } else {
+      setProductImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    }
+  };
+
+  // Set form values when editing a product
+  useEffect(() => {
+    if (isEditDialogOpen && currentProduct) {
+      reset(currentProduct);
+      setProductImages(currentProduct.images || []); // Set existing images
+      setNewImageFiles([]); // Clear new images when opening edit dialog
+    } else if (isAddDialogOpen) {
+      reset(); // Clear form fields for add form
+      setProductImages([]);
+      setNewImageFiles([]);
+    }
+  }, [isEditDialogOpen, isAddDialogOpen, currentProduct, reset]);
 
   return (
     <div className="flex flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Products</h2>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => {
+                setCurrentProduct(null); // Clear current product for add form
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Product
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-col space-y-4">
-          <div className="relative w-full">
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className="relative w-full md:w-96">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -276,9 +340,9 @@ export default function ProductsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -289,93 +353,91 @@ export default function ProductsPage() {
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name_en}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={storeFilter} onValueChange={setStoreFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Store" />
               </SelectTrigger>
               <SelectContent>
-                {mockStores.map((store) => (
-                  <SelectItem key={store} value={store}>
-                    {store}
+                <SelectItem value="all">All Stores</SelectItem>
+                {stores.map((store) => (
+                  <SelectItem key={store.id} value={store.id.toString()}>
+                    {store.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="State" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockStates.map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {state}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="City" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockCities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" onClick={resetFilters}>
-              Reset Filters
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setCategoryFilter("all");
+                setStoreFilter("all");
+              }}
+            >
+              <Filter className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        {apiError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {apiError}</span>
+          </div>
+        )}
 
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Store</TableHead>
-                <TableHead>Location</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Images</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    Loading products...
+                  </TableCell>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No products found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => (
                   <TableRow key={product.id}>
+                    <TableCell>{product.id}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 overflow-hidden rounded-md">
                           <Image
-                            src={product.image || "/placeholder.svg"}
+                            src={product.images[0] || "/placeholder.svg"}
                             alt={product.name}
                             width={40}
                             height={40}
@@ -384,24 +446,19 @@ export default function ProductsPage() {
                         </div>
                         <div>
                           <div className="font-medium">{product.name}</div>
-                          <div className="text-xs text-muted-foreground">ID: {product.id}</div>
+                          <div className="text-xs text-muted-foreground">{product.description.substring(0, 50)}...</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.store}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span>{product.city}</span>
-                        <span className="text-xs text-muted-foreground">{product.state}</span>
-                      </div>
-                    </TableCell>
+                    <TableCell>{product.category?.name_en || '-'}</TableCell>
+                    <TableCell>{product.store?.name || '-'}</TableCell>
                     <TableCell>¥{product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
                     <TableCell>
-                      <Badge variant={product.status === "active" ? "success" : "destructive"}>
-                        {product.status === "active" ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {product.images.map((img, idx) => (
+                          <Image key={idx} src={img} alt={`Product image ${idx + 1}`} width={30} height={30} className="rounded-sm object-cover" />
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -414,35 +471,21 @@ export default function ProductsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => {
-                              setCurrentProduct(product)
-                              setIsEditDialogOpen(true)
+                              setCurrentProduct(product);
+                              reset(product); // Populate form with current product data
+                              setProductImages(product.images || []);
+                              setNewImageFiles([]);
+                              setIsEditDialogOpen(true);
                             }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(product)}>
-                            {product.status === "active" ? (
-                              <>
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Activate
-                              </>
-                            )}
-                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => {
-                              setCurrentProduct(product)
-                              setIsDeleteDialogOpen(true)
+                              setCurrentProduct(product);
+                              setIsDeleteDialogOpen(true);
                             }}
                           >
                             <Trash className="mr-2 h-4 w-4" />
@@ -458,28 +501,160 @@ export default function ProductsPage() {
           </Table>
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{filteredProducts.length}</strong> of <strong>{totalProducts}</strong> products.
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)); }} disabled={currentPage === 1} />
+                </PaginationItem>
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink href="#" isActive={currentPage === i + 1} onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1); }}>
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)); }} disabled={currentPage === totalPages} />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+        </div>
       </div>
+
+      {/* Add Product Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+            <DialogDescription>Create a new product listing.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(handleAddProduct)} className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input id="name" placeholder="Product name" {...register("name")} />
+                {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="price">Price</Label>
+                <Input id="price" type="number" step="0.01" placeholder="0.00" {...register("price", { valueAsNumber: true })} />
+                {errors.price && <p className="text-red-500 text-sm">{errors.price.message}</p>}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" placeholder="Product description" {...register("description")} rows={3} />
+              {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="categoryId">Category</Label>
+                <Select
+                  value={currentProduct?.categoryId?.toString() || ''}
+                  onValueChange={(value) => setValue("categoryId", parseInt(value))}
+                >
+                  <SelectTrigger id="categoryId">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="storeId">Store</Label>
+                <Select
+                  value={currentProduct?.storeId?.toString() || ''}
+                  onValueChange={(value) => setValue("storeId", parseInt(value))}
+                >
+                  <SelectTrigger id="storeId">
+                    <SelectValue placeholder="Select store" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id.toString()}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.storeId && <p className="text-red-500 text-sm">{errors.storeId.message}</p>}
+              </div>
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="grid gap-2">
+              <Label>Product Images</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {productImages.map((imgUrl, index) => (
+                  <div key={imgUrl} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                    <Image src={imgUrl} alt={`Product ${index}`} fill className="object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index, false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {newImageFiles.map((file, index) => (
+                  <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                    <Image src={URL.createObjectURL(file)} alt={`New Product ${index}`} fill className="object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index, true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <span className="text-xs text-gray-500">Add Image</span>
+                  <Input id="image-upload" type="file" className="hidden" accept="image/*" onChange={onSelectFile} />
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Product
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -488,154 +663,124 @@ export default function ProductsPage() {
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Make changes to the product information.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit(handleEditProduct)} className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Product Name</Label>
-                <Input
-                  id="edit-name"
-                  value={currentProduct?.name || ""}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })}
-                />
+                <Input id="edit-name" placeholder="Product name" {...register("name")} />
+                {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-price">Price</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={currentProduct?.price || ""}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, price: Number.parseFloat(e.target.value) })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-category">Category</Label>
-                <Select
-                  value={currentProduct?.category || ""}
-                  onValueChange={(value) => setCurrentProduct({ ...currentProduct, category: value })}
-                >
-                  <SelectTrigger id="edit-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-stock">Stock</Label>
-                <Input
-                  id="edit-stock"
-                  type="number"
-                  value={currentProduct?.stock || ""}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, stock: Number.parseInt(e.target.value) })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-store">Store</Label>
-                <Select
-                  value={currentProduct?.store || ""}
-                  onValueChange={(value) => setCurrentProduct({ ...currentProduct, store: value })}
-                >
-                  <SelectTrigger id="edit-store">
-                    <SelectValue placeholder="Select store" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockStores.slice(1).map((store) => (
-                      <SelectItem key={store} value={store}>
-                        {store}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={currentProduct?.status || ""}
-                  onValueChange={(value) => setCurrentProduct({ ...currentProduct, status: value })}
-                >
-                  <SelectTrigger id="edit-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-state">State</Label>
-                <Select
-                  value={currentProduct?.state || ""}
-                  onValueChange={(value) => setCurrentProduct({ ...currentProduct, state: value })}
-                >
-                  <SelectTrigger id="edit-state">
-                    <SelectValue placeholder="Select state" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockStates.slice(1).map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-city">City</Label>
-                <Select
-                  value={currentProduct?.city || ""}
-                  onValueChange={(value) => setCurrentProduct({ ...currentProduct, city: value })}
-                >
-                  <SelectTrigger id="edit-city">
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockCities.slice(1).map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input id="edit-price" type="number" step="0.01" placeholder="0.00" {...register("price", { valueAsNumber: true })} />
+                {errors.price && <p className="text-red-500 text-sm">{errors.price.message}</p>}
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={currentProduct?.description || ""}
-                onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value })}
-                rows={3}
-              />
+              <Textarea id="edit-description" placeholder="Product description" {...register("description")} rows={3} />
+              {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditProduct} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </DialogFooter>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-categoryId">Category</Label>
+                <Select
+                  value={currentProduct?.categoryId?.toString() || ''}
+                  onValueChange={(value) => setValue("categoryId", parseInt(value))}
+                >
+                  <SelectTrigger id="edit-categoryId">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-storeId">Store</Label>
+                <Select
+                  value={currentProduct?.storeId?.toString() || ''}
+                  onValueChange={(value) => setValue("storeId", parseInt(value))}
+                >
+                  <SelectTrigger id="edit-storeId">
+                    <SelectValue placeholder="Select store" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id.toString()}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.storeId && <p className="text-red-500 text-sm">{errors.storeId.message}</p>}
+              </div>
+            </div>
+
+            {/* Image Upload Section for Edit */}
+            <div className="grid gap-2">
+              <Label>Product Images</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {productImages.map((imgUrl, index) => (
+                  <div key={imgUrl} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                    <Image src={imgUrl} alt={`Product ${index}`} fill className="object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index, false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {newImageFiles.map((file, index) => (
+                  <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden group">
+                    <Image src={URL.createObjectURL(file)} alt={`New Product ${index}`} fill className="object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index, true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <label
+                  htmlFor="edit-image-upload"
+                  className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <span className="text-xs text-gray-500">Add Image</span>
+                  <Input id="edit-image-upload" type="file" className="hidden" accept="image/*" onChange={onSelectFile} />
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -651,7 +796,7 @@ export default function ProductsPage() {
           <div className="flex items-center space-x-3 rounded-md border p-4">
             <div className="h-10 w-10 overflow-hidden rounded-md">
               <Image
-                src={currentProduct?.image || "/placeholder.svg?height=40&width=40"}
+                src={currentProduct?.images[0] || "/placeholder.svg?height=40&width=40"}
                 alt={currentProduct?.name || "Product"}
                 width={40}
                 height={40}
@@ -661,12 +806,12 @@ export default function ProductsPage() {
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium leading-none">{currentProduct?.name}</p>
               <p className="text-sm text-muted-foreground">
-                ¥{currentProduct?.price?.toFixed(2)} • {currentProduct?.category}
+                ¥{currentProduct?.price?.toFixed(2)} • {currentProduct?.category?.name_en || '-'}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeleteProduct} disabled={isLoading}>
@@ -682,6 +827,23 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {imageToCropSrc && (
+        <ImageCropModal
+          isOpen={isImageCropModalOpen}
+          onClose={() => setIsImageCropModalOpen(false)}
+          imageSrc={imageToCropSrc}
+          onCropComplete={(blob) => {
+            setCroppedImageBlob(blob);
+            // Add the new cropped image to the list of new image files
+            setNewImageFiles((prev) => [...prev, new File([blob], `product_image_${Date.now()}.png`, { type: 'image/png' })]);
+            setIsImageCropModalOpen(false);
+            setImageToCropSrc(null);
+          }}
+          aspectRatio={1} // Default aspect ratio for product images
+          circularCrop={false}
+        />
+      )}
     </div>
-  )
+  );
 }

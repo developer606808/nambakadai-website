@@ -1,435 +1,135 @@
-"use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Building, Loader2, Filter } from "lucide-react"
+'use client';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from '@/hooks/use-toast';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Loader2 } from 'lucide-react';
 
-// Mock data for cities
-const mockCities = [
-  { id: 1, name: "Shinjuku", prefecture: "Tokyo", postalCode: "160-0022", population: 346235 },
-  { id: 2, name: "Shibuya", prefecture: "Tokyo", postalCode: "150-0042", population: 228906 },
-  { id: 3, name: "Osaka City", prefecture: "Osaka", postalCode: "530-0001", population: 2691742 },
-  { id: 4, name: "Kyoto City", prefecture: "Kyoto", postalCode: "600-8216", population: 1459640 },
-  { id: 5, name: "Sapporo", prefecture: "Hokkaido", postalCode: "060-0042", population: 1973832 },
-  { id: 6, name: "Nagoya", prefecture: "Aichi", postalCode: "460-0008", population: 2320361 },
-  { id: 7, name: "Yokohama", prefecture: "Kanagawa", postalCode: "220-0004", population: 3761630 },
-  { id: 8, name: "Fukuoka City", prefecture: "Fukuoka", postalCode: "810-0001", population: 1588924 },
-  { id: 9, name: "Kobe", prefecture: "Hyogo", postalCode: "650-0001", population: 1518870 },
-  { id: 10, name: "Kawasaki", prefecture: "Kanagawa", postalCode: "210-0007", population: 1539522 },
-]
+const citySchema = z.object({ id: z.number().optional(), name_en: z.string().min(2), name_ta: z.string().optional(), state_id: z.coerce.number() });
+type CityFormValues = z.infer<typeof citySchema>;
+interface State { id: number; name_en: string; }
+interface City { id: number; name_en: string; state: State; }
 
-// Prefecture list for dropdown
-const prefectures = ["Tokyo", "Osaka", "Hokkaido", "Kyoto", "Fukuoka", "Aichi", "Kanagawa", "Saitama", "Chiba", "Hyogo"]
+export default function AdminCitiesPage() {
+  const { toast } = useToast();
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [editing, setEditing] = useState<City | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
 
-export default function CitiesPage() {
-  const [cities, setCities] = useState(mockCities)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentCity, setCurrentCity] = useState<any>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [prefectureFilter, setPrefectureFilter] = useState("all")
-  const [isLoading, setIsLoading] = useState(false)
+  const { register, handleSubmit, reset, control } = useForm<CityFormValues>({ resolver: zodResolver(citySchema) });
 
-  // Filter cities based on search query and prefecture filter
-  const filteredCities = cities.filter((city) => {
-    const matchesSearch =
-      city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      city.postalCode.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesPrefecture = prefectureFilter === "all" || city.prefecture === prefectureFilter
-
-    return matchesSearch && matchesPrefecture
-  })
-
-  const handleAddCity = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const newCity = {
-        id: cities.length + 1,
-        name: currentCity.name,
-        prefecture: currentCity.prefecture,
-        postalCode: currentCity.postalCode,
-        population: Number.parseInt(currentCity.population) || 0,
-      }
-      setCities([...cities, newCity])
-      setIsAddDialogOpen(false)
-      setCurrentCity(null)
-      setIsLoading(false)
-    }, 1000)
+  async function fetchStates() { 
+    const res = await fetch('/api/admin/states'); 
+    if (res.ok) {
+      const { data } = await res.json();
+      setStates(data);
+    }
+  }
+  async function fetchCities(page = 1) {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/cities?page=${page}&limit=${limit}`);
+      if (!res.ok) throw new Error("Failed to fetch cities");
+      const { data, pagination } = await res.json();
+      setCities(data);
+      setTotalPages(pagination.totalPages);
+      setCurrentPage(pagination.currentPage);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch cities." });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  const handleEditCity = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedCities = cities.map((city) => (city.id === currentCity.id ? { ...city, ...currentCity } : city))
-      setCities(updatedCities)
-      setIsEditDialogOpen(false)
-      setCurrentCity(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+  useEffect(() => { fetchStates(); fetchCities(currentPage); }, [currentPage]);
 
-  const handleDeleteCity = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedCities = cities.filter((city) => city.id !== currentCity.id)
-      setCities(updatedCities)
-      setIsDeleteDialogOpen(false)
-      setCurrentCity(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+  const onSubmit = async (data: CityFormValues) => {
+    const url = editing ? `/api/admin/cities/${editing.id}` : '/api/admin/cities';
+    const method = editing ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (res.ok) {
+      toast({ title: `City ${editing ? 'updated' : 'created'}` });
+      reset({ name_en: '', name_ta: '', state_id: 0 });
+      setEditing(null);
+      fetchCities(currentPage);
+    } else {
+      toast({ variant: "destructive", title: "Error", description: "Something went wrong." });
+    }
+  };
+
+  const onDelete = async (id: number) => {
+    if (!confirm('Are you sure?')) return;
+    const res = await fetch(`/api/admin/cities/${id}`, { method: 'DELETE' });
+    if (res.ok) { toast({ title: "City deleted" }); fetchCities(currentPage); } else { toast({ variant: "destructive", title: "Error", description: "Failed to delete city." }); }
+  };
 
   return (
-    <div className="flex flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Cities</h2>
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={() => {
-                setCurrentCity({ name: "", prefecture: "", postalCode: "", population: "" })
-                setIsAddDialogOpen(true)
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add City
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search cities..."
-              className="w-full bg-background pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Select value={prefectureFilter} onValueChange={setPrefectureFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Prefecture" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Prefectures</SelectItem>
-                {prefectures.map((prefecture) => (
-                  <SelectItem key={prefecture} value={prefecture}>
-                    {prefecture}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setSearchQuery("")
-                setPrefectureFilter("all")
-              }}
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>City Name</TableHead>
-                <TableHead>Prefecture</TableHead>
-                <TableHead>Postal Code</TableHead>
-                <TableHead className="text-right">Population</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCities.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No cities found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredCities.map((city) => (
-                  <TableRow key={city.id}>
-                    <TableCell className="font-medium">{city.name}</TableCell>
-                    <TableCell>{city.prefecture}</TableCell>
-                    <TableCell>{city.postalCode}</TableCell>
-                    <TableCell className="text-right">{city.population.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setCurrentCity(city)
-                              setIsEditDialogOpen(true)
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => {
-                              setCurrentCity(city)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+    <div className="grid gap-8 md:grid-cols-2">
+      <div>
+        <Card>
+          <CardHeader><CardTitle>{editing ? 'Edit City' : 'Create City'}</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <Controller name="state_id" control={control} render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                        <SelectTrigger><SelectValue placeholder="Select a State" /></SelectTrigger>
+                        <SelectContent>{states.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name_en}</SelectItem>)}</SelectContent>
+                    </Select>
+                )} />
+              <Input placeholder="English Name" {...register('name_en')} />
+              <Input placeholder="Tamil Name" {...register('name_ta')} />
+              <Button type="submit">{editing ? 'Update' : 'Create'}</Button>
+              {editing && <Button variant="outline" onClick={() => { setEditing(null); reset(); }}>Cancel</Button>}
+            </form>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Add City Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add City</DialogTitle>
-            <DialogDescription>Create a new city.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">City Name</Label>
-              <Input
-                id="name"
-                value={currentCity?.name || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, name: e.target.value })}
-                placeholder="City name"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="prefecture">Prefecture</Label>
-              <Select
-                value={currentCity?.prefecture || ""}
-                onValueChange={(value) => setCurrentCity({ ...currentCity, prefecture: value })}
-              >
-                <SelectTrigger id="prefecture">
-                  <SelectValue placeholder="Select prefecture" />
-                </SelectTrigger>
-                <SelectContent>
-                  {prefectures.map((prefecture) => (
-                    <SelectItem key={prefecture} value={prefecture}>
-                      {prefecture}
-                    </SelectItem>
+      <div>
+        <Card>
+          <CardHeader><CardTitle>Existing Cities</CardTitle></CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin" /></div>
+            ) : cities.length === 0 ? (
+              <p className="text-center text-gray-500">No cities found.</p>
+            ) : (
+              <ul className="space-y-2">
+                {cities.map(city => (
+                  <li key={city.id} className="flex justify-between items-center p-2 border rounded">
+                    <p>{city.name_en} <span className='text-gray-500'>({city.state.name_en})</span></p>
+                    <div className="space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditing(city); reset({...city, state_id: city.state.id }); }}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => onDelete(city.id)}>Delete</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center justify-end pt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} /></PaginationItem>
+                  {[...Array(totalPages)].map((_, i) => (
+                      <PaginationItem key={i}><PaginationLink isActive={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
                   ))}
-                </SelectContent>
-              </Select>
+                  <PaginationItem><PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} /></PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="postalCode">Postal Code</Label>
-              <Input
-                id="postalCode"
-                value={currentCity?.postalCode || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, postalCode: e.target.value })}
-                placeholder="e.g. 100-0001"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="population">Population</Label>
-              <Input
-                id="population"
-                type="number"
-                value={currentCity?.population || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, population: e.target.value })}
-                placeholder="Population count"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddCity} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add City
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit City Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit City</DialogTitle>
-            <DialogDescription>Make changes to the city information.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">City Name</Label>
-              <Input
-                id="edit-name"
-                value={currentCity?.name || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-prefecture">Prefecture</Label>
-              <Select
-                value={currentCity?.prefecture || ""}
-                onValueChange={(value) => setCurrentCity({ ...currentCity, prefecture: value })}
-              >
-                <SelectTrigger id="edit-prefecture">
-                  <SelectValue placeholder="Select prefecture" />
-                </SelectTrigger>
-                <SelectContent>
-                  {prefectures.map((prefecture) => (
-                    <SelectItem key={prefecture} value={prefecture}>
-                      {prefecture}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-postalCode">Postal Code</Label>
-              <Input
-                id="edit-postalCode"
-                value={currentCity?.postalCode || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, postalCode: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-population">Population</Label>
-              <Input
-                id="edit-population"
-                type="number"
-                value={currentCity?.population || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, population: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditCity} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete City Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete City</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this city? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center space-x-2 rounded-md border p-4">
-            <Building className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">{currentCity?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {currentCity?.prefecture} • {currentCity?.postalCode}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteCity} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete City"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }

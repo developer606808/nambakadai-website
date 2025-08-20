@@ -1,169 +1,100 @@
-"use client"
 
-import type React from "react"
+'use client';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-export default function StoreEditPage() {
-  const router = useRouter()
-  const { toast } = useToast()
+const storeSchema = z.object({
+  name: z.string().min(3, 'Store name must be at least 3 characters'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
+  logoUrl: z.string().url('Please enter a valid URL').optional().nullable(),
+  bannerUrl: z.string().url('Please enter a valid URL').optional().nullable(),
+});
 
-  const [storeName, setStoreName] = useState("My Awesome Store") // Pre-filled with example data
-  const [storeDescription, setStoreDescription] = useState("A description of my awesome store.") // Pre-filled with example data
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [prefecture, setPrefecture] = useState("tokyo") // Pre-filled with example data
-  const [city, setCity] = useState("Shibuya") // Pre-filled with example data
+type StoreFormValues = z.infer<typeof storeSchema>;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+export default function EditStorePage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<StoreFormValues>({
+    resolver: zodResolver(storeSchema),
+  });
 
-    // Add prefecture and city to the store data
-    const storeData = {
-      name: storeName,
-      description: storeDescription,
-      prefecture,
-      city,
-      // other fields...
+  useEffect(() => {
+    async function fetchStoreData() {
+      const response = await fetch('/api/seller/store');
+      if (response.ok) {
+        const data = await response.json();
+        reset(data); // Pre-fill the form with existing data
+      } else {
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch your store data." });
+      }
+      setLoading(false);
     }
+    fetchStoreData();
+  }, [reset, toast]);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  const onSubmit = async (data: StoreFormValues) => {
+    const response = await fetch('/api/seller/store', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
 
-    toast({
-      title: "Store updated successfully!",
-      description: "Your store information has been updated.",
-    })
+    if (response.ok) {
+      toast({ title: "Success!", description: "Your store has been updated." });
+      router.push('/seller/dashboard');
+    } else {
+      const errorData = await response.json();
+      toast({ variant: "destructive", title: "Error", description: errorData.error || "Failed to update store." });
+    }
+  };
 
-    setIsSubmitting(false)
+  if (loading) {
+    return <p>Loading store details...</p>;
   }
 
   return (
-    <div className="container py-10">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Edit Store</h1>
-          <p className="text-muted-foreground">Update your store information here.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="storeName" className="text-sm font-medium">
-              Store Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="storeName"
-              placeholder="Enter store name"
-              required
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="prefecture" className="text-sm font-medium">
-                Prefecture <span className="text-red-500">*</span>
-              </Label>
-              <Select required value={prefecture} onValueChange={setPrefecture}>
-                <SelectTrigger id="prefecture" className="w-full">
-                  <SelectValue placeholder="Select prefecture" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hokkaido">Hokkaido</SelectItem>
-                  <SelectItem value="aomori">Aomori</SelectItem>
-                  <SelectItem value="iwate">Iwate</SelectItem>
-                  <SelectItem value="miyagi">Miyagi</SelectItem>
-                  <SelectItem value="akita">Akita</SelectItem>
-                  <SelectItem value="yamagata">Yamagata</SelectItem>
-                  <SelectItem value="fukushima">Fukushima</SelectItem>
-                  <SelectItem value="ibaraki">Ibaraki</SelectItem>
-                  <SelectItem value="tochigi">Tochigi</SelectItem>
-                  <SelectItem value="gunma">Gunma</SelectItem>
-                  <SelectItem value="saitama">Saitama</SelectItem>
-                  <SelectItem value="chiba">Chiba</SelectItem>
-                  <SelectItem value="tokyo">Tokyo</SelectItem>
-                  <SelectItem value="kanagawa">Kanagawa</SelectItem>
-                  <SelectItem value="niigata">Niigata</SelectItem>
-                  <SelectItem value="toyama">Toyama</SelectItem>
-                  <SelectItem value="ishikawa">Ishikawa</SelectItem>
-                  <SelectItem value="fukui">Fukui</SelectItem>
-                  <SelectItem value="yamanashi">Yamanashi</SelectItem>
-                  <SelectItem value="nagano">Nagano</SelectItem>
-                  <SelectItem value="gifu">Gifu</SelectItem>
-                  <SelectItem value="shizuoka">Shizuoka</SelectItem>
-                  <SelectItem value="aichi">Aichi</SelectItem>
-                  <SelectItem value="mie">Mie</SelectItem>
-                  <SelectItem value="shiga">Shiga</SelectItem>
-                  <SelectItem value="kyoto">Kyoto</SelectItem>
-                  <SelectItem value="osaka">Osaka</SelectItem>
-                  <SelectItem value="hyogo">Hyogo</SelectItem>
-                  <SelectItem value="nara">Nara</SelectItem>
-                  <SelectItem value="wakayama">Wakayama</SelectItem>
-                  <SelectItem value="tottori">Tottori</SelectItem>
-                  <SelectItem value="shimane">Shimane</SelectItem>
-                  <SelectItem value="okayama">Okayama</SelectItem>
-                  <SelectItem value="hiroshima">Hiroshima</SelectItem>
-                  <SelectItem value="yamaguchi">Yamaguchi</SelectItem>
-                  <SelectItem value="tokushima">Tokushima</SelectItem>
-                  <SelectItem value="kagawa">Kagawa</SelectItem>
-                  <SelectItem value="ehime">Ehime</SelectItem>
-                  <SelectItem value="kochi">Kochi</SelectItem>
-                  <SelectItem value="fukuoka">Fukuoka</SelectItem>
-                  <SelectItem value="saga">Saga</SelectItem>
-                  <SelectItem value="nagasaki">Nagasaki</SelectItem>
-                  <SelectItem value="kumamoto">Kumamoto</SelectItem>
-                  <SelectItem value="oita">Oita</SelectItem>
-                  <SelectItem value="miyazaki">Miyazaki</SelectItem>
-                  <SelectItem value="kagoshima">Kagoshima</SelectItem>
-                  <SelectItem value="okinawa">Okinawa</SelectItem>
-                </SelectContent>
-              </Select>
+    <div className="container mx-auto py-8">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Edit Your Store</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <label>Store Name</label>
+              <Input {...register('name')} />
+              {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-sm font-medium">
-                City <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="city"
-                placeholder="Enter city"
-                required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full"
-              />
+            <div>
+              <label>Description</label>
+              <Textarea {...register('description')} />
+              {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="storeDescription" className="text-sm font-medium">
-              Store Description
-            </Label>
-            <Textarea
-              id="storeDescription"
-              placeholder="Enter store description"
-              value={storeDescription}
-              onChange={(e) => setStoreDescription(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Updating..." : "Update Store"}
-            </Button>
-          </div>
-        </form>
-      </div>
+            <div>
+              <label>Logo URL</label>
+              <Input {...register('logoUrl')} placeholder="https://..." />
+              {errors.logoUrl && <p className="text-red-500 text-sm">{errors.logoUrl.message}</p>}
+            </div>
+            <div>
+              <label>Banner URL</label>
+              <Input {...register('bannerUrl')} placeholder="https://..." />
+              {errors.bannerUrl && <p className="text-red-500 text-sm">{errors.bannerUrl.message}</p>}
+            </div>
+            <Button type="submit">Save Changes</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
