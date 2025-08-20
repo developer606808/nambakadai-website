@@ -1,190 +1,571 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useToast } from '@/hooks/use-toast';
-import { Edit, Loader2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { useState } from "react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Badge } from "@/components/ui/badge"
+import {
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Filter,
+  Loader2,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react"
 
-// Zod schema for the edit form
-const userSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email(),
-  role: z.enum(['USER', 'SELLER', 'ADMIN']),
-  is_active: z.boolean(),
-});
-type UserFormData = z.infer<typeof userSchema>;
+// Mock data for users
+const mockUsers = [
+  {
+    id: 1,
+    name: "John Doe",
+    email: "john.doe@example.com",
+    role: "customer",
+    status: "active",
+    location: "Tokyo",
+    joinDate: "2023-01-15",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 2,
+    name: "Jane Smith",
+    email: "jane.smith@example.com",
+    role: "seller",
+    status: "active",
+    location: "Osaka",
+    joinDate: "2023-02-20",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 3,
+    name: "Robert Johnson",
+    email: "robert.j@example.com",
+    role: "customer",
+    status: "inactive",
+    location: "Kyoto",
+    joinDate: "2023-03-10",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 4,
+    name: "Emily Davis",
+    email: "emily.d@example.com",
+    role: "seller",
+    status: "active",
+    location: "Nagoya",
+    joinDate: "2023-04-05",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 5,
+    name: "Michael Wilson",
+    email: "michael.w@example.com",
+    role: "customer",
+    status: "active",
+    location: "Sapporo",
+    joinDate: "2023-05-12",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 6,
+    name: "Sarah Brown",
+    email: "sarah.b@example.com",
+    role: "seller",
+    status: "active",
+    location: "Fukuoka",
+    joinDate: "2023-06-18",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 7,
+    name: "David Lee",
+    email: "david.l@example.com",
+    role: "customer",
+    status: "inactive",
+    location: "Yokohama",
+    joinDate: "2023-07-22",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 8,
+    name: "Lisa Taylor",
+    email: "lisa.t@example.com",
+    role: "seller",
+    status: "active",
+    location: "Kobe",
+    joinDate: "2023-08-30",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 9,
+    name: "James Anderson",
+    email: "james.a@example.com",
+    role: "customer",
+    status: "active",
+    location: "Hiroshima",
+    joinDate: "2023-09-14",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+  {
+    id: 10,
+    name: "Patricia Martin",
+    email: "patricia.m@example.com",
+    role: "seller",
+    status: "inactive",
+    location: "Sendai",
+    joinDate: "2023-10-05",
+    avatar: "/placeholder.svg?height=40&width=40",
+  },
+]
 
-// Interface for user data from the API
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'USER' | 'SELLER' | 'ADMIN';
-  is_active: boolean;
-  createdAt: string;
-}
+export default function UsersPage() {
+  const [users, setUsers] = useState(mockUsers)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [isLoading, setIsLoading] = useState(false)
 
-export default function AdminUsersPage() {
-  const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  // Filter users based on search query and filters
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.location.toLowerCase().includes(searchQuery.toLowerCase())
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter
+    const matchesRole = roleFilter === "all" || user.role === roleFilter
 
-  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
-  });
+    return matchesSearch && matchesStatus && matchesRole
+  })
 
-  const fetchUsers = async (page = 1) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const { data, pagination } = await res.json();
-      setUsers(data);
-      setTotalPages(pagination.totalPages);
-      setCurrentPage(pagination.currentPage);
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch users." });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleEditUser = () => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const updatedUsers = users.map((user) => (user.id === currentUser.id ? { ...user, ...currentUser } : user))
+      setUsers(updatedUsers)
+      setIsEditDialogOpen(false)
+      setCurrentUser(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
-  useEffect(() => {
-    fetchUsers(currentPage);
-  }, [currentPage]);
+  const handleDeleteUser = () => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const updatedUsers = users.filter((user) => user.id !== currentUser.id)
+      setUsers(updatedUsers)
+      setIsDeleteDialogOpen(false)
+      setCurrentUser(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
-  const handleEditOpen = (user: User) => {
-    setEditingUser(user);
-    reset(user); // Pre-fill form with user data
-    setIsEditModalOpen(true);
-  };
-
-  const onUpdateUser = async (data: UserFormData) => {
-    if (!editingUser) return;
-    try {
-      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update user");
-      }
-      toast({ title: "Success", description: "User updated successfully." });
-      setIsEditModalOpen(false);
-      fetchUsers(currentPage); // Refresh the user list
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Update Failed", description: error.message });
-    }
-  };
+  const handleToggleStatus = (user: any) => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const updatedUsers = users.map((u) =>
+        u.id === user.id ? { ...u, status: u.status === "active" ? "inactive" : "active" } : u,
+      )
+      setUsers(updatedUsers)
+      setIsLoading(false)
+    }, 500)
+  }
 
   return (
-    <>
-      <Card>
-        <CardHeader><CardTitle>User Management</CardTitle></CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              {/* Table Head */}
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              {/* Table Body */}
-              <tbody className="bg-white divide-y divide-gray-200">
-                {isLoading ? (
-                  <tr><td colSpan={5} className="text-center py-8"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></td></tr>
-                ) : (
-                  users.map(user => (
-                    <tr key={user.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{user.name}<div className="text-sm text-gray-500">{user.email}</div></td>
-                      <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {user.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Button variant="outline" size="sm" onClick={() => handleEditOpen(user)}><Edit className="h-4 w-4 mr-2"/>Edit</Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between pt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} /></PaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                    <PaginationItem key={i}><PaginationLink isActive={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-                ))}
-                <PaginationItem><PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} /></PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col">
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Users</h2>
+        </div>
 
-      {/* Edit User Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit User: {editingUser?.name}</DialogTitle></DialogHeader>
-          <form onSubmit={handleSubmit(onUpdateUser)} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" {...register('name')} />
-              {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} />
-              {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <select id="role" {...register('role')} className="w-full p-2 border rounded-md">
-                <option value="USER">User</option>
-                <option value="SELLER">Seller</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search users..."
+              className="w-full bg-background pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
             <div className="flex items-center space-x-2">
-              <Switch id="is_active" {...register('is_active')} checked={watch('is_active')} onCheckedChange={(checked) => setValue("is_active", checked)} />
-              <Label htmlFor="is_active">Active</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="seller">Seller</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSearchQuery("")
+                  setStatusFilter("all")
+                  setRoleFilter("all")
+                }}
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
-            </DialogFooter>
-          </form>
+          </div>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Join Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 overflow-hidden rounded-full">
+                          <Image
+                            src={user.avatar || "/placeholder.svg"}
+                            alt={user.name}
+                            width={40}
+                            height={40}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <div className="font-medium">{user.name}</div>
+                          <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === "seller" ? "outline" : "secondary"}>
+                        {user.role === "seller" ? "Seller" : "Customer"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.location}</TableCell>
+                    <TableCell>{user.joinDate}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.status === "active" ? "success" : "destructive"}>
+                        {user.status === "active" ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCurrentUser(user)
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                            {user.status === "active" ? (
+                              <>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Activate
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setCurrentUser(user)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious href="#" />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#">1</PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#" isActive>
+                2
+              </PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#">3</PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext href="#" />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Make changes to the user information.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 overflow-hidden rounded-full">
+                <Image
+                  src={currentUser?.avatar || "/placeholder.svg?height=64&width=64"}
+                  alt={currentUser?.name || "User"}
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">{currentUser?.name}</h3>
+                <p className="text-sm text-muted-foreground">ID: {currentUser?.id}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <div className="relative">
+                  <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="edit-name"
+                    value={currentUser?.name || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={currentUser?.email || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select
+                  value={currentUser?.role || ""}
+                  onValueChange={(value) => setCurrentUser({ ...currentUser, role: value })}
+                >
+                  <SelectTrigger id="edit-role">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="seller">Seller</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={currentUser?.status || ""}
+                  onValueChange={(value) => setCurrentUser({ ...currentUser, status: value })}
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="edit-phone"
+                    value={currentUser?.phone || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, phone: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="edit-location"
+                    value={currentUser?.location || ""}
+                    onChange={(e) => setCurrentUser({ ...currentUser, location: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
-  );
+
+      {/* Delete User Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-3 rounded-md border p-4">
+            <div className="h-10 w-10 overflow-hidden rounded-full">
+              <Image
+                src={currentUser?.avatar || "/placeholder.svg?height=40&width=40"}
+                alt={currentUser?.name || "User"}
+                width={40}
+                height={40}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentUser?.email} • {currentUser?.role}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete User"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

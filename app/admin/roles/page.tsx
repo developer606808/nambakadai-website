@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -42,40 +42,101 @@ import {
   BarChart3,
   ImageIcon,
 } from "lucide-react"
-import { useToast } from '@/hooks/use-toast';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-interface Permission {
-  id: string;
-  name: string;
-  icon?: React.ReactNode;
-  category: string;
-}
+// Define permissions
+const allPermissions = [
+  { id: "dashboard", name: "Dashboard", icon: <Shield className="h-4 w-4" />, category: "General" },
+  { id: "users", name: "Users Management", icon: <Users className="h-4 w-4" />, category: "User Management" },
+  {
+    id: "products",
+    name: "Products Management",
+    icon: <ShoppingBasket className="h-4 w-4" />,
+    category: "Content Management",
+  },
+  { id: "stores", name: "Stores Management", icon: <Store className="h-4 w-4" />, category: "Content Management" },
+  { id: "rentals", name: "Rentals Management", icon: <Car className="h-4 w-4" />, category: "Content Management" },
+  {
+    id: "categories",
+    name: "Categories Management",
+    icon: <Tag className="h-4 w-4" />,
+    category: "Content Management",
+  },
+  { id: "units", name: "Units Management", icon: <Ruler className="h-4 w-4" />, category: "Content Management" },
+  {
+    id: "banners",
+    name: "Banners Management",
+    icon: <ImageIcon className="h-4 w-4" />,
+    category: "Content Management",
+  },
+  { id: "states", name: "States Management", icon: <MapPin className="h-4 w-4" />, category: "Location Management" },
+  { id: "cities", name: "Cities Management", icon: <Building className="h-4 w-4" />, category: "Location Management" },
+  { id: "roles", name: "Roles Management", icon: <Shield className="h-4 w-4" />, category: "System Management" },
+  { id: "settings", name: "System Settings", icon: <Settings className="h-4 w-4" />, category: "System Management" },
+  { id: "reports", name: "Reports", icon: <FileText className="h-4 w-4" />, category: "Analytics" },
+  { id: "analytics", name: "Analytics", icon: <BarChart3 className="h-4 w-4" />, category: "Analytics" },
+  { id: "notifications", name: "Notifications", icon: <Bell className="h-4 w-4" />, category: "Communication" },
+  { id: "messages", name: "Messages", icon: <Mail className="h-4 w-4" />, category: "Communication" },
+  { id: "payments", name: "Payments", icon: <CreditCard className="h-4 w-4" />, category: "Financial" },
+]
 
-interface Role {
-  id: number;
-  name: string;
-  description: string;
-  permissions: string[];
-  userCount: number;
-  isSystem: boolean;
-  createdAt: string;
-}
+// Mock data for roles
+const mockRoles = [
+  {
+    id: 1,
+    name: "Super Admin",
+    description: "Full access to all system features and settings",
+    permissions: allPermissions.map((p) => p.id),
+    userCount: 2,
+    isSystem: true,
+    createdAt: "2024-01-01",
+  },
+  {
+    id: 2,
+    name: "Admin",
+    description: "Access to most features except system settings",
+    permissions: allPermissions.filter((p) => p.id !== "roles" && p.id !== "settings").map((p) => p.id),
+    userCount: 5,
+    isSystem: true,
+    createdAt: "2024-01-01",
+  },
+  {
+    id: 3,
+    name: "Content Manager",
+    description: "Manage products, stores, categories, and banners",
+    permissions: ["dashboard", "products", "stores", "categories", "units", "banners", "reports"],
+    userCount: 8,
+    isSystem: false,
+    createdAt: "2024-02-15",
+  },
+  {
+    id: 4,
+    name: "Customer Support",
+    description: "Handle user inquiries and basic content management",
+    permissions: ["dashboard", "users", "messages", "notifications", "reports"],
+    userCount: 12,
+    isSystem: false,
+    createdAt: "2024-03-01",
+  },
+  {
+    id: 5,
+    name: "Analytics Manager",
+    description: "Access to analytics and reporting features",
+    permissions: ["dashboard", "reports", "analytics", "payments"],
+    userCount: 3,
+    isSystem: false,
+    createdAt: "2024-04-10",
+  },
+]
 
 export default function RolesPage() {
-  const { toast } = useToast();
-  const [roles, setRoles] = useState<Role[]>([])
-  const [allPermissions, setAllPermissions] = useState<Permission[]>([])
+  const [roles, setRoles] = useState(mockRoles)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [currentRole, setCurrentRole] = useState<Role | null>(null)
+  const [currentRole, setCurrentRole] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
 
   // New role form state
   const [newRole, setNewRole] = useState({
@@ -84,37 +145,6 @@ export default function RolesPage() {
     permissions: [] as string[],
   })
 
-  const fetchRoles = async (page = 1) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/roles?page=${page}&limit=${limit}`);
-      if (!res.ok) throw new Error("Failed to fetch roles");
-      const { data, pagination } = await res.json();
-      setRoles(data);
-      setTotalPages(pagination.totalPages);
-      setCurrentPage(pagination.currentPage);
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch roles." });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchPermissions = async () => {
-    try {
-      const res = await fetch('/api/admin/permissions');
-      if (!res.ok) throw new Error("Failed to fetch permissions");
-      setAllPermissions(await res.json());
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch permissions." });
-    }
-  };
-
-  useEffect(() => {
-    fetchRoles(currentPage);
-    fetchPermissions();
-  }, [currentPage]);
-
   // Filter roles based on search query
   const filteredRoles = roles.filter(
     (role) =>
@@ -122,74 +152,47 @@ export default function RolesPage() {
       role.description.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const handleAddRole = async () => {
+  const handleAddRole = () => {
     setIsLoading(true)
-    try {
-      const response = await fetch('/api/admin/roles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRole),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create role");
+    // Simulate API call
+    setTimeout(() => {
+      const role = {
+        ...newRole,
+        id: roles.length + 1,
+        userCount: 0,
+        isSystem: false,
+        createdAt: new Date().toISOString().split("T")[0],
       }
-      toast({ title: "Success", description: "Role created successfully." });
-      setIsAddDialogOpen(false);
-      setNewRole({ name: "", description: "", permissions: [] });
-      fetchRoles(currentPage);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setRoles([...roles, role])
+      setIsAddDialogOpen(false)
+      setNewRole({ name: "", description: "", permissions: [] })
+      setIsLoading(false)
+    }, 1000)
+  }
 
-  const handleEditRole = async () => {
-    if (!currentRole) return;
+  const handleEditRole = () => {
     setIsLoading(true)
-    try {
-      const response = await fetch(`/api/admin/roles/${currentRole.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentRole),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update role");
-      }
-      toast({ title: "Success", description: "Role updated successfully." });
-      setIsEditDialogOpen(false);
-      setCurrentRole(null);
-      fetchRoles(currentPage);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Simulate API call
+    setTimeout(() => {
+      const updatedRoles = roles.map((role) => (role.id === currentRole.id ? { ...role, ...currentRole } : role))
+      setRoles(updatedRoles)
+      setIsEditDialogOpen(false)
+      setCurrentRole(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
-  const handleDeleteRole = async () => {
-    if (!currentRole) return;
+  const handleDeleteRole = () => {
     setIsLoading(true)
-    try {
-      const response = await fetch(`/api/admin/roles/${currentRole.id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete role");
-      }
-      toast({ title: "Success", description: "Role deleted successfully." });
-      setIsDeleteDialogOpen(false);
-      setCurrentRole(null);
-      fetchRoles(currentPage);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Simulate API call
+    setTimeout(() => {
+      const updatedRoles = roles.filter((role) => role.id !== currentRole.id)
+      setRoles(updatedRoles)
+      setIsDeleteDialogOpen(false)
+      setCurrentRole(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
   const togglePermission = (permissionId: string, isNewRole = false) => {
     if (isNewRole) {
@@ -198,7 +201,6 @@ export default function RolesPage() {
         : [...newRole.permissions, permissionId]
       setNewRole({ ...newRole, permissions: updatedPermissions })
     } else {
-      if (!currentRole) return;
       const updatedPermissions = currentRole.permissions.includes(permissionId)
         ? currentRole.permissions.filter((p: string) => p !== permissionId)
         : [...currentRole.permissions, permissionId]
@@ -214,7 +216,7 @@ export default function RolesPage() {
       acc[permission.category].push(permission)
       return acc
     },
-    {} as Record<string, Permission[]>,
+    {} as Record<string, typeof allPermissions>,
   )
 
   return (
@@ -222,10 +224,7 @@ export default function RolesPage() {
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Roles & Permissions</h2>
-          <Button onClick={() => {
-            setIsAddDialogOpen(true);
-            setNewRole({ name: "", description: "", permissions: [] }); // Reset form on open
-          }}>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Role
           </Button>
@@ -257,13 +256,7 @@ export default function RolesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin" />
-                  </TableCell>
-                </TableRow>
-              ) : filteredRoles.length === 0 ? (
+              {filteredRoles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
                     No roles found.
@@ -305,7 +298,7 @@ export default function RolesPage() {
                         {role.isSystem ? "System" : "Custom"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(role.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{role.createdAt}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -353,17 +346,6 @@ export default function RolesPage() {
               )}
             </TableBody>
           </Table>
-        </div>
-        <div className="flex items-center justify-end pt-4">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} /></PaginationItem>
-              {[...Array(totalPages)].map((_, i) => (
-                  <PaginationItem key={i}><PaginationLink isActive={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-              ))}
-              <PaginationItem><PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} /></PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       </div>
 

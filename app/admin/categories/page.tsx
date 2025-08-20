@@ -1,235 +1,476 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Image from 'next/image';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from '@/hooks/use-toast';
-import { Edit, Loader2, Plus } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Tag, Loader2, Filter } from "lucide-react"
 
-// Zod schema for the form
-const categorySchema = z.object({
-  name_en: z.string().min(2, "Name is required"),
-  name_ta: z.string().optional(),
-  slug: z.string().min(2, "Slug is required"),
-  icon: z.string().optional(),
-  image_url: z.string().url().optional().nullable(),
-  is_active: z.boolean().default(true),
-  sort_order: z.coerce.number().int().default(0),
-});
-type CategoryFormData = z.infer<typeof categorySchema>;
+// Mock data for categories
+const mockCategories = [
+  {
+    id: 1,
+    name: "Vegetables",
+    slug: "vegetables",
+    description: "Fresh farm vegetables",
+    productCount: 124,
+    type: "Store",
+  },
+  { id: 2, name: "Fruits", slug: "fruits", description: "Seasonal fruits", productCount: 98, type: "Store" },
+  { id: 3, name: "Dairy", slug: "dairy", description: "Milk and dairy products", productCount: 56, type: "Store" },
+  {
+    id: 4,
+    name: "Grains",
+    slug: "grains",
+    description: "Rice, wheat and other grains",
+    productCount: 78,
+    type: "Store",
+  },
+  { id: 5, name: "Meat", slug: "meat", description: "Fresh meat products", productCount: 45, type: "Store" },
+  {
+    id: 6,
+    name: "Poultry",
+    slug: "poultry",
+    description: "Chicken and other poultry",
+    productCount: 34,
+    type: "Store",
+  },
+  { id: 7, name: "Seafood", slug: "seafood", description: "Fresh seafood", productCount: 23, type: "Store" },
+  { id: 8, name: "Herbs", slug: "herbs", description: "Fresh and dried herbs", productCount: 67, type: "Store" },
+  { id: 9, name: "Nuts", slug: "nuts", description: "Various nuts and seeds", productCount: 42, type: "Store" },
+  {
+    id: 10,
+    name: "Organic",
+    slug: "organic",
+    description: "Certified organic products",
+    productCount: 89,
+    type: "Store",
+  },
+  {
+    id: 11,
+    name: "Tractors",
+    slug: "tractors",
+    description: "Farm tractors for rent",
+    productCount: 15,
+    type: "Rentals",
+  },
+  {
+    id: 12,
+    name: "Harvesters",
+    slug: "harvesters",
+    description: "Harvesting equipment",
+    productCount: 8,
+    type: "Rentals",
+  },
+  { id: 13, name: "Plows", slug: "plows", description: "Plowing equipment", productCount: 12, type: "Rentals" },
+  { id: 14, name: "Trucks", slug: "trucks", description: "Transport vehicles", productCount: 20, type: "Rentals" },
+  {
+    id: 15,
+    name: "Sprayers",
+    slug: "sprayers",
+    description: "Crop spraying equipment",
+    productCount: 10,
+    type: "Rentals",
+  },
+]
 
-// Interface for category data from the API
-interface Category extends CategoryFormData {
-  id: number;
-}
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState(mockCategories)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [currentCategory, setCurrentCategory] = useState<any>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState("all")
+  const [isLoading, setIsLoading] = useState(false)
 
-export default function AdminCategoriesPage() {
-  const { toast } = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Filter categories based on search query and type filter
+  const filteredCategories = categories.filter((category) => {
+    const matchesSearch =
+      category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      category.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
+    const matchesType = typeFilter === "all" || category.type === typeFilter
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema),
-  });
+    return matchesSearch && matchesType
+  })
 
-  const fetchCategories = async (page = 1) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/categories?page=${page}&limit=${limit}`);
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const { data, pagination } = await res.json();
-      setCategories(data);
-      setTotalPages(pagination.totalPages);
-      setCurrentPage(pagination.currentPage);
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch categories." });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories(currentPage);
-  }, [currentPage]);
-
-  const handleModalOpen = (category: Category | null) => {
-    setEditingCategory(category);
-    if (category) {
-      reset(category);
-      setImagePreview(category.image_url || null);
-    } else {
-      reset({ name_en: '', name_ta: '', slug: '', is_active: true, sort_order: 0, icon: '', image_url: '' });
-      setImagePreview(null);
-    }
-    setImageFile(null);
-    setIsModalOpen(true);
-  };
-
-  const onSubmit = async (data: CategoryFormData) => {
-    let imageUrl = editingCategory?.image_url || null;
-
-    if (imageFile) {
-      try {
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        const uploadResponse = await fetch('/api/upload-image', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) throw new Error('Failed to upload image');
-        const uploadResult = await uploadResponse.json();
-        imageUrl = uploadResult.imageUrl;
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Image Upload Failed", description: error.message });
-        return;
+  const handleAddCategory = () => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const newCategory = {
+        id: categories.length + 1,
+        name: currentCategory.name,
+        slug: currentCategory.name.toLowerCase().replace(/\s+/g, "-"),
+        description: currentCategory.description,
+        type: currentCategory.type,
+        productCount: 0,
       }
-    }
+      setCategories([...categories, newCategory])
+      setIsAddDialogOpen(false)
+      setCurrentCategory(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
-    const submissionData = { ...data, image_url: imageUrl };
-    const url = editingCategory ? `/api/admin/categories/${editingCategory.id}` : '/api/admin/categories';
-    const method = editingCategory ? 'PUT' : 'POST';
+  const handleEditCategory = () => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const updatedCategories = categories.map((category) =>
+        category.id === currentCategory.id ? { ...category, ...currentCategory } : category,
+      )
+      setCategories(updatedCategories)
+      setIsEditDialogOpen(false)
+      setCurrentCategory(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
-    try {
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(submissionData) });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save category");
-      }
-      toast({ title: "Success", description: `Category ${editingCategory ? 'updated' : 'created'} successfully.` });
-      setIsModalOpen(false);
-      fetchCategories(currentPage);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Save Failed", description: error.message });
-    }
-  };
+  const handleDeleteCategory = () => {
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      const updatedCategories = categories.filter((category) => category.id !== currentCategory.id)
+      setCategories(updatedCategories)
+      setIsDeleteDialogOpen(false)
+      setCurrentCategory(null)
+      setIsLoading(false)
+    }, 1000)
+  }
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Categories</h1>
-        <Button onClick={() => handleModalOpen(null)}><Plus className="mr-2 h-4 w-4"/> Add Category</Button>
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Image</TableHead>
-              <TableHead>Name (English)</TableHead>
-              <TableHead>Name (Tamil)</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Sort Order</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>
-            ) : (
-              categories.map(category => (
-                <TableRow key={category.id}>
-                  <TableCell>{category.id}</TableCell>
-                  <TableCell>{category.image_url && <Image src={category.image_url} alt={category.name_en} width={40} height={40} className="h-10 w-10 object-cover rounded-md" />}</TableCell>
-                  <TableCell>{category.name_en}</TableCell>
-                  <TableCell>{category.name_ta || '-'}</TableCell>
-                  <TableCell>{category.slug}</TableCell>
-                  <TableCell>{category.sort_order}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${category.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {category.is_active ? 'Active' : 'Inactive'}
-                    </span>
+    <div className="flex flex-col">
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Categories</h2>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => {
+                setCurrentCategory({ name: "", description: "", type: "Store" })
+                setIsAddDialogOpen(true)
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Category
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search categories..."
+              className="w-full bg-background pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Store">Store</SelectItem>
+                <SelectItem value="Rentals">Rentals</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("")
+                setTypeFilter("all")
+              }}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Products</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCategories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No categories found.
                   </TableCell>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button variant="outline" size="sm" onClick={() => handleModalOpen(category)}><Edit className="h-4 w-4"/></Button>
-                  </td>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-end pt-4">
+              ) : (
+                filteredCategories.map((category) => (
+                  <TableRow key={category.id}>
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell>{category.slug}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {category.description.length > 50
+                        ? `${category.description.slice(0, 50)}...`
+                        : category.description}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={category.type === "Store" ? "default" : "secondary"}>{category.type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{category.productCount}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCurrentCategory(category)
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setCurrentCategory(category)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
         <Pagination>
           <PaginationContent>
-            <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} /></PaginationItem>
-            {[...Array(totalPages)].map((_, i) => (
-                <PaginationItem key={i}><PaginationLink isActive={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-            ))}
-            <PaginationItem><PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} /></PaginationItem>
+            <PaginationItem>
+              <PaginationPrevious href="#" />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#">1</PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#" isActive>
+                2
+              </PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#">3</PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext href="#" />
+            </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle></DialogHeader>
-          <ScrollArea className="max-h-[70vh] p-1">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name_en">Name (English)</Label>
-                  <Input id="name_en" {...register('name_en')} />
-                  {errors.name_en && <p className="text-red-500 text-sm">{errors.name_en.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="name_ta">Name (Tamil)</Label>
-                  <Input id="name_ta" {...register('name_ta')} />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="slug">Slug</Label>
-                <Input id="slug" {...register('slug')} />
-                {errors.slug && <p className="text-red-500 text-sm">{errors.slug.message}</p>}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="icon">Icon (e.g., emoji)</Label>
-                    <Input id="icon" {...register('icon')} />
-                </div>
-                <div>
-                    <Label htmlFor="sort_order">Sort Order</Label>
-                    <Input id="sort_order" type="number" {...register('sort_order')} />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="image">Image</Label>
-                <Input id="image" type="file" accept="image/*" onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    const file = e.target.files[0];
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
-                  }
-                }} />
-                {imagePreview && <Image src={imagePreview} alt="Category preview" width={80} height={80} className="mt-2 h-20 w-20 object-cover rounded-md"/>}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="is_active" checked={watch('is_active')} onCheckedChange={(checked) => setValue("is_active", checked)} />
-                <Label htmlFor="is_active">Active</Label>
-              </div>
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit">{editingCategory ? 'Save Changes' : 'Create Category'}</Button>
-              </DialogFooter>
-            </form>
-          </ScrollArea>
+      {/* Add Category Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Category</DialogTitle>
+            <DialogDescription>Create a new category for products or rentals.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={currentCategory?.name || ""}
+                onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
+                placeholder="Category name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="type">Type</Label>
+              <Select
+                value={currentCategory?.type || "Store"}
+                onValueChange={(value) => setCurrentCategory({ ...currentCategory, type: value })}
+              >
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Store">Store</SelectItem>
+                  <SelectItem value="Rentals">Rentals</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={currentCategory?.description || ""}
+                onChange={(e) => setCurrentCategory({ ...currentCategory, description: e.target.value })}
+                placeholder="Category description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCategory} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Category
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
-  );
+
+      {/* Edit Category Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Make changes to the category.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={currentCategory?.name || ""}
+                onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-type">Type</Label>
+              <Select
+                value={currentCategory?.type || "Store"}
+                onValueChange={(value) => setCurrentCategory({ ...currentCategory, type: value })}
+              >
+                <SelectTrigger id="edit-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Store">Store</SelectItem>
+                  <SelectItem value="Rentals">Rentals</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={currentCategory?.description || ""}
+                onChange={(e) => setCurrentCategory({ ...currentCategory, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditCategory} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this category? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 rounded-md border p-4">
+            <Tag className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">{currentCategory?.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">{currentCategory?.productCount} products</p>
+                {currentCategory?.type && (
+                  <Badge variant={currentCategory.type === "Store" ? "default" : "secondary"} className="text-xs">
+                    {currentCategory.type}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteCategory} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Category"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

@@ -26,8 +26,6 @@ import {
   ChevronLeft,
   ImageIcon,
 } from "lucide-react"
-import { useAppDispatch } from "@/lib/hooks"
-import { logoutUser } from "@/lib/features/auth/authSlice"
 
 interface AdminSidebarProps {
   collapsed?: boolean
@@ -36,7 +34,6 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const dispatch = useAppDispatch()
 
   const routes = [
     {
@@ -132,17 +129,19 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
     },
   ]
 
-  const handleLogout = async () => {
-    await dispatch(logoutUser());
-    router.push("/login"); // Redirect to login page after logout
-  };
+  const handleLogout = () => {
+    // Remove admin token
+    localStorage.removeItem("adminToken")
+    // Redirect to login page
+    router.push("/admin/login")
+  }
 
   return (
     <div className={cn("flex flex-col border-r bg-background h-screen", collapsed ? "w-[70px]" : "w-[240px]")}>
       <div className="py-4 px-3 border-b flex items-center justify-center">
         {collapsed ? (
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Store className="h-5 w-5" />
+            <Store className="h-5 w-5 text-primary" />
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -200,5 +199,5 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }
