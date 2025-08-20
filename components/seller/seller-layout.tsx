@@ -4,7 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Package,
@@ -18,7 +18,10 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useAuth } from "@/components/auth/auth-context"
+import { useAppDispatch } from "@/lib/hooks"
+import { logoutUser } from "@/lib/features/auth/authSlice"
+import { selectUser } from "@/lib/features/auth/authSlice"
+import { useAppSelector } from "@/lib/hooks"
 
 interface SidebarItemProps {
   icon: React.ReactNode
@@ -44,7 +47,14 @@ function SidebarItem({ icon, label, href, active }: SidebarItemProps) {
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const router = useRouter()
+  const dispatch = useAppDispatch()
+  const user = useAppSelector(selectUser)
+
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    router.push("/login"); // Redirect to login page after logout
+  };
 
   const sidebarItems = [
     {
@@ -124,7 +134,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                     <Button
                       variant="outline"
                       className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={logout}
+                      onClick={handleLogout}
                     >
                       <LogOut className="h-5 w-5 mr-3" />
                       Logout
@@ -163,7 +173,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                     View Store
                   </Link>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                   >
                     Logout
@@ -198,5 +208,5 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
-  )
+  );
 }

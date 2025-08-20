@@ -15,8 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuthRedux } from "@/hooks/use-auth-redux"
+import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { useAuthRedux } from "@/hooks/use-auth-redux" // Import useAuthRedux
+import { User as AuthUser } from "@/lib/features/auth/authSlice" // Import User type from authSlice
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
@@ -30,7 +32,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
-  const { isAuthenticated, user } = useAuthRedux()
+  const { user, isAuthenticated } = useAuthRedux() // Use useAuthRedux
 
   useEffect(() => {
     const handleScroll = () => {
@@ -177,12 +179,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         Profile
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/store/dashboard" className="flex items-center px-3 py-2 text-sm hover:bg-green-50 rounded-lg">
-                        <Store className="h-4 w-4 mr-2" />
-                        My Store
-                      </Link>
-                    </DropdownMenuItem>
+                    {user?.store ? (
+                      <DropdownMenuItem asChild>
+                        <Link href="/store/dashboard" className="flex items-center px-3 py-2 text-sm hover:bg-green-50 rounded-lg">
+                          <Store className="h-4 w-4 mr-2" />
+                          My Store
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem asChild>
+                        <Link href="/store/create" className="flex items-center px-3 py-2 text-sm hover:bg-green-50 rounded-lg">
+                          <Store className="h-4 w-4 mr-2" />
+                          Create a Store
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/community" className="flex items-center px-3 py-2 text-sm hover:bg-green-50 rounded-lg">
                         <Users className="h-4 w-4 mr-2" />
@@ -190,7 +201,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600 hover:bg-red-50 rounded-lg">
+                    <DropdownMenuItem onClick={() => signOut()} className="text-red-600 hover:bg-red-50 rounded-lg">
                       Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
