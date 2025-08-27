@@ -425,9 +425,9 @@ export default function RentalsPage() {
         </Pagination>
       </div>
 
-      {/* Edit Rental Dialog */}
+      {/* Edit Rental Dialog - Responsive */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Rental Vehicle</DialogTitle>
             <DialogDescription>Make changes to the rental vehicle information.</DialogDescription>
@@ -449,7 +449,7 @@ export default function RentalsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Vehicle Name</Label>
                 <div className="relative">
@@ -472,7 +472,7 @@ export default function RentalsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-type">Type</Label>
                 <Select
@@ -509,7 +509,7 @@ export default function RentalsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-price">Price per Day</Label>
                 <div className="relative">
@@ -547,7 +547,7 @@ export default function RentalsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
@@ -565,9 +565,9 @@ export default function RentalsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Rental Dialog */}
+      {/* Delete Rental Dialog - Responsive */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Rental Vehicle</DialogTitle>
             <DialogDescription>
@@ -591,7 +591,7 @@ export default function RentalsPage() {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>

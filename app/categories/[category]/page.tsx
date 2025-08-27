@@ -3,7 +3,7 @@ import Link from "next/link"
 import { ArrowLeft, Search, Filter, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
 export default function CategoryPage({ params }: { params: { category: string } }) {
   const category = params.category.charAt(0).toUpperCase() + params.category.slice(1)

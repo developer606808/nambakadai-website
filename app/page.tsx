@@ -1,15 +1,63 @@
-"use client"
-import { useState } from "react"
+import { Suspense } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, ChevronRight, ChevronLeft, Plus, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
-export default function Home() {
-  // Mock data for products (expand to 30+ items)
-  const mockProducts = [
+// Define types for our data
+interface Product {
+  id: number
+  image: string
+  title: string
+  price: number
+  unit: string
+  rating: number
+  reviews: number
+  location: string
+  seller: string
+  sellerId: string
+  isOrganic?: boolean
+  isBestSeller?: boolean
+  isRental?: boolean
+}
+
+interface Rental {
+  id: number
+  image: string
+  title: string
+  price: number
+  unit: string
+  rating: number
+  reviews: number
+  location: string
+  availability: number
+  category: string
+}
+
+interface Category {
+  id: number
+  name: string
+  icon: string
+  bgColor: string
+  slug: string
+}
+
+interface Banner {
+  id: number
+  title: string
+  subtitle: string
+  image: string
+  ctaText: string
+  ctaLink: string
+}
+
+// Server-side data fetching functions
+async function getFeaturedProducts(): Promise<Product[]> {
+  // In a real app, this would fetch from your API/database
+  // For now, we'll use a subset of the mock data
+  return [
     {
       id: 1,
       image: "/placeholder.svg?height=200&width=200",
@@ -63,339 +111,12 @@ export default function Home() {
       sellerId: "4",
       isOrganic: true,
     },
-    {
-      id: 5,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Carrots",
-      price: 2.99,
-      unit: "per bunch",
-      rating: 4.6,
-      reviews: 95,
-      location: "San Jose, CA",
-      seller: "Root Vegetables Co",
-      sellerId: "5",
-      isOrganic: true,
-    },
-    {
-      id: 6,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Spinach",
-      price: 3.49,
-      unit: "per bag",
-      rating: 4.4,
-      reviews: 73,
-      location: "Fremont, CA",
-      seller: "Leafy Greens Farm",
-      sellerId: "6",
-      isOrganic: true,
-    },
-    {
-      id: 7,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Broccoli",
-      price: 4.29,
-      unit: "per head",
-      rating: 4.7,
-      reviews: 112,
-      location: "Sunnyvale, CA",
-      seller: "Green Veggie Co",
-      sellerId: "7",
-      isOrganic: true,
-    },
-    {
-      id: 8,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Corn",
-      price: 1.99,
-      unit: "per ear",
-      rating: 4.5,
-      reviews: 88,
-      location: "Mountain View, CA",
-      seller: "Corn Fields Farm",
-      sellerId: "8",
-    },
-    {
-      id: 9,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Bell Peppers",
-      price: 5.49,
-      unit: "per pack",
-      rating: 4.6,
-      reviews: 67,
-      location: "Cupertino, CA",
-      seller: "Pepper Paradise",
-      sellerId: "9",
-      isOrganic: true,
-    },
-    {
-      id: 10,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Lettuce",
-      price: 2.79,
-      unit: "per head",
-      rating: 4.3,
-      reviews: 54,
-      location: "Santa Clara, CA",
-      seller: "Crisp Greens",
-      sellerId: "10",
-    },
-    {
-      id: 11,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Potatoes",
-      price: 3.99,
-      unit: "per 3lb bag",
-      rating: 4.8,
-      reviews: 134,
-      location: "San Mateo, CA",
-      seller: "Potato Paradise",
-      sellerId: "11",
-      isOrganic: true,
-    },
-    {
-      id: 12,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Onions",
-      price: 2.49,
-      unit: "per 2lb bag",
-      rating: 4.4,
-      reviews: 76,
-      location: "Redwood City, CA",
-      seller: "Onion Valley",
-      sellerId: "12",
-    },
-    {
-      id: 13,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Cucumbers",
-      price: 3.29,
-      unit: "per pack",
-      rating: 4.5,
-      reviews: 89,
-      location: "Foster City, CA",
-      seller: "Cool Cucumber Co",
-      sellerId: "13",
-      isOrganic: true,
-    },
-    {
-      id: 14,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Zucchini",
-      price: 2.99,
-      unit: "per lb",
-      rating: 4.2,
-      reviews: 45,
-      location: "Belmont, CA",
-      seller: "Squash Squad",
-      sellerId: "14",
-    },
-    {
-      id: 15,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Kale",
-      price: 4.49,
-      unit: "per bunch",
-      rating: 4.7,
-      reviews: 98,
-      location: "San Carlos, CA",
-      seller: "Super Greens",
-      sellerId: "15",
-      isOrganic: true,
-    },
-    {
-      id: 16,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Mushrooms",
-      price: 5.99,
-      unit: "per 8oz pack",
-      rating: 4.6,
-      reviews: 112,
-      location: "Menlo Park, CA",
-      seller: "Fungi Farm",
-      sellerId: "16",
-    },
-    {
-      id: 17,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Avocados",
-      price: 7.99,
-      unit: "per 4-pack",
-      rating: 4.8,
-      reviews: 156,
-      location: "Atherton, CA",
-      seller: "Avocado Grove",
-      sellerId: "17",
-      isOrganic: true,
-      isBestSeller: true,
-    },
-    {
-      id: 18,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Lemons",
-      price: 3.99,
-      unit: "per 2lb bag",
-      rating: 4.5,
-      reviews: 87,
-      location: "Portola Valley, CA",
-      seller: "Citrus Central",
-      sellerId: "18",
-    },
-    {
-      id: 19,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Oranges",
-      price: 4.99,
-      unit: "per 3lb bag",
-      rating: 4.7,
-      reviews: 123,
-      location: "Woodside, CA",
-      seller: "Orange Orchard",
-      sellerId: "19",
-      isOrganic: true,
-    },
-    {
-      id: 20,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Bananas",
-      price: 2.49,
-      unit: "per bunch",
-      rating: 4.3,
-      reviews: 67,
-      location: "Los Altos, CA",
-      seller: "Tropical Fruits",
-      sellerId: "20",
-    },
-    {
-      id: 21,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Grapes",
-      price: 6.99,
-      unit: "per 2lb bag",
-      rating: 4.8,
-      reviews: 145,
-      location: "Los Altos Hills, CA",
-      seller: "Vineyard Fresh",
-      sellerId: "21",
-      isOrganic: true,
-    },
-    {
-      id: 22,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Pears",
-      price: 4.49,
-      unit: "per 2lb bag",
-      rating: 4.4,
-      reviews: 78,
-      location: "Saratoga, CA",
-      seller: "Pear Paradise",
-      sellerId: "22",
-    },
-    {
-      id: 23,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Blueberries",
-      price: 8.99,
-      unit: "per pint",
-      rating: 4.9,
-      reviews: 189,
-      location: "Campbell, CA",
-      seller: "Berry Bliss",
-      sellerId: "23",
-      isOrganic: true,
-      isBestSeller: true,
-    },
-    {
-      id: 24,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Peaches",
-      price: 5.49,
-      unit: "per 2lb bag",
-      rating: 4.6,
-      reviews: 92,
-      location: "Los Gatos, CA",
-      seller: "Peach Perfect",
-      sellerId: "24",
-    },
-    {
-      id: 25,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Cherries",
-      price: 9.99,
-      unit: "per lb",
-      rating: 4.8,
-      reviews: 167,
-      location: "Monte Sereno, CA",
-      seller: "Cherry Hill Farm",
-      sellerId: "25",
-      isOrganic: true,
-      isBestSeller: true,
-    },
-    {
-      id: 26,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Plums",
-      price: 4.99,
-      unit: "per 2lb bag",
-      rating: 4.5,
-      reviews: 83,
-      location: "Milpitas, CA",
-      seller: "Plum Grove",
-      sellerId: "26",
-    },
-    {
-      id: 27,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Apricots",
-      price: 6.49,
-      unit: "per lb",
-      rating: 4.7,
-      reviews: 104,
-      location: "Gilroy, CA",
-      seller: "Apricot Acres",
-      sellerId: "27",
-      isOrganic: true,
-    },
-    {
-      id: 28,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Watermelon",
-      price: 7.99,
-      unit: "per whole",
-      rating: 4.6,
-      reviews: 115,
-      location: "Morgan Hill, CA",
-      seller: "Melon Mania",
-      sellerId: "28",
-    },
-    {
-      id: 29,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Cantaloupe",
-      price: 5.99,
-      unit: "per whole",
-      rating: 4.4,
-      reviews: 71,
-      location: "San Martin, CA",
-      seller: "Sweet Melons",
-      sellerId: "29",
-      isOrganic: true,
-    },
-    {
-      id: 30,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Pineapple",
-      price: 4.99,
-      unit: "per whole",
-      rating: 4.7,
-      reviews: 128,
-      location: "Hollister, CA",
-      seller: "Tropical Paradise",
-      sellerId: "30",
-    },
   ]
+}
 
-  // Mock data for rentals (expand to 30+ items)
-  const mockRentals = [
+async function getFeaturedRentals(): Promise<Rental[]> {
+  // In a real app, this would fetch from your API/database
+  return [
     {
       id: 1,
       image: "/placeholder.svg?height=200&width=200",
@@ -444,343 +165,44 @@ export default function Home() {
       availability: 8,
       category: "Heavy Equipment",
     },
+  ]
+}
+
+async function getCategories(): Promise<Category[]> {
+  // In a real app, this would fetch from your API/database
+  return [
+    { id: 1, name: "Fruits", icon: "🍎", bgColor: "bg-red-50", slug: "fruits" },
+    { id: 2, name: "Vegetables", icon: "🥦", bgColor: "bg-green-50", slug: "vegetables" },
+    { id: 3, name: "Organic Produce", icon: "🌱", bgColor: "bg-emerald-50", slug: "organic" },
+    { id: 4, name: "Plants", icon: "🌾", bgColor: "bg-teal-50", slug: "plants" },
+    { id: 5, name: "Milk", icon: "🍯", bgColor: "bg-yellow-50", slug: "dairy" },
+    { id: 6, name: "Grains", icon: "🌽", bgColor: "bg-amber-50", slug: "grains" },
+  ]
+}
+
+async function getBanners(): Promise<Banner[]> {
+  // In a real app, this would fetch from your API/database
+  return [
     {
-      id: 5,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Cargo Trailer - 16ft",
-      price: 65,
-      unit: "per day",
-      rating: 4.4,
-      reviews: 52,
-      location: "Berkeley, CA",
-      availability: 25,
-      category: "Trailers",
-    },
-    {
-      id: 6,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Box Truck - Isuzu",
-      price: 110,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 41,
-      location: "Santa Clara, CA",
-      availability: 18,
-      category: "Trucks",
-    },
-    {
-      id: 7,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Utility ATV - Polaris",
-      price: 75,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 35,
-      location: "Sunnyvale, CA",
-      availability: 14,
-      category: "ATVs",
-    },
-    {
-      id: 8,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Flatbed Truck - Chevy",
-      price: 125,
-      unit: "per day",
-      rating: 4.7,
-      reviews: 29,
-      location: "Mountain View, CA",
-      availability: 11,
-      category: "Trucks",
-    },
-    {
-      id: 9,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Mini Excavator - CAT",
-      price: 200,
-      unit: "per day",
-      rating: 4.9,
-      reviews: 22,
-      location: "Palo Alto, CA",
-      availability: 6,
-      category: "Heavy Equipment",
-    },
-    {
-      id: 10,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Dump Truck - Mack",
-      price: 180,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 33,
-      location: "Cupertino, CA",
-      availability: 9,
-      category: "Trucks",
-    },
-    {
-      id: 11,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Skid Steer - Bobcat",
-      price: 140,
-      unit: "per day",
-      rating: 4.8,
-      reviews: 26,
-      location: "San Mateo, CA",
-      availability: 13,
-      category: "Heavy Equipment",
-    },
-    {
-      id: 12,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Refrigerated Van",
-      price: 130,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 37,
-      location: "Redwood City, CA",
-      availability: 16,
-      category: "Vans",
-    },
-    {
-      id: 13,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Farm Utility Vehicle",
-      price: 90,
-      unit: "per day",
-      rating: 4.4,
-      reviews: 44,
-      location: "Foster City, CA",
-      availability: 21,
-      category: "Utility Vehicles",
-    },
-    {
-      id: 14,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Livestock Trailer",
-      price: 85,
-      unit: "per day",
-      rating: 4.7,
-      reviews: 31,
-      location: "Belmont, CA",
-      availability: 12,
-      category: "Trailers",
-    },
-    {
-      id: 15,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Hay Baler - New Holland",
-      price: 160,
-      unit: "per day",
-      rating: 4.8,
-      reviews: 19,
-      location: "San Carlos, CA",
-      availability: 7,
-      category: "Farm Equipment",
-    },
-    {
-      id: 16,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Mower - Zero Turn",
-      price: 70,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 48,
-      location: "Menlo Park, CA",
-      availability: 23,
-      category: "Lawn Equipment",
-    },
-    {
-      id: 17,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Sprayer - Field",
-      price: 110,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 27,
-      location: "Atherton, CA",
-      availability: 10,
-      category: "Farm Equipment",
-    },
-    {
-      id: 18,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Cultivator - Disc",
-      price: 95,
-      unit: "per day",
-      rating: 4.4,
-      reviews: 34,
-      location: "Portola Valley, CA",
-      availability: 15,
-      category: "Farm Equipment",
-    },
-    {
-      id: 19,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Seeder - Precision",
-      price: 135,
-      unit: "per day",
-      rating: 4.7,
-      reviews: 24,
-      location: "Woodside, CA",
-      availability: 8,
-      category: "Farm Equipment",
-    },
-    {
-      id: 20,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Harvester - Combine",
-      price: 250,
-      unit: "per day",
-      rating: 4.9,
-      reviews: 16,
-      location: "Los Altos, CA",
-      availability: 4,
-      category: "Heavy Equipment",
-    },
-    {
-      id: 21,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Plow - Moldboard",
-      price: 80,
-      unit: "per day",
-      rating: 4.3,
-      reviews: 39,
-      location: "Los Altos Hills, CA",
-      availability: 17,
-      category: "Farm Equipment",
-    },
-    {
-      id: 22,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Harrow - Disc",
-      price: 75,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 42,
-      location: "Saratoga, CA",
-      availability: 19,
-      category: "Farm Equipment",
-    },
-    {
-      id: 23,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Manure Spreader",
-      price: 100,
-      unit: "per day",
-      rating: 4.4,
-      reviews: 30,
-      location: "Campbell, CA",
-      availability: 14,
-      category: "Farm Equipment",
-    },
-    {
-      id: 24,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Irrigation System - Mobile",
-      price: 120,
-      unit: "per day",
-      rating: 4.8,
-      reviews: 25,
-      location: "Los Gatos, CA",
-      availability: 11,
-      category: "Irrigation",
-    },
-    {
-      id: 25,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Greenhouse Trailer",
-      price: 90,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 36,
-      location: "Monte Sereno, CA",
-      availability: 13,
-      category: "Specialty",
-    },
-    {
-      id: 26,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Soil Aerator",
-      price: 65,
-      unit: "per day",
-      rating: 4.3,
-      reviews: 47,
-      location: "Milpitas, CA",
-      availability: 22,
-      category: "Lawn Equipment",
-    },
-    {
-      id: 27,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fertilizer Spreader",
-      price: 55,
-      unit: "per day",
-      rating: 4.4,
-      reviews: 51,
-      location: "Gilroy, CA",
-      availability: 26,
-      category: "Farm Equipment",
-    },
-    {
-      id: 28,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Post Hole Digger",
-      price: 45,
-      unit: "per day",
-      rating: 4.2,
-      reviews: 58,
-      location: "Morgan Hill, CA",
-      availability: 28,
-      category: "Tools",
-    },
-    {
-      id: 29,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Brush Cutter",
-      price: 60,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 43,
-      location: "San Martin, CA",
-      availability: 20,
-      category: "Lawn Equipment",
-    },
-    {
-      id: 30,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Wood Chipper",
-      price: 85,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 32,
-      location: "Hollister, CA",
-      availability: 16,
-      category: "Tools",
+      id: 1,
+      title: "Fresh Seasonal Produce",
+      subtitle: "Discover fruits and vegetables sourced from local farms",
+      image: "/placeholder.svg?height=400&width=1200",
+      ctaText: "Explore Now",
+      ctaLink: "/seasonal",
     },
   ]
-  const [selectedType, setSelectedType] = useState<"products" | "rentals">("products")
-  const [displayedProducts, setDisplayedProducts] = useState(mockProducts.slice(0, 20))
-  const [displayedRentals, setDisplayedRentals] = useState(mockRentals.slice(0, 20))
-  const [hasMoreProducts, setHasMoreProducts] = useState(mockProducts.length > 20)
-  const [hasMoreRentals, setHasMoreRentals] = useState(mockRentals.length > 20)
-  const [loading, setLoading] = useState(false)
+}
 
-  const loadMore = () => {
-    setLoading(true)
-    setTimeout(() => {
-      if (selectedType === "products") {
-        const currentLength = displayedProducts.length
-        const newProducts = mockProducts.slice(currentLength, currentLength + 20)
-        setDisplayedProducts((prev) => [...prev, ...newProducts])
-        setHasMoreProducts(currentLength + 20 < mockProducts.length)
-      } else {
-        const currentLength = displayedRentals.length
-        const newRentals = mockRentals.slice(currentLength, currentLength + 20)
-        setDisplayedRentals((prev) => [...prev, ...newRentals])
-        setHasMoreRentals(currentLength + 20 < mockRentals.length)
-      }
-      setLoading(false)
-    }, 1000)
-  }
+// Server component for the home page
+export default async function Home() {
+  // Fetch data server-side
+  const [featuredProducts, featuredRentals, categories, banners] = await Promise.all([
+    getFeaturedProducts(),
+    getFeaturedRentals(),
+    getCategories(),
+    getBanners(),
+  ])
 
   return (
     <MainLayout>
@@ -828,34 +250,9 @@ export default function Home() {
         </section>
 
         {/* Seasonal Produce Carousel */}
-        <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <div className="absolute inset-0 bg-black/40 z-10"></div>
-            <div className="absolute inset-0 z-5">
-              <div className="growing-plant growing-plant-1"></div>
-              <div className="growing-plant growing-plant-2"></div>
-              <div className="growing-plant growing-plant-3"></div>
-            </div>
-            <Image
-              src="/placeholder.svg?height=400&width=1200"
-              alt="Fresh Seasonal Produce"
-              width={1200}
-              height={400}
-              className="w-full h-[300px] object-cover"
-            />
-            <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col justify-end p-8 z-20">
-              <h2 className="text-white text-2xl md:text-3xl font-bold mb-2">Fresh Seasonal Produce</h2>
-              <p className="text-white/90 mb-4">Discover fruits and vegetables sourced from local farms</p>
-              <Button className="bg-green-500 hover:bg-green-600 w-fit">Explore Now</Button>
-            </div>
-            <button className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 z-30">
-              <ChevronLeft className="h-6 w-6 text-white" />
-            </button>
-            <button className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 z-30">
-              <ChevronRight className="h-6 w-6 text-white" />
-            </button>
-          </div>
-        </section>
+        <Suspense fallback={<BannerSkeleton />}>
+          <BannerSection banners={banners} />
+        </Suspense>
 
         {/* Browse Categories */}
         <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
@@ -863,23 +260,15 @@ export default function Home() {
             <h2 className="text-xl font-bold">Browse Categories</h2>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-            <CategoryItem icon="🍎" label="Fruits" bgColor="bg-red-50" category="fruits" />
-            <CategoryItem icon="🥦" label="Vegetables" bgColor="bg-green-50" category="vegetables" />
-            <CategoryItem icon="🌱" label="Organic Produce" bgColor="bg-emerald-50" category="organic" />
-            <CategoryItem icon="🌾" label="Plants" bgColor="bg-teal-50" category="plants" />
-            <CategoryItem icon="🍯" label="Milk" bgColor="bg-yellow-50" category="dairy" />
-            <CategoryItem icon="🌽" label="Grains" bgColor="bg-amber-50" category="grains" />
-            <CategoryItem icon="🌰" label="Seeds" bgColor="bg-orange-50" category="seeds" />
-            <CategoryItem icon="🥛" label="Dairy Products" bgColor="bg-blue-50" category="dairy" />
-            <CategoryItem icon="🍲" label="Homemade" bgColor="bg-rose-50" category="homemade" />
-            <CategoryItem icon="🧶" label="Handmade" bgColor="bg-purple-50" category="handmade" />
-            <CategoryItem icon="🍂" label="Seasonal Foods" bgColor="bg-amber-50" category="seasonal" />
-            <CategoryItem icon="🎁" label="Free Items" bgColor="bg-indigo-50" category="free" />
-            <CategoryItem icon="📚" label="Books" bgColor="bg-sky-50" category="books" />
-            <CategoryItem icon="💐" label="Flowers" bgColor="bg-pink-50" category="flowers" />
-            <CategoryItem icon="🧪" label="Fertilizers" bgColor="bg-brown-50" category="fertilizers" />
-            <CategoryItem icon="🦠" label="Biofertilizers" bgColor="bg-lime-50" category="biofertilizers" />
-            <CategoryItem icon="🚜" label="Farming Machines" bgColor="bg-cyan-50" category="machines" />
+            {categories.map((category) => (
+              <CategoryItem
+                key={category.id}
+                icon={category.icon}
+                label={category.name}
+                bgColor={category.bgColor}
+                category={category.slug}
+              />
+            ))}
             <div className="flex flex-col items-center justify-center p-4 rounded-lg border border-dashed border-gray-300 hover:border-gray-400 cursor-pointer">
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
                 <Plus className="h-5 w-5 text-gray-500" />
@@ -889,39 +278,34 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Featured Products/Rentals */}
+        {/* Featured Products */}
         <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold">Featured Items</h2>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as "products" | "rentals")}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm bg-white"
-              >
-                <option value="products">Store Products</option>
-                <option value="rentals">Rental Vehicles</option>
-              </select>
-            </div>
-            <Link
-              href={selectedType === "products" ? "/products" : "/rentals"}
-              className="text-sm text-green-600 hover:underline flex items-center"
-            >
+            <h2 className="text-xl font-bold">Featured Products</h2>
+            <Link href="/products" className="text-sm text-green-600 hover:underline flex items-center">
               View All <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {selectedType === "products"
-              ? displayedProducts.map((product) => <ProductCard key={product.id} {...product} />)
-              : displayedRentals.map((rental) => <RentalCard key={rental.id} {...rental} />)}
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
           </div>
-          {(selectedType === "products" ? hasMoreProducts : hasMoreRentals) && (
-            <div className="flex justify-center mt-8">
-              <Button onClick={loadMore} disabled={loading} className="bg-green-500 hover:bg-green-600">
-                {loading ? "Loading..." : "Show More"}
-              </Button>
-            </div>
-          )}
+        </section>
+
+        {/* Featured Rentals */}
+        <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">Featured Rentals</h2>
+            <Link href="/rentals" className="text-sm text-green-600 hover:underline flex items-center">
+              View All <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredRentals.map((rental) => (
+              <RentalCard key={rental.id} {...rental} />
+            ))}
+          </div>
         </section>
 
         {/* Sell on Platform */}
@@ -1003,49 +387,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Rent Vehicles */}
-        <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Rent Vehicles</h2>
-            <Link href="/rentals" className="text-sm text-green-600 hover:underline flex items-center">
-              View All <ChevronRight className="h-4 w-4 ml-1" />
-            </Link>
-          </div>
-          <p className="text-gray-600 mb-6">Rent vehicles to help with your farming and transport needs.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <VehicleCard
-              image="/placeholder.svg?height=200&width=300"
-              title="Farm Tractor"
-              price={120}
-              unit="per day"
-              rating={4.5}
-              reviews={32}
-              location="San Jose, CA"
-              availability={12}
-            />
-            <VehicleCard
-              image="/placeholder.svg?height=200&width=300"
-              title="Pickup Truck"
-              price={85}
-              unit="per day"
-              rating={4.7}
-              reviews={45}
-              location="Oakland, CA"
-              availability={20}
-            />
-            <VehicleCard
-              image="/placeholder.svg?height=200&width=300"
-              title="Delivery Van"
-              price={95}
-              unit="per day"
-              rating={4.6}
-              reviews={38}
-              location="San Francisco, CA"
-              availability={15}
-            />
-          </div>
-        </section>
-
         {/* Testimonials */}
         <section className="py-12 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto relative overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
@@ -1083,6 +424,64 @@ export default function Home() {
         </section>
       </div>
     </MainLayout>
+  )
+}
+
+// Server component for banner section
+async function BannerSection({ banners }: { banners: Banner[] }) {
+  return (
+    <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
+      <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
+        <div className="absolute inset-0 z-5">
+          <div className="growing-plant growing-plant-1"></div>
+          <div className="growing-plant growing-plant-2"></div>
+          <div className="growing-plant growing-plant-3"></div>
+        </div>
+        {banners.length > 0 ? (
+          <>
+            <Image
+              src={banners[0].image}
+              alt={banners[0].title}
+              width={1200}
+              height={400}
+              className="w-full h-[300px] object-cover"
+            />
+            <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col justify-end p-8 z-20">
+              <h2 className="text-white text-2xl md:text-3xl font-bold mb-2">{banners[0].title}</h2>
+              <p className="text-white/90 mb-4">{banners[0].subtitle}</p>
+              <Button className="bg-green-500 hover:bg-green-600 w-fit">
+                <Link href={banners[0].ctaLink}>{banners[0].ctaText}</Link>
+              </Button>
+            </div>
+            <button className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 z-30">
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </button>
+            <button className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 z-30">
+              <ChevronRight className="h-6 w-6 text-white" />
+            </button>
+          </>
+        ) : (
+          <div className="w-full h-[300px] flex items-center justify-center bg-gray-200">
+            <p className="text-gray-500">Banner loading...</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// Skeleton for banner loading state
+function BannerSkeleton() {
+  return (
+    <section className="py-8 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
+      <div className="relative bg-gray-800 rounded-lg overflow-hidden h-[300px]">
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -1225,77 +624,6 @@ function StoreCard({
 }
 
 // Component for vehicle rental cards
-function VehicleCard({
-  image,
-  title,
-  price,
-  unit,
-  rating,
-  reviews,
-  location,
-  availability,
-}: {
-  image: string
-  title: string
-  price: number
-  unit: string
-  rating: number
-  reviews: number
-  location: string
-  availability: number
-}) {
-  return (
-    <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-      <div className="relative">
-        <Image
-          src={image || "/placeholder.svg"}
-          alt={title}
-          width={300}
-          height={200}
-          className="w-full h-48 object-cover"
-        />
-        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">Rental</div>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold mb-1">{title}</h3>
-        <div className="flex items-baseline mb-2">
-          <span className="text-lg font-bold text-green-600">${price.toFixed(2)}</span>
-          <span className="text-xs text-gray-500 ml-1">{unit}</span>
-        </div>
-        <div className="flex items-center mb-2">
-          <div className="flex items-center">
-            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs ml-1">{rating}</span>
-          </div>
-          <span className="text-xs text-gray-500 ml-2">({reviews})</span>
-        </div>
-        <div className="text-xs text-gray-500 mb-3">
-          <div>📍 {location}</div>
-          <div>{availability} Available Now</div>
-        </div>
-        <Button className="w-full bg-green-500 hover:bg-green-600">Rent Now</Button>
-      </div>
-    </div>
-  )
-}
-
-// Component for testimonial cards
-function TestimonialCard({ avatar, name, role, quote }: { avatar: string; name: string; role: string; quote: string }) {
-  return (
-    <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-      <div className="flex items-center mb-4">
-        <Image src={avatar || "/placeholder.svg"} alt={name} width={40} height={40} className="rounded-full mr-3" />
-        <div>
-          <h4 className="font-semibold">{name}</h4>
-          <p className="text-xs text-gray-500">{role}</p>
-        </div>
-      </div>
-      <p className="text-sm text-gray-600 italic">"{quote}"</p>
-    </div>
-  )
-}
-
-// Component for rental cards
 function RentalCard({
   id,
   image,
@@ -1360,6 +688,22 @@ function RentalCard({
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Component for testimonial cards
+function TestimonialCard({ avatar, name, role, quote }: { avatar: string; name: string; role: string; quote: string }) {
+  return (
+    <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center mb-4">
+        <Image src={avatar || "/placeholder.svg"} alt={name} width={40} height={40} className="rounded-full mr-3" />
+        <div>
+          <h4 className="font-semibold">{name}</h4>
+          <p className="text-xs text-gray-500">{role}</p>
+        </div>
+      </div>
+      <p className="text-sm text-gray-600 italic">"{quote}"</p>
     </div>
   )
 }

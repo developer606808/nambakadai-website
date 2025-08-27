@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -7,7 +5,7 @@ import { ArrowLeft, MapPin, Phone, Mail, Clock, ExternalLink, Star, Send, Thumbs
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import { useAuthRedux } from "@/hooks/use-auth-redux"
 import { useToast } from "@/hooks/use-toast"
 import { LazyImage } from "@/components/ui/lazy-image"

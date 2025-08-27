@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Models
+
+model User {
+  id             String      @id
+  name           String
+  email          String      @unique
+  phone          String?
+  password       String
+  role           Role        @default(BUYER)
+  isVerified     Boolean     @default(false)
+  isBlocked      Boolean     @default(false)
+  avatar         String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  stores         Store[]
+  products       Product[]
+  wishlist       Wishlist[]
+  following      FollowStore[]
+  ratings        Rating[]
+  reportsMade    Report[]    @relation("UserReports")
+  reportedUsers  Report[]    @relation("UserReported")
+  tickets        Ticket[]
+  // Community relations
+  communityMemberships CommunityMember[]
+  communityPosts       CommunityPost[]
+  communityComments    CommunityComment[]
+  communityLikes       CommunityLike[]
+  communityBookmarks   CommunityBookmark[]
+  communityFollows     CommunityFollower[]
+  communityReports     CommunityReport[]   @relation("UserCommunityReports")
+  reportedCommunities  CommunityReport[]   @relation("UserReportedCommunities")
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+model Store {
+  id             String     @id
+  name           String
+  description    String?
+  logo           String?
+  banner         String?
+  address        String?
+  phone          String?
+  email          String?
+  website        String?
+  qrCode         String?
+  followersCount Int        @default(0)
+  isApproved     Boolean    @default(false)
+  isBlocked      Boolean    @default(false)
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  products       Product[]
+  followers      FollowStore[]
+  ratings        Rating[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Product {
+  id             String     @id
+  title          String
+  description    String
+  price          Float
+  images         String[]
+  isFeatured     Boolean   @default(false)
+  categoryId     String
+  category       Category  @relation(fields: [categoryId], references: [id])
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id])
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  stateId        String
+  state          State     @relation(fields: [stateId], references: [id])
+  cityId         String
+  city           City      @relation(fields: [cityId], references: [id])
+  unitId         String
+  unit           Unit      @relation(fields: [unitId], references: [id])
+  wishlist       Wishlist[]
+  reports        Report[]  @relation("ProductReports")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Category {
+  id        String     @id
+  name      String
+  slug      String     @unique
+  image     String?
+  products  Product[]
+
+  // Parent / Child self relation
+  parentId  String?    
+  type      CategoryType @default(STORE)
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Banner {
+  id        String   @id
+  title     String
+  image     String
+  url       String?
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Unit {
+  id        String   @id
+  name      String
+  symbol    String
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model State {
+  id        String   @id
+  name      String
+  products  Product[]
+  cities    City[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model City {
+  id        String   @id
+  name      String
+  stateId   String
+  state     State    @relation(fields: [stateId], references: [id])
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Wishlist {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model FollowStore {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, storeId])
+}
+
+model Rating {
+  id        String   @id
+  value     Int      // 1-5 stars
+  comment   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, storeId])
+}
+
+model Report {
+  id          String   @id
+  reason      String
+  description String?
+  reporterId  String
+  reporter    User     @relation("UserReports", fields: [reporterId], references: [id])
+  productId   String?
+  product     Product? @relation("ProductReports", fields: [productId], references: [id])
+  userId      String?
+  user        User?    @relation("UserReported", fields: [userId], references: [id])
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Ticket {
+  id        String       @id
+  title     String
+  message   String
+  status    TicketStatus @default(OPEN)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Community Models
+model Community {
+  id              Int                 @id @default(autoincrement())
+  name            String
+  description     String
+  image           String?
+  category        String
+  privacy         CommunityPrivacy    @default(PUBLIC)
+  location        String?
+  rules           String?
+  memberCount     Int                 @default(0)
+  postCount       Int                 @default(0)
+  isVerified      Boolean             @default(false)
+  isBlocked       Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  // Relations
+  members         CommunityMember[]
+  posts           CommunityPost[]
+  followers       CommunityFollower[]
+  reports         CommunityReport[]   @relation("CommunityReports")
+}
+
+model CommunityMember {
+  id          Int         @id @default(autoincrement())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  communityId Int
+  community   Community   @relation(fields: [communityId], references: [id])
+  role        MemberRole  @default(MEMBER)
+  isApproved  Boolean     @default(true)
+  joinedAt    DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([userId, communityId])
+}
+
+model CommunityPost {
+  id          Int               @id @default(autoincrement())
+  content     String
+  type        CommunityPostType @default(TEXT)
+  mediaUrl    String?
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  communityId Int
+  community   Community         @relation(fields: [communityId], references: [id])
+  likeCount   Int               @default(0)
+  commentCount Int              @default(0)
+  isPinned    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  // Relations
+  comments    CommunityComment[]
+  likes       CommunityLike[]
+  bookmarks   CommunityBookmark[]
+}
+
+model CommunityComment {
+  id          Int         @id @default(autoincrement())
+  content     String
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  postId      Int
+  post        CommunityPost @relation(fields: [postId], references: [id])
+  parentId    Int?
+  parent      CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     CommunityComment[] @relation("CommentReplies")
+  likeCount   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  // Relations
+  likes       CommunityLike[]
+}
+
+model CommunityLike {
+  id          Int         @id @default(autoincrement())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  postId      Int?
+  post        CommunityPost? @relation(fields: [postId], references: [id])
+  commentId   Int?
+  comment     CommunityComment? @relation(fields: [commentId], references: [id])
+  createdAt   DateTime    @default(now())
+
+  @@unique([userId, postId, commentId])
+}
+
+model CommunityBookmark {
+  id          Int         @id @default(autoincrement())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  postId      Int
+  post        CommunityPost @relation(fields: [postId], references: [id])
+  createdAt   DateTime    @default(now())
+
+  @@unique([userId, postId])
+}
+
+model CommunityFollower {
+  id          Int         @id @default(autoincrement())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  communityId Int
+  community   Community   @relation(fields: [communityId], references: [id])
+  isNotified  Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  @@unique([userId, communityId])
+}
+
+model CommunityReport {
+  id          Int         @id @default(autoincrement())
+  reason      String
+  description String?
+  reporterId  String
+  reporter    User        @relation("UserCommunityReports", fields: [reporterId], references: [id])
+  communityId Int?
+  community   Community?  @relation("CommunityReports", fields: [communityId], references: [id])
+  userId      String?
+  user        User?       @relation("UserReportedCommunities", fields: [userId], references: [id])
+  resolved    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum CommunityPrivacy {
+  PUBLIC
+  PRIVATE
+}
+
+enum MemberRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum CommunityPostType {
+  TEXT
+  IMAGE
+  VIDEO
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum CategoryType {
+  STORE
+  RENTAL
+}
