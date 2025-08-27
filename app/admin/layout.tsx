@@ -23,7 +23,7 @@ export default function AdminLayout({
       setIsLoggedIn(!!adminToken)
 
       // If not logged in and not already on login page, redirect to login
-      if (!adminToken && pathname !== "/admin/login" && pathname !== "/admin/forgot-password") {
+      if (!adminToken && pathname !== "/admin/login" && pathname !== "/admin/forgot-password" && pathname !== "/admin/test") {
         router.push("/admin/login")
       }
     }
@@ -41,7 +41,7 @@ export default function AdminLayout({
   }
 
   // If not logged in, only show the children (login page) without sidebar
-  if (!isLoggedIn && (pathname === "/admin/login" || pathname === "/admin/forgot-password")) {
+  if (!isLoggedIn && (pathname === "/admin/login" || pathname === "/admin/forgot-password" || pathname === "/admin/test")) {
     return <div className="h-screen bg-muted/20">{children}</div>
   }
 

@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Search, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
 export default function StoresPage() {
   // Mock data for stores

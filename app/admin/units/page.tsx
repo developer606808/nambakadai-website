@@ -306,9 +306,9 @@ export default function UnitsPage() {
         </Pagination>
       </div>
 
-      {/* Add Unit Dialog */}
+      {/* Add Unit Dialog - Responsive */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Unit</DialogTitle>
             <DialogDescription>Create a new measurement unit.</DialogDescription>
@@ -412,7 +412,7 @@ export default function UnitsPage() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
             </Button>
@@ -433,9 +433,9 @@ export default function UnitsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Unit Dialog */}
+      {/* Edit Unit Dialog - Responsive */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Unit</DialogTitle>
             <DialogDescription>Make changes to the measurement unit.</DialogDescription>
@@ -536,7 +536,7 @@ export default function UnitsPage() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
@@ -554,9 +554,9 @@ export default function UnitsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Unit Dialog */}
+      {/* Delete Unit Dialog - Responsive */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Unit</DialogTitle>
             <DialogDescription>
@@ -570,7 +570,7 @@ export default function UnitsPage() {
               <p className="text-sm text-muted-foreground">{currentUnit?.abbreviation}</p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>

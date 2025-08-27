@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,66 +28,17 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Search, MoreHorizontal, Edit, Trash, Eye, Plus, Filter, Loader2, Upload, ExternalLink } from "lucide-react"
-
-// Mock data for banners
-const mockBanners = [
-  {
-    id: 1,
-    title: "Summer Sale 2024",
-    description: "Get up to 50% off on fresh vegetables and fruits",
-    image: "/placeholder.svg?height=200&width=400",
-    link: "/products?category=vegetables",
-    position: "hero",
-    status: "active",
-    startDate: "2024-06-01",
-    endDate: "2024-08-31",
-    clicks: 1250,
-    impressions: 15000,
-    createdAt: "2024-05-15",
-  },
-  {
-    id: 2,
-    title: "Farm Equipment Rental",
-    description: "Rent professional farming equipment at affordable rates",
-    image: "/placeholder.svg?height=200&width=400",
-    link: "/rentals",
-    position: "sidebar",
-    status: "active",
-    startDate: "2024-01-01",
-    endDate: "2024-12-31",
-    clicks: 890,
-    impressions: 12000,
-    createdAt: "2024-01-01",
-  },
-  {
-    id: 3,
-    title: "Organic Certification Program",
-    description: "Join our organic certification program for premium pricing",
-    image: "/placeholder.svg?height=200&width=400",
-    link: "/seller/register",
-    position: "footer",
-    status: "inactive",
-    startDate: "2024-03-01",
-    endDate: "2024-05-31",
-    clicks: 456,
-    impressions: 8500,
-    createdAt: "2024-02-15",
-  },
-  {
-    id: 4,
-    title: "Mobile App Launch",
-    description: "Download our new mobile app for better shopping experience",
-    image: "/placeholder.svg?height=200&width=400",
-    link: "/mobile-app",
-    position: "popup",
-    status: "active",
-    startDate: "2024-07-01",
-    endDate: "2024-09-30",
-    clicks: 2100,
-    impressions: 25000,
-    createdAt: "2024-06-20",
-  },
-]
+import { toast } from "sonner"
+import { 
+  getBanners, 
+  createBanner, 
+  updateBanner, 
+  deleteBanner, 
+  toggleBannerStatus,
+  Banner,
+  CreateBannerData,
+  UpdateBannerData
+} from "@/lib/services/bannerService"
 
 const bannerPositions = [
   { value: "hero", label: "Hero Section" },
@@ -99,103 +50,212 @@ const bannerPositions = [
 ]
 
 export default function BannersPage() {
-  const [banners, setBanners] = useState(mockBanners)
+  const [banners, setBanners] = useState<Banner[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentBanner, setCurrentBanner] = useState<any>(null)
+  const [currentBanner, setCurrentBanner] = useState<Banner | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [positionFilter, setPositionFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDataLoading, setIsDataLoading] = useState(true)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // New banner form state
-  const [newBanner, setNewBanner] = useState({
+  const [newBanner, setNewBanner] = useState<CreateBannerData>({
     title: "",
-    description: "",
     image: "",
-    link: "",
-    position: "",
-    status: "active",
-    startDate: "",
-    endDate: "",
+    url: "",
+    position: 0,
+    isActive: true
   })
+
+  // Load banners on component mount
+  useEffect(() => {
+    fetchBanners()
+  }, [])
+
+  const fetchBanners = async () => {
+    try {
+      setIsDataLoading(true)
+      const data = await getBanners()
+      setBanners(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Error fetching banners:", error)
+      toast.error("Failed to load banners")
+      setBanners([]) // Set empty array on error
+    } finally {
+      setIsDataLoading(false)
+    }
+  }
 
   // Filter banners based on search query and filters
-  const filteredBanners = banners.filter((banner) => {
-    const matchesSearch =
-      banner.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      banner.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredBanners = Array.isArray(banners) ? banners.filter((banner) => {
+    const matchesSearch = banner.title.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesStatus = statusFilter === "all" || banner.status === statusFilter
-    const matchesPosition = positionFilter === "all" || banner.position === positionFilter
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "active" && banner.isActive) ||
+      (statusFilter === "inactive" && !banner.isActive)
+
+    const matchesPosition = positionFilter === "all" || banner.position.toString() === positionFilter
 
     return matchesSearch && matchesStatus && matchesPosition
-  })
+  }) : []
 
-  const handleAddBanner = () => {
+  // Pagination calculations
+  const totalItems = filteredBanners?.length || 0
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedBanners = filteredBanners?.slice(startIndex, endIndex) || []
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, positionFilter])
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value))
+    setCurrentPage(1)
+  }
+
+  const handleAddBanner = async () => {
+    // Validate that either image or url is provided
+    if (!newBanner.image && !newBanner.url) {
+      toast.error("Please provide either a banner image or a URL")
+      return
+    }
+
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const banner = {
-        ...newBanner,
-        id: banners.length + 1,
-        clicks: 0,
-        impressions: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      }
-      setBanners([...banners, banner])
+    try {
+      const bannerData = await createBanner(newBanner)
+      setBanners([...banners, bannerData])
       setIsAddDialogOpen(false)
       setNewBanner({
         title: "",
-        description: "",
         image: "",
-        link: "",
-        position: "",
-        status: "active",
-        startDate: "",
-        endDate: "",
+        url: "",
+        position: 0,
+        isActive: true
       })
+      setPreviewImage(null)
+      toast.success("Banner created successfully")
+    } catch (error) {
+      console.error("Error adding banner:", error)
+      toast.error("Failed to create banner")
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleEditBanner = () => {
+  const handleEditBanner = async () => {
+    // Validate that either image or url is provided
+    if (!currentBanner?.image && !currentBanner?.url) {
+      toast.error("Please provide either a banner image or a URL")
+      return
+    }
+
+    if (!currentBanner) return
+
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const updateData: UpdateBannerData = {
+        title: currentBanner.title,
+        image: currentBanner.image,
+        url: currentBanner.url || undefined,
+        position: currentBanner.position,
+        isActive: currentBanner.isActive,
+      }
+
+      const updatedBanner = await updateBanner(currentBanner.id, updateData)
       const updatedBanners = banners.map((banner) =>
-        banner.id === currentBanner.id ? { ...banner, ...currentBanner } : banner,
+        banner.id === currentBanner.id ? updatedBanner : banner,
       )
       setBanners(updatedBanners)
       setIsEditDialogOpen(false)
       setCurrentBanner(null)
+      setPreviewImage(null)
+      toast.success("Banner updated successfully")
+    } catch (error) {
+      console.error("Error editing banner:", error)
+      toast.error("Failed to update banner")
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleDeleteBanner = () => {
+  const handleDeleteBanner = async () => {
+    if (!currentBanner) return
+    
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await deleteBanner(currentBanner.id)
       const updatedBanners = banners.filter((banner) => banner.id !== currentBanner.id)
       setBanners(updatedBanners)
       setIsDeleteDialogOpen(false)
       setCurrentBanner(null)
+      toast.success("Banner deleted successfully")
+    } catch (error) {
+      console.error("Error deleting banner:", error)
+      toast.error("Failed to delete banner")
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleToggleStatus = (banner: any) => {
+  const handleToggleStatus = async (banner: Banner) => {
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const newIsActive = !banner.isActive
+      const updatedBanner = await toggleBannerStatus(banner.id, newIsActive)
       const updatedBanners = banners.map((b) =>
-        b.id === banner.id ? { ...b, status: b.status === "active" ? "inactive" : "active" } : b,
+        b.id === banner.id ? updatedBanner : b,
       )
       setBanners(updatedBanners)
+      toast.success(`Banner ${newIsActive ? 'activated' : 'deactivated'} successfully`)
+    } catch (error) {
+      console.error("Error toggling banner status:", error)
+      toast.error("Failed to update banner status")
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const imageDataUrl = reader.result as string
+        setPreviewImage(imageDataUrl)
+        
+        if (isEdit && currentBanner) {
+          setCurrentBanner({ ...currentBanner, image: imageDataUrl })
+        } else {
+          setNewBanner({ ...newBanner, image: imageDataUrl })
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const triggerFileInput = (isEdit = false) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.onchange = (e) => handleImageUpload(e as any, isEdit)
+      fileInputRef.current.click()
+    }
   }
 
   return (
@@ -263,6 +323,29 @@ export default function BannersPage() {
           </div>
         </div>
 
+        {/* Items per page selector and pagination info */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">Show</span>
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+              <SelectTrigger className="w-[70px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">items per page</span>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Showing {totalItems === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} results
+          </div>
+        </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -270,20 +353,29 @@ export default function BannersPage() {
                 <TableHead>Banner</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Performance</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead>Info</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBanners.length === 0 ? (
+              {isDataLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading banners...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredBanners.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
                     No banners found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBanners.map((banner) => (
+                paginatedBanners.map((banner) => (
                   <TableRow key={banner.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -298,11 +390,10 @@ export default function BannersPage() {
                         </div>
                         <div className="space-y-1">
                           <div className="font-medium">{banner.title}</div>
-                          <div className="text-sm text-muted-foreground line-clamp-2">{banner.description}</div>
-                          {banner.link && (
+                          {banner.url && (
                             <div className="flex items-center text-xs text-blue-600">
                               <ExternalLink className="mr-1 h-3 w-3" />
-                              {banner.link}
+                              {banner.url}
                             </div>
                           )}
                         </div>
@@ -310,34 +401,29 @@ export default function BannersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {bannerPositions.find((p) => p.value === banner.position)?.label || banner.position}
+                        {bannerPositions.find((p) => p.value === banner.position.toString())?.label || `Position ${banner.position}`}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={banner.status === "active" ? "success" : "secondary"}>
-                          {banner.status === "active" ? "Active" : "Inactive"}
+                        <Badge variant={banner.isActive ? "default" : "secondary"}>
+                          {banner.isActive ? "Active" : "Inactive"}
                         </Badge>
                         <Switch
-                          checked={banner.status === "active"}
+                          checked={banner.isActive}
                           onCheckedChange={() => handleToggleStatus(banner)}
-                          size="sm"
                         />
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>Start: {banner.startDate}</div>
-                        <div>End: {banner.endDate}</div>
+                        <div>Created: {new Date(banner.createdAt).toLocaleDateString()}</div>
+                        <div>Updated: {new Date(banner.updatedAt).toLocaleDateString()}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        <div>{banner.clicks.toLocaleString()} clicks</div>
-                        <div className="text-muted-foreground">{banner.impressions.toLocaleString()} views</div>
-                        <div className="text-xs text-green-600">
-                          CTR: {((banner.clicks / banner.impressions) * 100).toFixed(2)}%
-                        </div>
+                      <div className="text-sm text-muted-foreground">
+                        No analytics data available
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -382,38 +468,118 @@ export default function BannersPage() {
           </Table>
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        {/* Dynamic Pagination */}
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {/* First page */}
+              {currentPage > 2 && (
+                <>
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(1)}
+                      className="cursor-pointer"
+                    >
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                  {currentPage > 3 && (
+                    <PaginationItem>
+                      <span className="px-3 py-2">...</span>
+                    </PaginationItem>
+                  )}
+                </>
+              )}
+
+              {/* Previous page */}
+              {currentPage > 1 && (
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="cursor-pointer"
+                  >
+                    {currentPage - 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              {/* Current page */}
+              <PaginationItem>
+                <PaginationLink isActive>
+                  {currentPage}
+                </PaginationLink>
+              </PaginationItem>
+
+              {/* Next page */}
+              {currentPage < totalPages && (
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="cursor-pointer"
+                  >
+                    {currentPage + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              {/* Last page */}
+              {currentPage < totalPages - 1 && (
+                <>
+                  {currentPage < totalPages - 2 && (
+                    <PaginationItem>
+                      <span className="px-3 py-2">...</span>
+                    </PaginationItem>
+                  )}
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(totalPages)}
+                      className="cursor-pointer"
+                    >
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                </>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
 
-      {/* Add Banner Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+      {/* Add Banner Dialog - Responsive */}
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+        setIsAddDialogOpen(open)
+        if (!open) {
+          setPreviewImage(null)
+          setNewBanner({
+            title: "",
+            image: "",
+            url: "",
+            position: 0,
+            isActive: true
+          })
+        }
+      }}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Banner</DialogTitle>
             <DialogDescription>Create a new banner for your website.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="add-title">Title</Label>
                 <Input
@@ -425,16 +591,13 @@ export default function BannersPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="add-position">Position</Label>
-                <Select
-                  value={newBanner.position}
-                  onValueChange={(value) => setNewBanner({ ...newBanner, position: value })}
-                >
+                <Select value={newBanner.position?.toString() || "0"} onValueChange={(value) => setNewBanner({ ...newBanner, position: parseInt(value) })}>
                   <SelectTrigger id="add-position">
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bannerPositions.map((position) => (
-                      <SelectItem key={position.value} value={position.value}>
+                    {bannerPositions.map((position, index) => (
+                      <SelectItem key={position.value} value={index.toString()}>
                         {position.label}
                       </SelectItem>
                     ))}
@@ -443,34 +606,31 @@ export default function BannersPage() {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="add-description">Description</Label>
-              <Textarea
-                id="add-description"
-                value={newBanner.description}
-                onChange={(e) => setNewBanner({ ...newBanner, description: e.target.value })}
-                placeholder="Banner description"
-                rows={3}
-              />
-            </div>
+
+
+
 
             <div className="grid gap-2">
               <Label htmlFor="add-image">Banner Image</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  id="add-image"
-                  value={newBanner.image}
-                  onChange={(e) => setNewBanner({ ...newBanner, image: e.target.value })}
-                  placeholder="Image URL or upload"
-                />
-                <Button variant="outline" size="icon">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => triggerFileInput(false)}
+                >
                   <Upload className="h-4 w-4" />
                 </Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                />
               </div>
-              {newBanner.image && (
+              {(previewImage || newBanner.image) && (
                 <div className="mt-2">
                   <Image
-                    src={newBanner.image || "/placeholder.svg"}
+                    src={previewImage || newBanner.image || "/placeholder.svg"}
                     alt="Preview"
                     width={200}
                     height={100}
@@ -481,39 +641,18 @@ export default function BannersPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="add-link">Link URL</Label>
+              <Label htmlFor="add-url">Link URL</Label>
               <Input
-                id="add-link"
-                value={newBanner.link}
-                onChange={(e) => setNewBanner({ ...newBanner, link: e.target.value })}
+                id="add-url"
+                value={newBanner.url || ""}
+                onChange={(e) => setNewBanner({ ...newBanner, url: e.target.value })}
                 placeholder="https://example.com"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="add-start-date">Start Date</Label>
-                <Input
-                  id="add-start-date"
-                  type="date"
-                  value={newBanner.startDate}
-                  onChange={(e) => setNewBanner({ ...newBanner, startDate: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="add-end-date">End Date</Label>
-                <Input
-                  id="add-end-date"
-                  type="date"
-                  value={newBanner.endDate}
-                  onChange={(e) => setNewBanner({ ...newBanner, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-
             <div className="grid gap-2">
               <Label htmlFor="add-status">Status</Label>
-              <Select value={newBanner.status} onValueChange={(value) => setNewBanner({ ...newBanner, status: value })}>
+              <Select value={newBanner.isActive ? "active" : "inactive"} onValueChange={(value) => setNewBanner({ ...newBanner, isActive: value === "active" })}>
                 <SelectTrigger id="add-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -524,7 +663,7 @@ export default function BannersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
             </Button>
@@ -542,35 +681,41 @@ export default function BannersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Banner Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+      {/* Edit Banner Dialog - Responsive */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open)
+        if (!open) {
+          setPreviewImage(null)
+          setCurrentBanner(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Banner</DialogTitle>
             <DialogDescription>Make changes to the banner information.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-title">Title</Label>
                 <Input
                   id="edit-title"
                   value={currentBanner?.title || ""}
-                  onChange={(e) => setCurrentBanner({ ...currentBanner, title: e.target.value })}
+                  onChange={(e) => currentBanner && setCurrentBanner({ ...currentBanner, title: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-position">Position</Label>
                 <Select
-                  value={currentBanner?.position || ""}
-                  onValueChange={(value) => setCurrentBanner({ ...currentBanner, position: value })}
+                  value={currentBanner?.position?.toString() || "0"}
+                  onValueChange={(value) => currentBanner && setCurrentBanner({ ...currentBanner, position: parseInt(value) })}
                 >
                   <SelectTrigger id="edit-position">
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bannerPositions.map((position) => (
-                      <SelectItem key={position.value} value={position.value}>
+                    {bannerPositions.map((position, index) => (
+                      <SelectItem key={position.value} value={index.toString()}>
                         {position.label}
                       </SelectItem>
                     ))}
@@ -579,32 +724,31 @@ export default function BannersPage() {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={currentBanner?.description || ""}
-                onChange={(e) => setCurrentBanner({ ...currentBanner, description: e.target.value })}
-                rows={3}
-              />
-            </div>
+
+
+
 
             <div className="grid gap-2">
               <Label htmlFor="edit-image">Banner Image</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  id="edit-image"
-                  value={currentBanner?.image || ""}
-                  onChange={(e) => setCurrentBanner({ ...currentBanner, image: e.target.value })}
-                />
-                <Button variant="outline" size="icon">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => triggerFileInput(true)}
+                >
                   <Upload className="h-4 w-4" />
                 </Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                />
               </div>
-              {currentBanner?.image && (
+              {(previewImage || currentBanner?.image) && (
                 <div className="mt-2">
                   <Image
-                    src={currentBanner.image || "/placeholder.svg"}
+                    src={previewImage || currentBanner?.image || "/placeholder.svg"}
                     alt="Preview"
                     width={200}
                     height={100}
@@ -615,40 +759,19 @@ export default function BannersPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-link">Link URL</Label>
+              <Label htmlFor="edit-url">Link URL</Label>
               <Input
-                id="edit-link"
-                value={currentBanner?.link || ""}
-                onChange={(e) => setCurrentBanner({ ...currentBanner, link: e.target.value })}
+                id="edit-url"
+                value={currentBanner?.url || ""}
+                onChange={(e) => currentBanner && setCurrentBanner({ ...currentBanner, url: e.target.value })}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-start-date">Start Date</Label>
-                <Input
-                  id="edit-start-date"
-                  type="date"
-                  value={currentBanner?.startDate || ""}
-                  onChange={(e) => setCurrentBanner({ ...currentBanner, startDate: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-end-date">End Date</Label>
-                <Input
-                  id="edit-end-date"
-                  type="date"
-                  value={currentBanner?.endDate || ""}
-                  onChange={(e) => setCurrentBanner({ ...currentBanner, endDate: e.target.value })}
-                />
-              </div>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="edit-status">Status</Label>
               <Select
-                value={currentBanner?.status || ""}
-                onValueChange={(value) => setCurrentBanner({ ...currentBanner, status: value })}
+                value={currentBanner?.isActive ? "active" : "inactive"}
+                onValueChange={(value) => currentBanner && setCurrentBanner({ ...currentBanner, isActive: value === "active" })}
               >
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Select status" />
@@ -660,7 +783,7 @@ export default function BannersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
@@ -678,9 +801,9 @@ export default function BannersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Banner Dialog */}
+      {/* Delete Banner Dialog - Responsive */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Banner</DialogTitle>
             <DialogDescription>
@@ -700,11 +823,11 @@ export default function BannersPage() {
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium leading-none">{currentBanner?.title}</p>
               <p className="text-sm text-muted-foreground">
-                {currentBanner?.position} • {currentBanner?.status}
+                Position {currentBanner?.position} • {currentBanner?.isActive ? "Active" : "Inactive"}
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>

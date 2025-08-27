@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import MainLayout from '@/components/main-layout'
 
 interface Community {
-  id: string
+  id: number
   name: string
   description: string
   image: string
@@ -26,106 +26,39 @@ interface Community {
   trending: boolean
 }
 
-const mockCommunities: Community[] = [
-  {
-    id: '1',
-    name: 'Organic Farming Japan',
-    description: 'Share organic farming techniques, tips, and experiences across Japan',
-    image: '/organic-farm.png',
-    memberCount: 12500,
-    postCount: 3420,
-    category: 'Organic',
-    isJoined: true,
-    isVerified: true,
-    location: 'Japan',
-    createdAt: '2023-01-15',
-    trending: true
-  },
-  {
-    id: '2',
-    name: 'Rice Cultivation Masters',
-    description: 'Traditional and modern rice farming methods, seasonal tips, and harvest sharing',
-    image: '/lush-rice-field.png',
-    memberCount: 8900,
-    postCount: 2150,
-    category: 'Rice',
-    isJoined: false,
-    isVerified: true,
-    location: 'Asia',
-    createdAt: '2023-02-20',
-    trending: true
-  },
-  {
-    id: '3',
-    name: 'Vegetable Garden Community',
-    description: 'Home gardening, vegetable cultivation, and seasonal growing guides',
-    image: '/lush-vegetable-garden.png',
-    memberCount: 15600,
-    postCount: 4890,
-    category: 'Vegetables',
-    isJoined: true,
-    isVerified: false,
-    location: 'Global',
-    createdAt: '2023-03-10',
-    trending: false
-  },
-  {
-    id: '4',
-    name: 'Smart Farming Tech',
-    description: 'IoT, AI, and modern technology in agriculture and farming automation',
-    image: '/smart-farming.png',
-    memberCount: 6700,
-    postCount: 1890,
-    category: 'Technology',
-    isJoined: false,
-    isVerified: true,
-    location: 'Global',
-    createdAt: '2023-04-05',
-    trending: true
-  },
-  {
-    id: '5',
-    name: 'Fruit Orchard Network',
-    description: 'Fruit tree cultivation, orchard management, and seasonal fruit growing',
-    image: '/fruit-orchard.png',
-    memberCount: 4200,
-    postCount: 1250,
-    category: 'Fruits',
-    isJoined: false,
-    isVerified: false,
-    location: 'Japan',
-    createdAt: '2023-05-12',
-    trending: false
-  },
-  {
-    id: '6',
-    name: 'Sustainable Agriculture',
-    description: 'Eco-friendly farming practices, sustainability, and environmental conservation',
-    image: '/sustainable-farming.png',
-    memberCount: 9800,
-    postCount: 2780,
-    category: 'Sustainability',
-    isJoined: true,
-    isVerified: true,
-    location: 'Global',
-    createdAt: '2023-06-18',
-    trending: false
-  }
-]
-
-const categories = ['All', 'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability']
-
 export default function CommunityPage() {
-  const [communities, setCommunities] = useState<Community[]>(mockCommunities)
+  const [communities, setCommunities] = useState<Community[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000)
-    return () => clearTimeout(timer)
+    fetchCommunities()
   }, [])
+
+  const fetchCommunities = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/community/search?q=${searchTerm}&category=${selectedCategory === 'All' ? '' : selectedCategory}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setCommunities(data.communities.map((community: any) => ({
+          ...community,
+          isJoined: false, // In a real app, check if user is joined
+          trending: false, // In a real app, determine based on activity
+        })))
+      } else {
+        setError(data.error || 'Failed to fetch communities')
+      }
+    } catch (err) {
+      setError('Failed to fetch communities')
+      console.error('Error fetching communities:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredCommunities = communities.filter(community => {
     const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,7 +67,7 @@ export default function CommunityPage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleJoinCommunity = (communityId: string) => {
+  const handleJoinCommunity = (communityId: number) => {
     setCommunities(prev => prev.map(community => 
       community.id === communityId 
         ? { 
@@ -183,6 +116,21 @@ export default function CommunityPage() {
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"
           />
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <Button onClick={fetchCommunities}>Retry</Button>
+          </div>
         </div>
       </MainLayout>
     )
@@ -280,7 +228,7 @@ export default function CommunityPage() {
                     />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => (
+                    {['All', 'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability'].map((category) => (
                       <motion.button
                         key={category}
                         whileHover={{ scale: 1.05 }}
@@ -423,6 +371,7 @@ export default function CommunityPage() {
                                 : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
                             }`}
                           >
+                            <Users className="mr-2 h-4 w-4" />
                             {community.isJoined ? 'Joined' : 'Join'}
                           </Button>
                         </motion.div>

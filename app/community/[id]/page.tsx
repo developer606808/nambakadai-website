@@ -17,7 +17,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 interface Post {
-  id: string
+  id: number
   author: {
     name: string
     avatar: string
@@ -34,7 +34,7 @@ interface Post {
 }
 
 interface Community {
-  id: string
+  id: number
   name: string
   description: string
   image: string
@@ -49,85 +49,70 @@ interface Community {
   isNotificationEnabled: boolean
 }
 
-const mockCommunity: Community = {
-  id: '1',
-  name: 'Organic Farming Japan',
-  description: 'Share organic farming techniques, tips, and experiences across Japan. Connect with fellow organic farmers and learn sustainable practices.',
-  image: '/organic-farm-landscape.png',
-  memberCount: 12500,
-  postCount: 3420,
-  category: 'Organic',
-  isJoined: true,
-  isVerified: true,
-  location: 'Japan',
-  createdAt: '2023-01-15',
-  isFollowing: true,
-  isNotificationEnabled: true
-}
-
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    author: {
-      name: 'Hiroshi Tanaka',
-      avatar: '/japanese-farmer.png',
-      role: 'Organic Farmer'
-    },
-    content: 'Just harvested our first batch of organic tomatoes this season! The yield is amazing thanks to the composting techniques we discussed last month. Here are some photos of the harvest. What organic fertilizers are you all using this year?',
-    type: 'image',
-    media: '/organic-tomato-harvest.png',
-    timestamp: '2 hours ago',
-    likes: 45,
-    comments: 12,
-    isLiked: false,
-    isBookmarked: false
-  },
-  {
-    id: '2',
-    author: {
-      name: 'Yuki Sato',
-      avatar: '/female-farmer.png',
-      role: 'Sustainable Agriculture Expert'
-    },
-    content: 'Sharing a quick video on how to prepare natural pest control spray using neem oil and soap. This has been incredibly effective for my vegetable garden. The recipe is simple and eco-friendly!',
-    type: 'video',
-    media: '/neem-oil-spray.png',
-    timestamp: '5 hours ago',
-    likes: 78,
-    comments: 23,
-    isLiked: true,
-    isBookmarked: true
-  },
-  {
-    id: '3',
-    author: {
-      name: 'Kenji Yamamoto',
-      avatar: '/elderly-farmer.png',
-      role: 'Traditional Farming Specialist'
-    },
-    content: 'Weather forecast shows heavy rain next week. For those growing leafy greens, make sure to improve drainage in your beds. I learned this the hard way 20 years ago! Also, consider covering sensitive crops. What are your rain preparation strategies?',
-    type: 'text',
-    timestamp: '1 day ago',
-    likes: 34,
-    comments: 18,
-    isLiked: false,
-    isBookmarked: false
-  }
-]
-
 export default function CommunityDetailPage() {
   const params = useParams()
-  const [community, setCommunity] = useState<Community>(mockCommunity)
-  const [posts, setPosts] = useState<Post[]>(mockPosts)
+  const [community, setCommunity] = useState<Community | null>(null)
+  const [posts, setPosts] = useState<Post[]>([])
   const [newPost, setNewPost] = useState('')
   const [postType, setPostType] = useState<'text' | 'image' | 'video'>('text')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchCommunity()
+    fetchPosts()
+  }, [params.id])
+
+  const fetchCommunity = async () => {
+    try {
+      const response = await fetch(`/api/community/${params.id}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setCommunity({
+          ...data,
+          isJoined: false, // In a real app, check if user is joined
+          isFollowing: false, // In a real app, check if user is following
+          isNotificationEnabled: false, // In a real app, check notification status
+        })
+      } else {
+        setError(data.error || 'Failed to fetch community')
+      }
+    } catch (err) {
+      setError('Failed to fetch community')
+      console.error('Error fetching community:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(`/api/community/${params.id}/posts`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setPosts(data.posts.map((post: any) => ({
+          ...post,
+          isLiked: false, // In a real app, check if user liked
+          isBookmarked: false, // In a real app, check if user bookmarked
+        })))
+      } else {
+        setError(data.error || 'Failed to fetch posts')
+      }
+    } catch (err) {
+      setError('Failed to fetch posts')
+      console.error('Error fetching posts:', err)
+    }
+  }
 
   const handleJoinCommunity = () => {
+    if (!community) return
+    
     setCommunity(prev => ({
-      ...prev,
-      isJoined: !prev.isJoined,
-      memberCount: prev.isJoined ? prev.memberCount - 1 : prev.memberCount + 1
+      ...prev!,
+      isJoined: !prev!.isJoined,
+      memberCount: prev!.isJoined ? prev!.memberCount - 1 : prev!.memberCount + 1
     }))
     toast({
       title: community.isJoined ? "Left Community" : "Joined Community",
@@ -136,7 +121,9 @@ export default function CommunityDetailPage() {
   }
 
   const handleFollowCommunity = () => {
-    setCommunity(prev => ({ ...prev, isFollowing: !prev.isFollowing }))
+    if (!community) return
+    
+    setCommunity(prev => ({ ...prev!, isFollowing: !prev!.isFollowing }))
     toast({
       title: community.isFollowing ? "Unfollowed" : "Following",
       description: community.isFollowing ? "You will no longer receive updates" : "You will receive updates from this community",
@@ -144,14 +131,16 @@ export default function CommunityDetailPage() {
   }
 
   const handleToggleNotifications = () => {
-    setCommunity(prev => ({ ...prev, isNotificationEnabled: !prev.isNotificationEnabled }))
+    if (!community) return
+    
+    setCommunity(prev => ({ ...prev!, isNotificationEnabled: !prev!.isNotificationEnabled }))
     toast({
       title: community.isNotificationEnabled ? "Notifications Disabled" : "Notifications Enabled",
       description: community.isNotificationEnabled ? "You won't receive notifications" : "You'll receive notifications for new posts",
     })
   }
 
-  const handleLikePost = (postId: string) => {
+  const handleLikePost = (postId: number) => {
     setPosts(prev => prev.map(post => 
       post.id === postId 
         ? { 
@@ -163,7 +152,7 @@ export default function CommunityDetailPage() {
     ))
   }
 
-  const handleBookmarkPost = (postId: string) => {
+  const handleBookmarkPost = (postId: number) => {
     setPosts(prev => prev.map(post => 
       post.id === postId 
         ? { ...post, isBookmarked: !post.isBookmarked }
@@ -176,35 +165,53 @@ export default function CommunityDetailPage() {
   }
 
   const handleCreatePost = async () => {
-    if (!newPost.trim()) return
+    if (!newPost.trim() || !community) return
     
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const post: Post = {
-        id: Date.now().toString(),
-        author: {
-          name: 'You',
-          avatar: '/diverse-user-avatars.png',
-          role: 'Community Member'
+      const response = await fetch(`/api/community/${community.id}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        content: newPost,
-        type: postType,
-        timestamp: 'Just now',
-        likes: 0,
-        comments: 0,
-        isLiked: false,
-        isBookmarked: false
-      }
-      
-      setPosts(prev => [post, ...prev])
-      setNewPost('')
-      toast({
-        title: "Post Created",
-        description: "Your post has been shared with the community",
+        body: JSON.stringify({
+          content: newPost,
+          type: postType.toUpperCase(),
+          userId: 'current-user-id', // In a real app, get from session
+        }),
       })
+
+      if (response.ok) {
+        const post: Post = {
+          id: Date.now(),
+          author: {
+            name: 'You',
+            avatar: '/diverse-user-avatars.png',
+            role: 'Community Member'
+          },
+          content: newPost,
+          type: postType,
+          timestamp: 'Just now',
+          likes: 0,
+          comments: 0,
+          isLiked: false,
+          isBookmarked: false
+        }
+        
+        setPosts(prev => [post, ...prev])
+        setNewPost('')
+        toast({
+          title: "Post Created",
+          description: "Your post has been shared with the community",
+        })
+      } else {
+        const data = await response.json()
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create post. Please try again.",
+          variant: "destructive"
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -214,6 +221,52 @@ export default function CommunityDetailPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"
+          />
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (!community) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🌱</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Community Not Found</h2>
+            <p className="text-gray-600 mb-6">The community you're looking for doesn't exist.</p>
+            <Button asChild>
+              <Link href="/community">Back to Communities</Link>
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    )
   }
 
   return (

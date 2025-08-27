@@ -24,6 +24,9 @@ export function LazyImage({
   const imgRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Skip intersection observer logic on the server
+    if (typeof window === 'undefined') return;
+
     if (!imgRef.current) return
 
     const observer = new IntersectionObserver(
@@ -43,6 +46,10 @@ export function LazyImage({
     }
   }, [threshold])
 
+  // On the server or before hydration, we'll show the image immediately
+  // This prevents hydration mismatches
+  const shouldShowImage = typeof window === 'undefined' || isInView;
+
   const handleImageLoad = () => {
     setIsLoaded(true)
   }
@@ -58,7 +65,7 @@ export function LazyImage({
         className,
       )}
     >
-      {isInView && (
+      {shouldShowImage && (
         <Image
           src={src || "/placeholder.svg"}
           alt={alt}
@@ -67,7 +74,7 @@ export function LazyImage({
           {...props}
         />
       )}
-      {isInView && !isLoaded && blurEffect && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
+      {shouldShowImage && !isLoaded && blurEffect && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
     </div>
   )
 }

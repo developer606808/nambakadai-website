@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 import { LazyLoadWrapper } from "@/components/lazy-load-wrapper"
 
@@ -10,7 +10,7 @@ export const metadata = {
     "Browse all product and service categories on Nanbakadai Farm Marketplace. Find fresh produce, farming equipment, tools, and more.",
 }
 
-export default function CategoriesPage() {
+export function CategoriesPage() {
   // Mock category data
   const categories = [
     {
@@ -177,7 +177,7 @@ export default function CategoriesPage() {
   ]
 
   return (
-    <MainLayout>
+    <>
       <div className="container mx-auto py-8 px-4">
         <Breadcrumbs />
 
@@ -229,6 +229,6 @@ export default function CategoriesPage() {
           </div>
         </LazyLoadWrapper>
       </div>
-    </MainLayout>
+    </>
   )
 }

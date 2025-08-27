@@ -45,15 +45,39 @@ export default function CreateCommunityPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('name', formData.name)
+      formData.append('description', formData.description)
+      formData.append('category', formData.category)
+      formData.append('privacy', formData.privacy)
+      formData.append('location', formData.location)
+      formData.append('rules', formData.rules)
       
-      toast({
-        title: "Community Created!",
-        description: "Your farming community has been successfully created.",
+      if (formData.image) {
+        formData.append('image', formData.image)
+      }
+
+      const response = await fetch('/api/community', {
+        method: 'POST',
+        body: formData,
       })
-      
-      router.push('/community')
+
+      if (response.ok) {
+        toast({
+          title: "Community Created!",
+          description: "Your farming community has been successfully created.",
+        })
+        
+        router.push('/community')
+      } else {
+        const data = await response.json()
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create community. Please try again.",
+          variant: "destructive"
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",

@@ -413,9 +413,9 @@ export default function StoresPage() {
         </Pagination>
       </div>
 
-      {/* Edit Store Dialog */}
+      {/* Edit Store Dialog - Responsive */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Store</DialogTitle>
             <DialogDescription>Make changes to the store information.</DialogDescription>
@@ -437,7 +437,7 @@ export default function StoresPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Store Name</Label>
                 <div className="relative">
@@ -460,7 +460,7 @@ export default function StoresPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-location">Location</Label>
                 <div className="relative">
@@ -490,7 +490,7 @@ export default function StoresPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-phone">Phone</Label>
                 <div className="relative">
@@ -528,7 +528,7 @@ export default function StoresPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
@@ -546,9 +546,9 @@ export default function StoresPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Store Dialog */}
+      {/* Delete Store Dialog - Responsive */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Store</DialogTitle>
             <DialogDescription>
@@ -572,7 +572,7 @@ export default function StoresPage() {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>

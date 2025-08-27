@@ -23,6 +23,14 @@ export function LazyLoadWrapper({
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Skip intersection observer logic on the server
+    if (typeof window === 'undefined') {
+      // On the server, we'll show the content immediately to prevent hydration mismatches
+      setIsVisible(true);
+      setShouldRender(true);
+      return;
+    }
+
     if (!ref.current) return
 
     const observer = new IntersectionObserver(
