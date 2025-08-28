@@ -1,4 +1,6 @@
-import { useState } from "react"
+"use client"
+
+import { useState, use } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Phone, Mail, Clock, ExternalLink, Star, Send, ThumbsUp } from "lucide-react"
@@ -6,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { MainLayout } from "@/components/main-layout"
-import { useAuthRedux } from "@/hooks/use-auth-redux"
-import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
+import { useToast } from "@/components/ui/use-toast"
 import { LazyImage } from "@/components/ui/lazy-image"
 import { LazyLoadWrapper } from "@/components/lazy-load-wrapper"
 import Head from "next/head"
@@ -75,7 +77,9 @@ function StoreDetailsSEO({ store }: { store: any }) {
   )
 }
 
-export default function StoreDetailsPage({ params }: { params: { id: string } }) {
+export default function StoreDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { id } = use(params)
   const [newComment, setNewComment] = useState("")
   const [comments, setComments] = useState([
     {
@@ -95,12 +99,14 @@ export default function StoreDetailsPage({ params }: { params: { id: string } })
       likes: 12,
     },
   ])
-  const { isAuthenticated, user } = useAuthRedux()
+  const { data: session } = useSession()
+  const isAuthenticated = !!session?.user
+  const user = session?.user
   const { toast } = useToast()
 
   // Mock data for store details
   const store = {
-    id: params.id,
+    id: id,
     name: "Green Valley Farm",
     image: "/placeholder.svg?height=400&width=800",
     description:

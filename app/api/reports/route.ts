@@ -26,11 +26,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = reportSchema.parse(body);
 
+    // Convert user ID to integer
+    const reporterId = parseInt(session.user.id);
+    if (isNaN(reporterId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
     // Create report
     const report = await prisma.report.create({
       data: {
         ...validatedData,
-        reporterId: session.user.id
+        reporterId: reporterId
       }
     });
 

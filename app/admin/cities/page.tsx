@@ -63,37 +63,95 @@ export default function CitiesPage() {
     return matchesSearch && matchesPrefecture
   })
 
+  // Form validation for cities
+  const validateCityForm = () => {
+    const errors: string[] = []
+
+    if (!currentCity?.name?.trim()) {
+      errors.push('City name is required')
+    }
+    if (!currentCity?.prefecture?.trim()) {
+      errors.push('Prefecture is required')
+    }
+    if (!currentCity?.postalCode?.trim()) {
+      errors.push('Postal code is required')
+    }
+    if (currentCity?.name && currentCity.name.length > 50) {
+      errors.push('City name must be less than 50 characters')
+    }
+    if (currentCity?.prefecture && currentCity.prefecture.length > 50) {
+      errors.push('Prefecture must be less than 50 characters')
+    }
+    if (currentCity?.postalCode && currentCity.postalCode.length > 20) {
+      errors.push('Postal code must be less than 20 characters')
+    }
+    if (currentCity?.population && (isNaN(Number(currentCity.population)) || Number(currentCity.population) < 0)) {
+      errors.push('Population must be a valid positive number')
+    }
+
+    return errors
+  }
+
   const handleAddCity = () => {
+    const validationErrors = validateCityForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
       const newCity = {
         id: cities.length + 1,
-        name: currentCity.name,
-        prefecture: currentCity.prefecture,
-        postalCode: currentCity.postalCode,
+        name: currentCity.name.trim(),
+        prefecture: currentCity.prefecture.trim(),
+        postalCode: currentCity.postalCode.trim(),
         population: Number.parseInt(currentCity.population) || 0,
       }
       setCities([...cities, newCity])
       setIsAddDialogOpen(false)
       setCurrentCity(null)
       setIsLoading(false)
+      alert('City added successfully!')
     }, 1000)
   }
 
   const handleEditCity = () => {
+    const validationErrors = validateCityForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
-      const updatedCities = cities.map((city) => (city.id === currentCity.id ? { ...city, ...currentCity } : city))
+      const updatedCities = cities.map((city) =>
+        city.id === currentCity.id ? {
+          ...city,
+          name: currentCity.name.trim(),
+          prefecture: currentCity.prefecture.trim(),
+          postalCode: currentCity.postalCode.trim(),
+          population: Number.parseInt(currentCity.population) || 0
+        } : city
+      )
       setCities(updatedCities)
       setIsEditDialogOpen(false)
       setCurrentCity(null)
       setIsLoading(false)
+      alert('City updated successfully!')
     }, 1000)
   }
 
   const handleDeleteCity = () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${currentCity?.name}"?\n\nThis action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
@@ -102,6 +160,7 @@ export default function CitiesPage() {
       setIsDeleteDialogOpen(false)
       setCurrentCity(null)
       setIsLoading(false)
+      alert('City deleted successfully!')
     }, 1000)
   }
 

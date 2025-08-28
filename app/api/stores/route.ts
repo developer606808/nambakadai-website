@@ -16,8 +16,16 @@ export async function GET(
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
+    const storeId = parseInt(params.id);
+    if (isNaN(storeId)) {
+      return NextResponse.json(
+        { error: 'Invalid store ID' },
+        { status: 400 }
+      );
+    }
+
     const store = await prisma.store.findUnique({
-      where: { id: params.id },
+      where: { id: storeId },
       include: {
         user: {
           select: {
@@ -77,17 +85,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate user is a seller or admin
-    if (session.user.role !== 'SELLER' && session.user.role !== 'ADMIN') {
+    // Allow any authenticated user to create a store
+    // They will be upgraded to SELLER role when store is created
+
+    // Check if user already has a store
+    const userId = parseInt(session.user.id);
+    if (isNaN(userId)) {
       return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
+        { error: 'Invalid user ID' },
+        { status: 400 }
       );
     }
 
-    // Check if user already has a store
     const existingStore = await prisma.store.findFirst({
-      where: { userId: session.user.id }
+      where: { userId: userId }
     });
 
     if (existingStore) {
@@ -99,17 +110,52 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = storeSchema.parse(body);
+
+    let validatedData;
+    try {
+      validatedData = storeSchema.parse(body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
+        validationError.errors.forEach((error) => {
+          if (error.path.length > 0) {
+            errors[error.path[0]] = error.message;
+          }
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Validation failed',
+            errors
+          },
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     // Create store
     const store = await prisma.store.create({
       data: {
         ...validatedData,
-        userId: session.user.id
+        userId: userId
       }
     });
 
-    return NextResponse.json(store, { status: 201 });
+    // Set this as the user's current store if they don't have one
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        currentStoreId: store.id,
+        role: 'SELLER' // Update role to seller when they create a store
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      store,
+      message: 'Store created successfully'
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

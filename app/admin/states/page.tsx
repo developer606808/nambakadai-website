@@ -55,39 +55,91 @@ export default function StatesPage() {
       state.region.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
+  // Form validation for states
+  const validateStateForm = () => {
+    const errors: string[] = []
+
+    if (!currentState?.name?.trim()) {
+      errors.push('State name is required')
+    }
+    if (!currentState?.code?.trim()) {
+      errors.push('State code is required')
+    }
+    if (!currentState?.region?.trim()) {
+      errors.push('Region is required')
+    }
+    if (currentState?.name && currentState.name.length > 50) {
+      errors.push('State name must be less than 50 characters')
+    }
+    if (currentState?.code && currentState.code.length > 10) {
+      errors.push('State code must be less than 10 characters')
+    }
+    if (currentState?.region && currentState.region.length > 50) {
+      errors.push('Region must be less than 50 characters')
+    }
+
+    return errors
+  }
+
   const handleAddState = () => {
+    const validationErrors = validateStateForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
       const newState = {
         id: states.length + 1,
-        name: currentState.name,
-        code: currentState.code,
-        region: currentState.region,
+        name: currentState.name.trim(),
+        code: currentState.code.trim(),
+        region: currentState.region.trim(),
         cityCount: 0,
       }
       setStates([...states, newState])
       setIsAddDialogOpen(false)
       setCurrentState(null)
       setIsLoading(false)
+      alert('State added successfully!')
     }, 1000)
   }
 
   const handleEditState = () => {
+    const validationErrors = validateStateForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
       const updatedStates = states.map((state) =>
-        state.id === currentState.id ? { ...state, ...currentState } : state,
+        state.id === currentState.id ? {
+          ...state,
+          name: currentState.name.trim(),
+          code: currentState.code.trim(),
+          region: currentState.region.trim()
+        } : state,
       )
       setStates(updatedStates)
       setIsEditDialogOpen(false)
       setCurrentState(null)
       setIsLoading(false)
+      alert('State updated successfully!')
     }, 1000)
   }
 
   const handleDeleteState = () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${currentState?.name}"?\n\nThis action cannot be undone and will affect all cities in this state.`
+    )
+
+    if (!confirmed) return
+
     setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
@@ -96,6 +148,7 @@ export default function StatesPage() {
       setIsDeleteDialogOpen(false)
       setCurrentState(null)
       setIsLoading(false)
+      alert('State deleted successfully!')
     }, 1000)
   }
 
@@ -231,6 +284,8 @@ export default function StatesPage() {
                 value={currentState?.name || ""}
                 onChange={(e) => setCurrentState({ ...currentState, name: e.target.value })}
                 placeholder="Prefecture name"
+                required
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
@@ -240,7 +295,8 @@ export default function StatesPage() {
                 value={currentState?.code || ""}
                 onChange={(e) => setCurrentState({ ...currentState, code: e.target.value })}
                 placeholder="Prefecture code (e.g. TK)"
-                maxLength={2}
+                required
+                maxLength={10}
               />
             </div>
             <div className="grid gap-2">
@@ -250,6 +306,8 @@ export default function StatesPage() {
                 value={currentState?.region || ""}
                 onChange={(e) => setCurrentState({ ...currentState, region: e.target.value })}
                 placeholder="Region name"
+                required
+                maxLength={50}
               />
             </div>
           </div>

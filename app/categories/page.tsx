@@ -10,7 +10,7 @@ export const metadata = {
     "Browse all product and service categories on Nanbakadai Farm Marketplace. Find fresh produce, farming equipment, tools, and more.",
 }
 
-export function CategoriesPage() {
+export default function CategoriesPage() {
   // Mock category data
   const categories = [
     {
@@ -177,7 +177,7 @@ export function CategoriesPage() {
   ]
 
   return (
-    <>
+    <MainLayout>
       <div className="container mx-auto py-8 px-4">
         <Breadcrumbs />
 
@@ -229,6 +229,6 @@ export function CategoriesPage() {
           </div>
         </LazyLoadWrapper>
       </div>
-    </>
+    </MainLayout>
   )
 }

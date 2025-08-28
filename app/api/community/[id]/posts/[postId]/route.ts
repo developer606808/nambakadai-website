@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma';
 // GET /api/community/[id]/posts/[postId] - Get a specific post
 export async function GET(
   request: Request,
-  { params }: { params: { id: string; postId: string } }
+  { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    const postId = parseInt(params.postId);
+    const { id, postId: postIdParam } = await params;
+    const communityId = parseInt(id);
+    const postId = parseInt(postIdParam);
     
     if (isNaN(communityId) || isNaN(postId)) {
       return NextResponse.json(

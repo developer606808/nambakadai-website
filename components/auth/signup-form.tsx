@@ -1,37 +1,105 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Upload } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Eye, EyeOff, Upload, Loader2, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
+import { signupSchema, getPasswordStrength, validateIndianPhone, type SignupInput } from "@/lib/validations/auth"
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isValid },
+    setError,
+    clearErrors
+  } = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      acceptTerms: false
+    }
+  })
+
+  const watchedPassword = watch('password', '')
+  const watchedEmail = watch('email', '')
+
+  // Update password strength when password changes
+  React.useEffect(() => {
+    if (watchedPassword) {
+      const strength = getPasswordStrength(watchedPassword)
+      setPasswordStrength(strength)
+    } else {
+      setPasswordStrength({ score: 0, feedback: [] })
+    }
+  }, [watchedPassword])
+
+  const onSubmit = async (data: SignupInput) => {
     setIsLoading(true)
+    clearErrors()
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
 
-    toast({
-      title: "Account created!",
-      description: "You have successfully signed up.",
-    })
+      const result = await response.json()
 
-    setIsLoading(false)
-    router.push("/login")
+      if (!response.ok) {
+        // Handle validation errors
+        if (result.details) {
+          result.details.forEach((error: { field: string; message: string }) => {
+            setError(error.field as keyof SignupInput, {
+              type: 'server',
+              message: error.message
+            })
+          })
+        }
+        throw new Error(result.error || 'Registration failed')
+      }
+
+      toast({
+        title: "Account created successfully!",
+        description: result.emailSent
+          ? "Please check your email to verify your account before logging in."
+          : "You can now log in with your credentials.",
+        duration: 6000,
+      })
+
+      router.push('/login?registered=true')
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('field'))) {
+        toast({
+          title: "Registration failed",
+          description: error instanceof Error ? error.message : "Please try again later",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,32 +163,83 @@ export default function SignupForm() {
         <p className="text-sm text-gray-500">Add profile picture (optional)</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" required />
-          </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Full Name
+          </Label>
+          <Input
+            id="name"
+            placeholder="John Doe"
+            {...register('name')}
+            className={errors.name ? 'border-red-500' : ''}
+          />
+          {errors.name && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.name.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input id="email" type="email" placeholder="you@example.com" required />
+          <Label htmlFor="email" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Email Address
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            {...register('email')}
+            className={errors.email ? 'border-red-500' : ''}
+          />
+          {errors.email && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="phone" className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Phone Number (Optional)
+          </Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="9876543210 or +91 98765 43210"
+            {...register('phone')}
+            className={errors.phone ? 'border-red-500' : ''}
+          />
+          {errors.phone && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.phone.message}
+            </p>
+          )}
+          {!errors.phone && (
+            <p className="text-xs text-gray-500">
+              Enter Indian mobile number (10 digits starting with 6-9) or with +91 country code
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Password
+          </Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              required
-              className="pr-10"
+              {...register('password')}
+              className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
             />
             <button
               type="button"
@@ -130,37 +249,130 @@ export default function SignupForm() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Password must be at least 8 characters long and include a number and a special character.
-          </p>
+
+          {/* Password Strength Indicator */}
+          {watchedPassword && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600">Password strength:</span>
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      passwordStrength.score <= 2 ? 'bg-red-500' :
+                      passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${
+                  passwordStrength.score <= 2 ? 'text-red-600' :
+                  passwordStrength.score <= 4 ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {passwordStrength.score <= 2 ? 'Weak' :
+                   passwordStrength.score <= 4 ? 'Medium' : 'Strong'}
+                </span>
+              </div>
+              {passwordStrength.feedback.length > 0 && (
+                <ul className="text-xs text-gray-600 space-y-1">
+                  {passwordStrength.feedback.map((feedback, index) => (
+                    <li key={index} className="flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {feedback}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {errors.password && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input id="confirmPassword" type="password" placeholder="••••••••" required />
+          <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Confirm Password
+          </Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
+              {...register('confirmPassword')}
+              className={`pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="terms"
-            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            required
-          />
-          <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
-            I agree to the{" "}
-            <Link href="/terms" className="text-green-600 hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-green-600 hover:underline">
-              Privacy Policy
-            </Link>
-          </label>
+
+
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="acceptTerms"
+              checked={watch('acceptTerms')}
+              onCheckedChange={(checked) => setValue('acceptTerms', checked as boolean)}
+              className={errors.acceptTerms ? 'border-red-500' : ''}
+            />
+            <label htmlFor="acceptTerms" className="text-sm text-gray-700 leading-5 cursor-pointer">
+              I agree to the{" "}
+              <Link href="/terms" className="text-green-600 hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-green-600 hover:underline">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+          {errors.acceptTerms && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.acceptTerms.message}
+            </p>
+          )}
         </div>
 
-        <Button type="submit" className="w-full bg-green-500 hover:bg-green-600" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+            <p>Form Valid: {isValid ? 'Yes' : 'No'}</p>
+            <p>Errors: {Object.keys(errors).length > 0 ? Object.keys(errors).join(', ') : 'None'}</p>
+            <p>Accept Terms: {watch('acceptTerms') ? 'Yes' : 'No'}</p>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-green-500 hover:bg-green-600"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            "Create Account"
+          )}
         </Button>
 
         <div className="text-center mt-4">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import { LoginFormRedux } from "@/components/auth/login-form-redux"
 
 export const metadata: Metadata = {

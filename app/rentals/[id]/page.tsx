@@ -1,16 +1,22 @@
+"use client"
+
+import { use } from "react"
 import Link from "next/link"
 import { Calendar, Clock, MapPin, Share2, Star, User } from "lucide-react"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LazyImage } from "@/components/ui/lazy-image"
 import { LazyLoadWrapper } from "@/components/lazy-load-wrapper"
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params Promise
+  const { id } = await params
+
   // In a real app, fetch the rental data based on the ID
   const rental = {
-    id: params.id,
+    id: id,
     title: "John Deere 5075E Utility Tractor",
   }
 
@@ -25,10 +31,13 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   }
 }
 
-export default function RentalDetailsPage({ params }: { params: { id: string } }) {
+export default function RentalDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { id } = use(params)
+
   // Mock rental data - in a real app, fetch this based on the ID
   const rental = {
-    id: params.id,
+    id: id,
     title: "John Deere 5075E Utility Tractor",
     category: "Tractors",
     price: {

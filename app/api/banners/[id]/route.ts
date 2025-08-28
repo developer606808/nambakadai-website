@@ -3,12 +3,17 @@ import { createApiResponse, createApiError, createApiSuccess } from '@/lib/utils
 import { prisma } from '@/lib/prisma';
 
 // GET /api/banners/[id] - Get a specific banner
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
+    const bannerId = parseInt(id);
+
+    if (isNaN(bannerId)) {
+      return createApiError('Invalid banner ID', 400);
+    }
 
     const banner = await prisma.banner.findUnique({
-      where: { id }
+      where: { id: bannerId }
     });
 
     if (!banner) {
@@ -23,14 +28,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 // PUT /api/banners/[id] - Update a banner
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
+    const bannerId = parseInt(id);
     const body = await request.json();
+
+    if (isNaN(bannerId)) {
+      return createApiError('Invalid banner ID', 400);
+    }
 
     // Check if banner exists
     const existingBanner = await prisma.banner.findUnique({
-      where: { id }
+      where: { id: bannerId }
     });
 
     if (!existingBanner) {
@@ -39,7 +49,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     // Update banner with only allowed fields
     const updatedBanner = await prisma.banner.update({
-      where: { id },
+      where: { id: bannerId },
       data: {
         ...(body.title && { title: body.title }),
         ...(body.image && { image: body.image }),
@@ -57,13 +67,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 // DELETE /api/banners/[id] - Delete a banner
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
+    const bannerId = parseInt(id);
+
+    if (isNaN(bannerId)) {
+      return createApiError('Invalid banner ID', 400);
+    }
 
     // Check if banner exists
     const existingBanner = await prisma.banner.findUnique({
-      where: { id }
+      where: { id: bannerId }
     });
 
     if (!existingBanner) {
@@ -72,7 +87,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     // Delete the banner
     await prisma.banner.delete({
-      where: { id }
+      where: { id: bannerId }
     });
 
     return createApiSuccess('Banner deleted successfully');

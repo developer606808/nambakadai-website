@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
+    // Get session for seller-specific products
+    const session = await getServerSession(authOptions);
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -21,28 +24,43 @@ export async function GET(request: NextRequest) {
     const maxPrice = searchParams.get('maxPrice');
     const stateId = searchParams.get('state');
     const cityId = searchParams.get('city');
+    const search = searchParams.get('search');
+    const sellerOnly = searchParams.get('sellerOnly') === 'true';
 
-    const where: any = {
-      // Only show approved products
-    };
+    const where: any = {};
+
+    // If user is logged in and requesting seller-only products
+    if (session && sellerOnly && session.user.role === 'SELLER') {
+      const userId = parseInt(session.user.id);
+      if (!isNaN(userId)) {
+        where.userId = userId;
+      }
+    }
 
     // Apply filters
     if (categoryId) {
       where.categoryId = categoryId;
     }
-    
+
     if (minPrice || maxPrice) {
       where.price = {};
       if (minPrice) where.price.gte = parseFloat(minPrice);
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
-    
+
     if (stateId) {
       where.stateId = stateId;
     }
-    
+
     if (cityId) {
       where.cityId = cityId;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
     const products = await prisma.product.findMany({
@@ -53,17 +71,13 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc'
       },
       include: {
-        category: true,
-        store: {
+        user: {
           select: {
             id: true,
             name: true,
-            logo: true
+            email: true
           }
-        },
-        state: true,
-        city: true,
-        unit: true
+        }
       }
     });
 
@@ -71,6 +85,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       products,
+      total,
       pagination: {
         page,
         limit,
@@ -115,11 +130,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = productSchema.parse(body);
 
+    // Convert user ID to integer
+    const userId = parseInt(session.user.id);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
     // Create product
     const product = await prisma.product.create({
       data: {
         ...validatedData,
-        userId: session.user.id,
+        userId: userId,
         storeId: session.user.storeId // Assuming storeId is added to session
       },
       include: {

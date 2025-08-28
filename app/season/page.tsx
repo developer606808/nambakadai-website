@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
 export default function SeasonalCalendarPage() {
   const seasons = [

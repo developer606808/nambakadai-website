@@ -1,3 +1,6 @@
+"use client"
+
+import { use } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Search, Filter, Star } from "lucide-react"
@@ -5,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MainLayout } from "@/components/main-layout"
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
-  const category = params.category.charAt(0).toUpperCase() + params.category.slice(1)
+export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { category: categoryParam } = use(params)
+  const category = categoryParam.charAt(0).toUpperCase() + categoryParam.slice(1)
 
   // Mock data for category products
   const products = [

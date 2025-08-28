@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp, Search, MessageCircle, Phone, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import MetaTags from "@/components/seo/meta-tags"
 
 const faqData = [
