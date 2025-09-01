@@ -1,5 +1,5 @@
 import { Calendar, Shield, Users, FileText } from "lucide-react"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import MetaTags from "@/components/seo/meta-tags"
 
 export default function TermsPage() {

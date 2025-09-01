@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Calendar, Filter, Grid3X3, List, MapPin, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LazyImage } from "@/components/ui/lazy-image"

@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 
 // Form schema for crop
 const cropFormSchema = z.object({

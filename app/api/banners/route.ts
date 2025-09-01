@@ -1,11 +1,17 @@
-import { NextResponse } from 'next/server';
-import { createApiResponse, createApiError, createApiSuccess } from '@/lib/utils/api';
+import { NextRequest } from 'next/server';
+import { createApiResponse, createApiError } from '@/lib/utils/api';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/banners - Get all banners
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const activeOnly = searchParams.get('active') === 'true';
+
+    const where = activeOnly ? { isActive: true } : {};
+
     const banners = await prisma.banner.findMany({
+      where,
       orderBy: {
         position: 'asc'
       }
@@ -27,12 +33,8 @@ export async function POST(request: Request) {
       return createApiError('Title and image are required');
     }
 
-    // Generate a unique ID
-    const id = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-
     const newBanner = await prisma.banner.create({
       data: {
-        id,
         title: body.title,
         image: body.image,
         url: body.url || null,

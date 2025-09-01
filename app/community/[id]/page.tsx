@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from '@/hooks/use-toast'
-import MainLayout from '@/components/main-layout'
+import { MainLayout } from '@/components/main-layout'
 import Link from 'next/link'
 import Image from 'next/image'
 

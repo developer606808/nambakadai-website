@@ -20,8 +20,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const userId = parseInt(session.user.id);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
     const wishlist = await prisma.wishlist.findMany({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       include: {
         product: {
           include: {

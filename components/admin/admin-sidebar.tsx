@@ -95,7 +95,6 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
       title: "Settings",
       href: "/admin/settings",
       icon: <Settings className="h-5 w-5" />,
-      active: pathname.startsWith("/admin/settings"),
     },
     {
       title: "Reports",
@@ -129,6 +128,10 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
     },
   ]
 
+  const isRouteActive = (href: string) => {
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
   const handleLogout = () => {
     // Remove admin token
     localStorage.removeItem("adminToken")
@@ -161,7 +164,7 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
               href={route.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors",
-                (pathname === route.href || route.active) && "bg-accent text-accent-foreground",
+                isRouteActive(route.href) && "bg-accent text-accent-foreground",
                 collapsed && "justify-center px-2",
               )}
             >

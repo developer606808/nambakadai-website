@@ -7,20 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Models
-
 model User {
-  id             String      @id
-  name           String
-  email          String      @unique
-  phone          String?
-  password       String
-  role           Role        @default(BUYER)
-  isVerified     Boolean     @default(false)
-  isBlocked      Boolean     @default(false)
-  avatar         String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                    Int         @id @default(autoincrement())
+  name                  String
+  email                 String      @unique
+  phone                 String?
+  password              String
+  role                  Role        @default(BUYER)
+  isVerified            Boolean     @default(false)
+  isBlocked             Boolean     @default(false)
+  avatar                String?
+  currentStoreId        Int?        // Reference to user's primary/current store
+  currentStore          Store?      @relation("UserCurrentStore", fields: [currentStoreId], references: [id])
+  emailVerificationToken String?    // Token for email verification
+  emailVerificationExpiry DateTime? // Expiry time for verification token
+  deviceToken           String?     // For push notifications
+  lastLoginAt           DateTime?   // Last login timestamp
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
   stores         Store[]
   products       Product[]
   wishlist       Wishlist[]
@@ -29,6 +33,7 @@ model User {
   reportsMade    Report[]    @relation("UserReports")
   reportedUsers  Report[]    @relation("UserReported")
   tickets        Ticket[]
+  loginLogs      LoginLog[]  // Login history
   // Community relations
   communityMemberships CommunityMember[]
   communityPosts       CommunityPost[]
@@ -38,17 +43,25 @@ model User {
   communityFollows     CommunityFollower[]
   communityReports     CommunityReport[]   @relation("UserCommunityReports")
   reportedCommunities  CommunityReport[]   @relation("UserReportedCommunities")
-}
-
-enum Role {
-  BUYER
-  SELLER
-  ADMIN
+  // Vehicle relations
+  vehicles             Vehicle[]
+  vehicleBookings      VehicleBooking[]
+  // Message relations
+  conversations1       Conversation[]  @relation("UserConversations1")
+  conversations2       Conversation[]  @relation("UserConversations2")
+  sentMessages         Message[]       @relation("SentMessages")
+  receivedMessages     Message[]       @relation("ReceivedMessages")
+  notifications        Notification[]
+  // Demand and Offer relations
+  demandPosts          DemandPost[]
+  demandResponses      DemandResponse[]
+  offers               Offer[]
 }
 
 model Store {
-  id             String     @id
+  id             Int        @id @default(autoincrement())
   name           String
+  contactName    String?
   description    String?
   logo           String?
   banner         String?
@@ -60,8 +73,9 @@ model Store {
   followersCount Int        @default(0)
   isApproved     Boolean    @default(false)
   isBlocked      Boolean    @default(false)
-  userId         String
+  userId         Int
   user           User       @relation(fields: [userId], references: [id])
+  currentUsers   User[]     @relation("UserCurrentStore") // Users who have this as their current store
   products       Product[]
   followers      FollowStore[]
   ratings        Rating[]
@@ -70,39 +84,42 @@ model Store {
 }
 
 model Product {
-  id             String     @id
+  id             Int       @id @default(autoincrement())
   title          String
   description    String
   price          Float
   images         String[]
   isFeatured     Boolean   @default(false)
-  categoryId     String
+  categoryId     Int
   category       Category  @relation(fields: [categoryId], references: [id])
-  storeId        String
+  storeId        Int
   store          Store     @relation(fields: [storeId], references: [id])
-  userId         String
+  userId         Int
   user           User      @relation(fields: [userId], references: [id])
-  stateId        String
+  stateId        Int
   state          State     @relation(fields: [stateId], references: [id])
-  cityId         String
+  cityId         Int
   city           City      @relation(fields: [cityId], references: [id])
-  unitId         String
+  unitId         Int
   unit           Unit      @relation(fields: [unitId], references: [id])
   wishlist       Wishlist[]
   reports        Report[]  @relation("ProductReports")
+  offers         Offer[]   // Products can have multiple offers
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
 
 model Category {
-  id        String     @id
-  name      String
+  id        Int        @id @default(autoincrement())
+  name_en   String
+  name_ta   String
+  name_hi   String?    // Added Hindi language support
   slug      String     @unique
   image     String?
   products  Product[]
 
   // Parent / Child self relation
-  parentId  String?    
+  parentId  Int?
   type      CategoryType @default(STORE)
   parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryHierarchy")
@@ -112,7 +129,7 @@ model Category {
 }
 
 model Banner {
-  id        String   @id
+  id        Int      @id @default(autoincrement())
   title     String
   image     String
   url       String?
@@ -123,8 +140,10 @@ model Banner {
 }
 
 model Unit {
-  id        String   @id
-  name      String
+  id        Int      @id @default(autoincrement())
+  name_en   String
+  name_ta   String
+  name_hi   String?  // Added Hindi language support
   symbol    String
   products  Product[]
   createdAt DateTime @default(now())
@@ -132,8 +151,11 @@ model Unit {
 }
 
 model State {
-  id        String   @id
-  name      String
+  id        Int      @id @default(autoincrement())
+  name_en   String
+  name_ta   String
+  name_hi   String?  // Added Hindi language support
+  stateCode String
   products  Product[]
   cities    City[]
   createdAt DateTime @default(now())
@@ -141,9 +163,11 @@ model State {
 }
 
 model City {
-  id        String   @id
-  name      String
-  stateId   String
+  id        Int      @id @default(autoincrement())
+  name_en   String
+  name_ta   String
+  name_hi   String?  // Added Hindi language support
+  stateId   Int
   state     State    @relation(fields: [stateId], references: [id])
   products  Product[]
   createdAt DateTime @default(now())
@@ -151,19 +175,19 @@ model City {
 }
 
 model Wishlist {
-  id        String   @id
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  productId String
+  productId Int
   product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
 }
 
 model FollowStore {
-  id        String   @id
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  storeId   String
+  storeId   Int
   store     Store    @relation(fields: [storeId], references: [id])
   createdAt DateTime @default(now())
 
@@ -171,12 +195,12 @@ model FollowStore {
 }
 
 model Rating {
-  id        String   @id
+  id        Int      @id @default(autoincrement())
   value     Int      // 1-5 stars
   comment   String?
-  userId    String
+  userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  storeId   String
+  storeId   Int
   store     Store    @relation(fields: [storeId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -185,14 +209,14 @@ model Rating {
 }
 
 model Report {
-  id          String   @id
+  id          Int      @id @default(autoincrement())
   reason      String
   description String?
-  reporterId  String
+  reporterId  Int
   reporter    User     @relation("UserReports", fields: [reporterId], references: [id])
-  productId   String?
+  productId   Int?
   product     Product? @relation("ProductReports", fields: [productId], references: [id])
-  userId      String?
+  userId      Int?
   user        User?    @relation("UserReported", fields: [userId], references: [id])
   resolved    Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -200,42 +224,40 @@ model Report {
 }
 
 model Ticket {
-  id        String       @id
+  id        Int          @id @default(autoincrement())
   title     String
   message   String
   status    TicketStatus @default(OPEN)
-  userId    String
+  userId    Int
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Community Models
 model Community {
-  id              Int                 @id @default(autoincrement())
-  name            String
-  description     String
-  image           String?
-  category        String
-  privacy         CommunityPrivacy    @default(PUBLIC)
-  location        String?
-  rules           String?
-  memberCount     Int                 @default(0)
-  postCount       Int                 @default(0)
-  isVerified      Boolean             @default(false)
-  isBlocked       Boolean             @default(false)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  // Relations
-  members         CommunityMember[]
-  posts           CommunityPost[]
-  followers       CommunityFollower[]
-  reports         CommunityReport[]   @relation("CommunityReports")
+  id          Int                 @id @default(autoincrement())
+  name        String
+  description String
+  image       String?
+  category    String
+  privacy     CommunityPrivacy    @default(PUBLIC)
+  location    String?
+  rules       String?
+  memberCount Int                 @default(0)
+  postCount   Int                 @default(0)
+  isVerified  Boolean             @default(false)
+  isBlocked   Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  followers   CommunityFollower[]
+  members     CommunityMember[]
+  posts       CommunityPost[]
+  reports     CommunityReport[]   @relation("CommunityReports")
 }
 
 model CommunityMember {
   id          Int         @id @default(autoincrement())
-  userId      String
+  userId      Int
   user        User        @relation(fields: [userId], references: [id])
   communityId Int
   community   Community   @relation(fields: [communityId], references: [id])
@@ -253,7 +275,7 @@ model CommunityPost {
   content     String
   type        CommunityPostType @default(TEXT)
   mediaUrl    String?
-  userId      String
+  userId      Int
   user        User              @relation(fields: [userId], references: [id])
   communityId Int
   community   Community         @relation(fields: [communityId], references: [id])
@@ -271,7 +293,7 @@ model CommunityPost {
 model CommunityComment {
   id          Int         @id @default(autoincrement())
   content     String
-  userId      String
+  userId      Int
   user        User        @relation(fields: [userId], references: [id])
   postId      Int
   post        CommunityPost @relation(fields: [postId], references: [id])
@@ -287,7 +309,7 @@ model CommunityComment {
 
 model CommunityLike {
   id          Int         @id @default(autoincrement())
-  userId      String
+  userId      Int
   user        User        @relation(fields: [userId], references: [id])
   postId      Int?
   post        CommunityPost? @relation(fields: [postId], references: [id])
@@ -299,41 +321,47 @@ model CommunityLike {
 }
 
 model CommunityBookmark {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  postId      Int
-  post        CommunityPost @relation(fields: [postId], references: [id])
-  createdAt   DateTime    @default(now())
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  postId    Int
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  createdAt DateTime    @default(now())
 
   @@unique([userId, postId])
 }
 
 model CommunityFollower {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
   communityId Int
-  community   Community   @relation(fields: [communityId], references: [id])
-  isNotified  Boolean     @default(true)
-  createdAt   DateTime    @default(now())
+  community   Community @relation(fields: [communityId], references: [id])
+  isNotified  Boolean   @default(true)
+  createdAt   DateTime  @default(now())
 
   @@unique([userId, communityId])
 }
 
 model CommunityReport {
-  id          Int         @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   reason      String
   description String?
-  reporterId  String
-  reporter    User        @relation("UserCommunityReports", fields: [reporterId], references: [id])
+  reporterId  Int
+  reporter    User      @relation("UserCommunityReports", fields: [reporterId], references: [id])
   communityId Int?
-  community   Community?  @relation("CommunityReports", fields: [communityId], references: [id])
-  userId      String?
-  user        User?       @relation("UserReportedCommunities", fields: [userId], references: [id])
-  resolved    Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  community   Community? @relation("CommunityReports", fields: [communityId], references: [id])
+  userId      Int?
+  user        User?     @relation("UserReportedCommunities", fields: [userId], references: [id])
+  resolved    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
 }
 
 enum CommunityPrivacy {
@@ -363,4 +391,311 @@ enum TicketStatus {
 enum CategoryType {
   STORE
   RENTAL
+}
+
+model LoginLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress   String
+  userAgent   String
+  deviceInfo  String?  // Device type, OS, browser info
+  location    String?  // Approximate location based on IP
+  loginAt     DateTime @default(now())
+  success     Boolean  @default(true)
+  failureReason String? // Reason for failed login
+  deviceToken String?  // Device token for push notifications
+
+  @@index([userId])
+  @@index([loginAt])
+}
+
+model Vehicle {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String
+  type         VehicleType
+  category     String
+  pricePerDay  Float?   // Optional for hourly-only equipment
+  pricePerHour Float
+  capacity     String
+  fuelType     VehicleFuelType
+  location     String
+  features     String[] // Array of features
+  images       String[] // Array of image URLs
+  status       VehicleStatus @default(AVAILABLE)
+  rating       Float    @default(0)
+  totalBookings Int     @default(0)
+
+  // Agricultural equipment specific fields
+  horsepower   Int?     // For tractors and machines
+  workingWidth Float?   // For ploughs, cultivators etc (in feet)
+  attachments  String[] // Available attachments/implements
+  operatorIncluded Boolean @default(false)
+  minimumHours Int?     // Minimum rental hours
+
+  // Relations
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  bookings     VehicleBooking[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VehicleBooking {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  customerId  Int
+  customer    User     @relation(fields: [customerId], references: [id])
+
+  startDate   DateTime
+  endDate     DateTime
+  totalHours  Int?
+  totalDays   Int?
+  totalAmount Float
+
+  status      BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  // Contact details
+  customerName  String
+  customerPhone String
+  customerEmail String
+
+  // Additional details
+  purpose       String?
+  notes         String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum VehicleType {
+  TRACTOR
+  TRUCK
+  LORRY
+  VAN
+  HARVESTING_MACHINE
+  PLANTING_MACHINE
+  THRESHING_MACHINE
+  CULTIVATOR
+  PLOUGH
+  SPRAYER
+  TRAILER
+  OTHER_EQUIPMENT
+}
+
+enum VehicleFuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  CNG
+  HYBRID
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Conversation {
+  id            Int      @id @default(autoincrement())
+  participant1Id Int
+  participant2Id Int
+  participant1  User     @relation("UserConversations1", fields: [participant1Id], references: [id])
+  participant2  User     @relation("UserConversations2", fields: [participant2Id], references: [id])
+  messages      Message[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([participant1Id, participant2Id])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       Int
+  receiverId     Int
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content        String
+  messageType    MessageType  @default(TEXT)
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  user        User             @relation(fields: [userId], references: [id])
+  title       String
+  message     String
+  type        NotificationType
+  relatedId   Int?             // ID of related entity (order, booking, etc.)
+  relatedType String?          // Type of related entity
+  actionUrl   String?          // URL to navigate when clicked
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  BOOKING_REQUESTED
+  BOOKING_CONFIRMED
+  BOOKING_STARTED
+  BOOKING_COMPLETED
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  NEW_MESSAGE
+  SYSTEM_ALERT
+  PROMOTION
+  DEMAND_POSTED
+  DEMAND_MATCHED
+  OFFER_POSTED
+  OFFER_EXPIRED
+}
+
+model DemandPost {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String
+  productName     String
+  quantity        String   // e.g., "50kg", "100 pieces"
+  frequency       DemandFrequency
+  preferredTime   String?  // e.g., "Morning delivery", "Weekend pickup"
+  location        String
+  contactMethod   ContactMethod
+  tags            String[] // e.g., ["bulk", "urgent", "organic"]
+  isUrgent        Boolean  @default(false)
+  images          String[] // Optional sample images
+  budget          Float?   // Expected budget
+  validUntil      DateTime? // When this demand expires
+  status          DemandStatus @default(ACTIVE)
+
+  // Relations
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  responses       DemandResponse[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DemandResponse {
+  id              Int      @id @default(autoincrement())
+  demandId        Int
+  demand          DemandPost @relation(fields: [demandId], references: [id])
+  sellerId        Int
+  seller          User     @relation(fields: [sellerId], references: [id])
+  message         String
+  proposedPrice   Float?
+  proposedQuantity String?
+  contactInfo     String
+  status          ResponseStatus @default(PENDING)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Offer {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String
+  productId       Int?     // Optional link to existing product
+  product         Product? @relation(fields: [productId], references: [id])
+
+  // Offer details
+  originalPrice   Float
+  offerPrice      Float
+  discountPercent Float    // Calculated discount percentage
+  quantity        String   // Available quantity
+  location        String
+
+  // Timing
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  isActive        Boolean  @default(true)
+
+  // Seasonal/Special tags
+  tags            String[] // e.g., ["peak-season", "harvest-fresh", "surplus"]
+  reason          OfferReason // Why this offer exists
+
+  // Relations
+  sellerId        Int
+  seller          User     @relation(fields: [sellerId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum DemandFrequency {
+  ONE_TIME
+  DAILY
+  WEEKLY
+  MONTHLY
+  SEASONAL
+}
+
+enum ContactMethod {
+  CALL
+  WHATSAPP
+  IN_APP_CHAT
+  EMAIL
+}
+
+enum DemandStatus {
+  ACTIVE
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}
+
+enum ResponseStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEGOTIATING
+}
+
+enum OfferReason {
+  SURPLUS_HARVEST
+  SEASONAL_PEAK
+  BULK_DISCOUNT
+  CLEARANCE_SALE
+  PROMOTIONAL
+  URGENT_SALE
 }

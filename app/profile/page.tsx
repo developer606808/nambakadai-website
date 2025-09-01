@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 import { Camera } from "lucide-react"
 

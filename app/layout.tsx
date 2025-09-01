@@ -3,10 +3,12 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ReduxProvider } from "@/components/providers/redux-provider"
+import { NextAuthProvider } from "@/components/providers/session-provider"
 import { Suspense } from "react"
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { cookies } from 'next/headers'
+import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,7 +24,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   // Get locale from cookie
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   let locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
   
   // Validate that the locale is valid
@@ -35,21 +37,30 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
         <meta name="theme-color" content="#10b981" />
       </head>
-      <body className={inter.className}>
-        <ReduxProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <NextIntlClientProvider locale={locale} messages={messages}>
-              <Suspense>
-                <main>{children}</main>
-              </Suspense>
-            </NextIntlClientProvider>
-          </ThemeProvider>
-        </ReduxProvider>
+      <body className={inter.className} suppressHydrationWarning>
+        <NextAuthProvider>
+          <ReduxProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+              disableTransitionOnChange
+              storageKey="nambakadai-theme"
+            >
+              <NextIntlClientProvider locale={locale} messages={messages}>
+                <Suspense>
+                  <main>{children}</main>
+                </Suspense>
+              </NextIntlClientProvider>
+            </ThemeProvider>
+          </ReduxProvider>
+        </NextAuthProvider>
+        <Toaster />
       </body>
     </html>
   )

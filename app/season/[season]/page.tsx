@@ -1,12 +1,17 @@
+"use client"
+
+import { use } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, ArrowLeft, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
-export default function SeasonCropsPage({ params }: { params: { season: string } }) {
-  const season = params.season.charAt(0).toUpperCase() + params.season.slice(1)
+export default function SeasonCropsPage({ params }: { params: Promise<{ season: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { season: seasonParam } = use(params)
+  const season = seasonParam.charAt(0).toUpperCase() + seasonParam.slice(1)
 
   // Mock data for crops
   const crops = [

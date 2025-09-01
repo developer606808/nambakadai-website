@@ -1,7 +1,7 @@
 "use client"
 
 import { Filter, Grid3X3, List, MapPin, X } from "lucide-react"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"

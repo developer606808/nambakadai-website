@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import Breadcrumbs from "@/components/breadcrumbs"
 
 export default function WishlistPage() {

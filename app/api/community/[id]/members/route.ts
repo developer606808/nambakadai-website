@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 // GET /api/community/[id]/members - Get community members
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
+    const { id } = await params;
+    const communityId = parseInt(id);
     
     if (isNaN(communityId)) {
       return NextResponse.json(

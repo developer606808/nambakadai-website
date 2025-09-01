@@ -1,13 +1,18 @@
+"use client"
+
+import { use } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Edit } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import { Button } from "@/components/ui/button"
 
-export default function CropDetailsPage({ params }: { params: { season: string; crop: string } }) {
-  const season = params.season.charAt(0).toUpperCase() + params.season.slice(1)
-  const crop = params.crop.charAt(0).toUpperCase() + params.crop.slice(1)
+export default function CropDetailsPage({ params }: { params: Promise<{ season: string; crop: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { season: seasonParam, crop: cropParam } = use(params)
+  const season = seasonParam.charAt(0).toUpperCase() + seasonParam.slice(1)
+  const crop = cropParam.charAt(0).toUpperCase() + cropParam.slice(1)
 
   // Mock data for crop details
   const cropDetails = {

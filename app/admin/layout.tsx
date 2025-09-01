@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { AdminProvider } from "@/components/admin/admin-provider"
 
 export default function AdminLayout({
   children,
@@ -47,9 +48,15 @@ export default function AdminLayout({
 
   // If logged in, show the full admin layout with sidebar
   return (
-    <div className="flex h-screen bg-muted/20">
-      <AdminSidebar />
-      <div className="flex-1 overflow-auto">{children}</div>
-    </div>
+    <AdminProvider>
+      <div className="flex h-screen bg-muted/20">
+        <AdminSidebar />
+        <div className="flex-1 overflow-auto">
+          <main className="p-6">
+            {children}
+          </main>
+        </div>
+      </div>
+    </AdminProvider>
   )
 }
