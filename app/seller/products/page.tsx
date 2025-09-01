@@ -97,42 +97,126 @@ export default function SellerProducts() {
   }
 
   return (
-    <SellerLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Products</h1>
-        <Button className="bg-green-500 hover:bg-green-600" asChild>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <p className="text-gray-600 mt-1">
+            Manage your product inventory and listings
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0">
           <Link href="/seller/products/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
           </Link>
-        </Button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <div className="p-4 border-b">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <Input type="text" placeholder="Search products..." className="pr-10 w-full" />
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Products</p>
+                <p className="text-2xl font-bold">{displayProducts.length}</p>
+              </div>
+              <Package className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Products</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {displayProducts.filter(p => p.status === 'active').length}
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Low Stock</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {displayProducts.filter(p => p.status === 'low_stock').length}
+                </p>
+              </div>
+              <TrendingDown className="w-8 h-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Out of Stock</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {displayProducts.filter(p => p.status === 'out_of_stock').length}
+                </p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
+              <Button
+                variant={filterStatus === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("all")}
+              >
+                All
               </Button>
-              <select className="border rounded-md px-3 py-2 bg-white">
-                <option>All Categories</option>
-                <option>Fruits</option>
-                <option>Vegetables</option>
-                <option>Dairy</option>
-                <option>Pantry</option>
-              </select>
-              <select className="border rounded-md px-3 py-2 bg-white">
-                <option>All Status</option>
-                <option>Active</option>
-                <option>Out of Stock</option>
-                <option>Draft</option>
-              </select>
+              <Button
+                variant={filterStatus === "active" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("active")}
+              >
+                Active
+              </Button>
+              <Button
+                variant={filterStatus === "low_stock" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("low_stock")}
+              >
+                Low Stock
+              </Button>
+              <Button
+                variant={filterStatus === "out_of_stock" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus("out_of_stock")}
+              >
+                Out of Stock
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -189,7 +273,6 @@ export default function SellerProducts() {
                         </div>
                         <span className="text-sm text-gray-500">Updated: {new Date(product.updatedAt || product.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <span className="font-medium">{product.name}</span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -259,9 +342,9 @@ export default function SellerProducts() {
               </Button>
               <Button variant="outline">Next</Button>
             </div>
-          </div>
-        </div>
-      </div>
-    </SellerLayout>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

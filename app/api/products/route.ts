@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
+    // Get session for seller-specific products
+    const session = await getServerSession(authOptions);
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
@@ -40,17 +43,17 @@ export async function GET(request: NextRequest) {
     if (categoryId) {
       where.categoryId = parseInt(categoryId);
     }
-    
+
     if (minPrice || maxPrice) {
       where.price = {};
       if (minPrice) where.price.gte = parseFloat(minPrice);
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
-    
+
     if (stateId) {
       where.stateId = parseInt(stateId);
     }
-    
+
     if (cityId) {
       where.cityId = parseInt(cityId);
     }
@@ -90,12 +93,11 @@ export async function GET(request: NextRequest) {
       take: limit,
       orderBy,
       include: {
-        category: true,
-        store: {
+        user: {
           select: {
             id: true,
             name: true,
-            logo: true
+            email: true
           }
         },
 <<<<<<< Updated upstream
@@ -274,7 +276,7 @@ export async function POST(request: NextRequest) {
     const product = await prisma.product.create({
       data: {
         ...validatedData,
-        userId: session.user.id,
+        userId: userId,
         storeId: session.user.storeId // Assuming storeId is added to session
       },
       include: {

@@ -4,6 +4,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/data/prisma"
 import bcrypt from "bcryptjs"
 import { User } from "@prisma/client"
+import { checkUserStore } from "./store-check"
+import { loginSchema } from "@/lib/validations/auth"
+import { logSuccessfulLogin, logFailedLogin } from "@/lib/services/loginLogService"
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -12,27 +15,42 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        deviceToken: { label: "Device Token", type: "text" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
+        try {
+          // Validate credentials format
+          const validatedCredentials = loginSchema.parse({
+            email: credentials.email,
+            password: credentials.password,
+            deviceToken: credentials.deviceToken,
+          })
+
+          const user = await prisma.user.findUnique({
+            where: { email: validatedCredentials.email }
+          })
+
+          if (!user) {
+            // Log failed login attempt
+            await logFailedLogin(validatedCredentials.email, req as any, 'User not found')
+            return null
           }
-        })
 
-        if (!user || !user.password) {
-          return null
-        }
+          // Check if user is blocked
+          if (user.isBlocked) {
+            await logFailedLogin(validatedCredentials.email, req as any, 'User account is blocked')
+            return null
+          }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+          const isPasswordValid = await bcrypt.compare(
+            validatedCredentials.password,
+            user.password
+          )
 
         if (!isPasswordValid) {
           return null
@@ -98,5 +116,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+export default NextAuth(authOptions)

@@ -6,7 +6,7 @@ import path from 'path';
 // GET /api/community/[id]/posts - Get community posts
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
 <<<<<<< Updated upstream

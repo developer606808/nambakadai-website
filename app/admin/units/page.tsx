@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -52,11 +52,11 @@ interface Category {
 }
 
 export default function UnitsPage() {
-  const [units, setUnits] = useState(mockUnits)
+  const [units, setUnits] = useState<Unit[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentUnit, setCurrentUnit] = useState<any>(null)
+  const [currentUnit, setCurrentUnit] = useState<Partial<Unit> | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [allCategories, setAllCategories] = useState<Category[]>([])
@@ -190,7 +190,7 @@ export default function UnitsPage() {
       alert('Error creating unit: ' + (error as Error).message)
     } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   const handleEditUnit = async () => {
@@ -234,19 +234,43 @@ export default function UnitsPage() {
       alert('Error updating unit: ' + (error as Error).message)
     } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleDeleteUnit = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedUnits = units.filter((unit) => unit.id !== currentUnit.id)
-      setUnits(updatedUnits)
-      setIsDeleteDialogOpen(false)
-      setCurrentUnit(null)
+  const handleDeleteUnit = async () => {
+    if (!currentUnit?.id) return
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${currentUnit.name_en}"?\n\nThis action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/admin/units/${currentUnit.id}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete unit')
+      }
+
+      if (result.success) {
+        setIsDeleteDialogOpen(false)
+        setCurrentUnit(null)
+        fetchUnits() // Refresh the list
+        alert('Unit deleted successfully!')
+      }
+    } catch (error) {
+      console.error('Error deleting unit:', error)
+      alert('Error deleting unit: ' + (error as Error).message)
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -294,7 +318,13 @@ export default function UnitsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUnits.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : units.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
                     <Loader2 className="h-4 w-4 animate-spin mx-auto" />
@@ -307,26 +337,17 @@ export default function UnitsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUnits.map((unit) => (
+                units.map((unit) => (
                   <TableRow key={unit.id}>
-                    <TableCell className="font-medium">{unit.name}</TableCell>
-                    <TableCell>{unit.abbreviation}</TableCell>
+                    <TableCell className="font-medium">{unit.name_en}</TableCell>
+                    <TableCell>{unit.name_ta}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {unit.categories.slice(0, 2).map((categoryId) => {
-                          const category = categories.find((c) => c.id === categoryId)
-                          return category ? (
-                            <Badge key={categoryId} variant="secondary" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          ) : null
-                        })}
-                        {unit.categories.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{unit.categories.length - 2}
-                          </Badge>
-                        )}
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {unit.symbol}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {unit._count?.products || 0} products
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1">
@@ -391,19 +412,42 @@ export default function UnitsPage() {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (pagination.hasPrev) {
+                    setPagination(prev => ({ ...prev, page: prev.page - 1 }))
+                  }
+                }}
+                className={!pagination.hasPrev ? 'pointer-events-none opacity-50' : ''}
+              />
             </PaginationItem>
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setPagination(prev => ({ ...prev, page }))
+                  }}
+                  isActive={page === pagination.page}
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
             <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">2</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (pagination.hasNext) {
+                    setPagination(prev => ({ ...prev, page: prev.page + 1 }))
+                  }
+                }}
+                className={!pagination.hasNext ? 'pointer-events-none opacity-50' : ''}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
@@ -418,101 +462,47 @@ export default function UnitsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name_en">Name (English)</Label>
               <Input
-                id="name"
-                value={currentUnit?.name || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, name: e.target.value })}
-                placeholder="Unit name"
+                id="name_en"
+                value={currentUnit?.name_en || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_en: e.target.value })}
+                placeholder="Unit name in English"
+                required
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="abbreviation">Abbreviation</Label>
+              <Label htmlFor="name_ta">Name (Tamil)</Label>
               <Input
-                id="abbreviation"
-                value={currentUnit?.abbreviation || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, abbreviation: e.target.value })}
-                placeholder="Unit abbreviation"
+                id="name_ta"
+                value={currentUnit?.name_ta || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_ta: e.target.value })}
+                placeholder="Unit name in Tamil"
+                required
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="name_hi">Name (Hindi)</Label>
               <Input
-                id="description"
-                value={currentUnit?.description || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, description: e.target.value })}
-                placeholder="Unit description"
+                id="name_hi"
+                value={currentUnit?.name_hi || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_hi: e.target.value })}
+                placeholder="Unit name in Hindi (optional)"
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label>Categories</Label>
-              <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={isCategoryOpen} className="justify-between">
-                    {currentUnit?.categories?.length > 0
-                      ? `${currentUnit.categories.length} categories selected`
-                      : "Select categories..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search categories..." />
-                    <CommandList>
-                      <CommandEmpty>No categories found.</CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {categories.map((category) => (
-                          <CommandItem
-                            key={category.id}
-                            onSelect={() => {
-                              const currentCategories = currentUnit?.categories || []
-                              const isSelected = currentCategories.includes(category.id)
-                              const newCategories = isSelected
-                                ? currentCategories.filter((id) => id !== category.id)
-                                : [...currentCategories, category.id]
-                              setCurrentUnit({ ...currentUnit, categories: newCategories })
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                currentUnit?.categories?.includes(category.id) ? "opacity-100" : "opacity-0",
-                              )}
-                            />
-                            <div className="flex items-center justify-between w-full">
-                              <span>{category.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {category.type}
-                              </Badge>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {currentUnit?.categories?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {currentUnit.categories.map((categoryId) => {
-                    const category = categories.find((c) => c.id === categoryId)
-                    return category ? (
-                      <Badge key={categoryId} variant="secondary" className="text-xs">
-                        {category.name}
-                        <button
-                          className="ml-1 hover:bg-secondary-foreground/20 rounded-full"
-                          onClick={() => {
-                            const newCategories = currentUnit.categories.filter((id) => id !== categoryId)
-                            setCurrentUnit({ ...currentUnit, categories: newCategories })
-                          }}
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ) : null
-                  })}
-                </div>
-              )}
+              <Label htmlFor="symbol">Symbol</Label>
+              <Input
+                id="symbol"
+                value={currentUnit?.symbol || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, symbol: e.target.value })}
+                placeholder="Unit symbol (e.g., kg, L, m)"
+                required
+                maxLength={10}
+              />
             </div>
             <div className="grid gap-2">
               <Label>Categories</Label>
@@ -610,98 +600,43 @@ export default function UnitsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name_en">Name (English)</Label>
               <Input
-                id="edit-name"
-                value={currentUnit?.name || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, name: e.target.value })}
+                id="edit-name_en"
+                value={currentUnit?.name_en || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_en: e.target.value })}
+                required
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-abbreviation">Abbreviation</Label>
+              <Label htmlFor="edit-name_ta">Name (Tamil)</Label>
               <Input
-                id="edit-abbreviation"
-                value={currentUnit?.abbreviation || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, abbreviation: e.target.value })}
+                id="edit-name_ta"
+                value={currentUnit?.name_ta || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_ta: e.target.value })}
+                required
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-name_hi">Name (Hindi)</Label>
               <Input
-                id="edit-description"
-                value={currentUnit?.description || ""}
-                onChange={(e) => setCurrentUnit({ ...currentUnit, description: e.target.value })}
+                id="edit-name_hi"
+                value={currentUnit?.name_hi || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, name_hi: e.target.value })}
+                maxLength={50}
               />
             </div>
             <div className="grid gap-2">
-              <Label>Categories</Label>
-              <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={isCategoryOpen} className="justify-between">
-                    {currentUnit?.categories?.length > 0
-                      ? `${currentUnit.categories.length} categories selected`
-                      : "Select categories..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search categories..." />
-                    <CommandList>
-                      <CommandEmpty>No categories found.</CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {categories.map((category) => (
-                          <CommandItem
-                            key={category.id}
-                            onSelect={() => {
-                              const currentCategories = currentUnit?.categories || []
-                              const isSelected = currentCategories.includes(category.id)
-                              const newCategories = isSelected
-                                ? currentCategories.filter((id) => id !== category.id)
-                                : [...currentCategories, category.id]
-                              setCurrentUnit({ ...currentUnit, categories: newCategories })
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                currentUnit?.categories?.includes(category.id) ? "opacity-100" : "opacity-0",
-                              )}
-                            />
-                            <div className="flex items-center justify-between w-full">
-                              <span>{category.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {category.type}
-                              </Badge>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {currentUnit?.categories?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {currentUnit.categories.map((categoryId) => {
-                    const category = categories.find((c) => c.id === categoryId)
-                    return category ? (
-                      <Badge key={categoryId} variant="secondary" className="text-xs">
-                        {category.name}
-                        <button
-                          className="ml-1 hover:bg-secondary-foreground/20 rounded-full"
-                          onClick={() => {
-                            const newCategories = currentUnit.categories.filter((id) => id !== categoryId)
-                            setCurrentUnit({ ...currentUnit, categories: newCategories })
-                          }}
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ) : null
-                  })}
-                </div>
-              )}
+              <Label htmlFor="edit-symbol">Symbol</Label>
+              <Input
+                id="edit-symbol"
+                value={currentUnit?.symbol || ""}
+                onChange={(e) => setCurrentUnit({ ...currentUnit, symbol: e.target.value })}
+                required
+                maxLength={10}
+              />
             </div>
             <div className="grid gap-2">
               <Label>Categories</Label>

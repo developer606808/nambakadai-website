@@ -1,19 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Share2, MapPin, Send, ThumbsUp, Calendar, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import WishlistButton from "@/components/wishlist/wishlist-button"
 import MetaTags from "@/components/seo/meta-tags"
 import { useAuth } from "@/components/auth/auth-context"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 
-export default function ProductDetailsPage({ params }: { params: { id: string } }) {
+export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { id } = use(params)
+
   const [newComment, setNewComment] = useState("")
   const [comments, setComments] = useState([
     {
@@ -39,7 +42,7 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
 
   // Mock data for product details
   const product = {
-    id: params.id,
+    id: id,
     name: "Fresh Organic Apples",
     images: [
       "/placeholder.svg?height=500&width=500",

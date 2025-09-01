@@ -41,12 +41,12 @@ import {
 } from "@/lib/services/bannerService"
 
 const bannerPositions = [
-  { value: "hero", label: "Hero Section" },
-  { value: "sidebar", label: "Sidebar" },
-  { value: "footer", label: "Footer" },
-  { value: "popup", label: "Popup" },
-  { value: "category", label: "Category Page" },
-  { value: "product", label: "Product Page" },
+  { value: 0, label: "Hero Section" },
+  { value: 1, label: "Sidebar" },
+  { value: 2, label: "Footer" },
+  { value: 3, label: "Popup" },
+  { value: 4, label: "Category Page" },
+  { value: 5, label: "Product Page" },
 ]
 
 export default function BannersPage() {
@@ -132,9 +132,14 @@ export default function BannersPage() {
   }
 
   const handleAddBanner = async () => {
-    // Validate that either image or url is provided
-    if (!newBanner.image && !newBanner.url) {
-      toast.error("Please provide either a banner image or a URL")
+    // Validate required fields according to schema
+    if (!newBanner.title.trim()) {
+      toast.error("Title is required")
+      return
+    }
+
+    if (!newBanner.image.trim()) {
+      toast.error("Banner image is required")
       return
     }
 
@@ -161,13 +166,18 @@ export default function BannersPage() {
   }
 
   const handleEditBanner = async () => {
-    // Validate that either image or url is provided
-    if (!currentBanner?.image && !currentBanner?.url) {
-      toast.error("Please provide either a banner image or a URL")
+    if (!currentBanner) return
+
+    // Validate required fields according to schema
+    if (!currentBanner.title.trim()) {
+      toast.error("Title is required")
       return
     }
 
-    if (!currentBanner) return
+    if (!currentBanner.image.trim()) {
+      toast.error("Banner image is required")
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -198,10 +208,24 @@ export default function BannersPage() {
 
   const handleDeleteBanner = async () => {
     if (!currentBanner) return
-    
+
     setIsLoading(true)
     try {
+      // Delete banner from database
       await deleteBanner(currentBanner.id)
+
+      // Delete associated image file if it's an uploaded file
+      if (currentBanner.image && currentBanner.image.startsWith('/uploads/')) {
+        try {
+          await fetch(`/api/upload/banner?url=${encodeURIComponent(currentBanner.image)}`, {
+            method: 'DELETE',
+          })
+        } catch (imageError) {
+          console.warn('Failed to delete image file:', imageError)
+          // Don't fail the whole operation if image deletion fails
+        }
+      }
+
       const updatedBanners = banners.filter((banner) => banner.id !== currentBanner.id)
       setBanners(updatedBanners)
       setIsDeleteDialogOpen(false)
@@ -233,21 +257,49 @@ export default function BannersPage() {
     }
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const imageDataUrl = reader.result as string
-        setPreviewImage(imageDataUrl)
-        
-        if (isEdit && currentBanner) {
-          setCurrentBanner({ ...currentBanner, image: imageDataUrl })
-        } else {
-          setNewBanner({ ...newBanner, image: imageDataUrl })
-        }
+    if (!file) return
+
+    try {
+      setIsLoading(true)
+
+      // Create preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file)
+      setPreviewImage(previewUrl)
+
+      // Upload file to server
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload/banner', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
       }
-      reader.readAsDataURL(file)
+
+      const result = await response.json()
+      const imageUrl = result.data.url
+
+      // Update banner data with server URL
+      if (isEdit && currentBanner) {
+        setCurrentBanner({ ...currentBanner, image: imageUrl })
+      } else {
+        setNewBanner({ ...newBanner, image: imageUrl })
+      }
+
+      // Update preview with server URL
+      setPreviewImage(imageUrl)
+      toast.success('Image uploaded successfully')
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      toast.error('Failed to upload image')
+      setPreviewImage(null)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -301,7 +353,7 @@ export default function BannersPage() {
                 <SelectContent>
                   <SelectItem value="all">All Positions</SelectItem>
                   {bannerPositions.map((position) => (
-                    <SelectItem key={position.value} value={position.value}>
+                    <SelectItem key={position.value} value={position.value.toString()}>
                       {position.label}
                     </SelectItem>
                   ))}
@@ -401,7 +453,7 @@ export default function BannersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {bannerPositions.find((p) => p.value === banner.position.toString())?.label || `Position ${banner.position}`}
+                        {bannerPositions.find((p) => p.value === banner.position)?.label || `Position ${banner.position}`}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -596,8 +648,8 @@ export default function BannersPage() {
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bannerPositions.map((position, index) => (
-                      <SelectItem key={position.value} value={index.toString()}>
+                    {bannerPositions.map((position) => (
+                      <SelectItem key={position.value} value={position.value.toString()}>
                         {position.label}
                       </SelectItem>
                     ))}
@@ -714,8 +766,8 @@ export default function BannersPage() {
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bannerPositions.map((position, index) => (
-                      <SelectItem key={position.value} value={index.toString()}>
+                    {bannerPositions.map((position) => (
+                      <SelectItem key={position.value} value={position.value.toString()}>
                         {position.label}
                       </SelectItem>
                     ))}

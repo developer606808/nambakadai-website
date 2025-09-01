@@ -116,8 +116,16 @@ export async function GET_BY_ID(
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
+    const storeId = parseInt(params.id);
+    if (isNaN(storeId)) {
+      return NextResponse.json(
+        { error: 'Invalid store ID' },
+        { status: 400 }
+      );
+    }
+
     const store = await prisma.store.findUnique({
-      where: { id: params.id },
+      where: { id: storeId },
       include: {
         user: {
           select: {
@@ -177,17 +185,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate user is a seller or admin
-    if (session.user.role !== 'SELLER' && session.user.role !== 'ADMIN') {
+    // Allow any authenticated user to create a store
+    // They will be upgraded to SELLER role when store is created
+
+    // Check if user already has a store
+    const userId = parseInt(session.user.id);
+    if (isNaN(userId)) {
       return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
+        { error: 'Invalid user ID' },
+        { status: 400 }
       );
     }
 
-    // Check if user already has a store
     const existingStore = await prisma.store.findFirst({
-      where: { userId: session.user.id }
+      where: { userId: userId }
     });
 
     if (existingStore) {
@@ -223,7 +234,16 @@ export async function POST(request: NextRequest) {
       data: {
 <<<<<<< Updated upstream
         ...validatedData,
-        userId: session.user.id
+        userId: userId
+      }
+    });
+
+    // Set this as the user's current store if they don't have one
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        currentStoreId: store.id,
+        role: 'SELLER' // Update role to seller when they create a store
       }
     });
 

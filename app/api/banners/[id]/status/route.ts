@@ -3,10 +3,15 @@ import { createApiResponse, createApiError } from '@/lib/utils/api';
 import { prisma } from '@/lib/prisma';
 
 // PATCH /api/banners/[id]/status - Toggle banner status
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
+    const bannerId = parseInt(id);
     const { isActive } = await request.json();
+
+    if (isNaN(bannerId)) {
+      return createApiError('Invalid banner ID', 400);
+    }
 
     // Validate isActive is a boolean
     if (typeof isActive !== 'boolean') {
@@ -15,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     // Check if banner exists
     const existingBanner = await prisma.banner.findUnique({
-      where: { id }
+      where: { id: bannerId }
     });
 
     if (!existingBanner) {
@@ -24,7 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     // Update banner status
     const updatedBanner = await prisma.banner.update({
-      where: { id },
+      where: { id: bannerId },
       data: { isActive }
     });
 

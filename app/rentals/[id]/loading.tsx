@@ -1,4 +1,4 @@
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function RentalDetailsLoading() {

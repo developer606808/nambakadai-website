@@ -1,7 +1,7 @@
 import { PrismaClient, Role, CategoryType, CommunityPrivacy, MemberRole, CommunityPostType, VehicleType, VehicleFuelType, VehicleStatus, DemandFrequency, ContactMethod, DemandStatus, OfferReason } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Starting database seeding...');

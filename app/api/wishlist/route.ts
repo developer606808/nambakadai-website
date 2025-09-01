@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
 >>>>>>> Stashed changes
     const wishlist = await prisma.wishlist.findMany({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       include: {
         product: {
           include: {

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import SignupForm from "@/components/auth/signup-form"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 
 export default function SignupPage() {
   return (

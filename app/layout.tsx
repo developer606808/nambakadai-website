@@ -3,8 +3,10 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ReduxProvider } from "@/components/providers/redux-provider"
+import { NextAuthProvider } from "@/components/providers/session-provider"
 import { Suspense } from "react"
 import { cookies } from 'next/headers'
+import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -30,7 +32,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Favicon for all devices and screen sizes */}
         <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />

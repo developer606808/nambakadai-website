@@ -18,6 +18,7 @@ import { Eye, EyeOff, Upload, Loader2, CheckCircle, XCircle, AlertCircle, User, 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 <<<<<<< Updated upstream
 =======
@@ -28,6 +29,7 @@ import Cropper from 'react-easy-crop'
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
 <<<<<<< Updated upstream
   const router = useRouter()
@@ -150,13 +152,26 @@ export default function SignupForm() {
       })
 >>>>>>> Stashed changes
 
-    toast({
-      title: "Account created!",
-      description: "You have successfully signed up.",
-    })
+      toast({
+        title: "Account created successfully!",
+        description: result.emailSent
+          ? "Please check your email to verify your account before logging in."
+          : "You can now log in with your credentials.",
+        duration: 6000,
+      })
 
-    setIsLoading(false)
-    router.push("/login")
+      router.push('/login?registered=true')
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('field'))) {
+        toast({
+          title: "Registration failed",
+          description: error instanceof Error ? error.message : "Please try again later",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,8 +289,28 @@ export default function SignupForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input id="email" type="email" placeholder="you@example.com" required />
+          <Label htmlFor="phone" className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Phone Number (Optional)
+          </Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="9876543210 or +91 98765 43210"
+            {...register('phone')}
+            className={errors.phone ? 'border-red-500' : ''}
+          />
+          {errors.phone && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.phone.message}
+            </p>
+          )}
+          {!errors.phone && (
+            <p className="text-xs text-gray-500">
+              Enter Indian mobile number (10 digits starting with 6-9) or with +91 country code
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -403,9 +438,48 @@ export default function SignupForm() {
               {charCounts.password}/128
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Password must be at least 8 characters long and include a number and a special character.
-          </p>
+
+          {/* Password Strength Indicator */}
+          {watchedPassword && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600">Password strength:</span>
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      passwordStrength.score <= 2 ? 'bg-red-500' :
+                      passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${
+                  passwordStrength.score <= 2 ? 'text-red-600' :
+                  passwordStrength.score <= 4 ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {passwordStrength.score <= 2 ? 'Weak' :
+                   passwordStrength.score <= 4 ? 'Medium' : 'Strong'}
+                </span>
+              </div>
+              {passwordStrength.feedback.length > 0 && (
+                <ul className="text-xs text-gray-600 space-y-1">
+                  {passwordStrength.feedback.map((feedback, index) => (
+                    <li key={index} className="flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {feedback}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {errors.password && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -448,27 +522,57 @@ export default function SignupForm() {
 >>>>>>> Stashed changes
         </div>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="terms"
-            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            required
-          />
-          <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
-            I agree to the{" "}
-            <Link href="/terms" className="text-green-600 hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-green-600 hover:underline">
-              Privacy Policy
-            </Link>
-          </label>
+
+
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="acceptTerms"
+              checked={watch('acceptTerms')}
+              onCheckedChange={(checked) => setValue('acceptTerms', checked as boolean)}
+              className={errors.acceptTerms ? 'border-red-500' : ''}
+            />
+            <label htmlFor="acceptTerms" className="text-sm text-gray-700 leading-5 cursor-pointer">
+              I agree to the{" "}
+              <Link href="/terms" className="text-green-600 hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-green-600 hover:underline">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+          {errors.acceptTerms && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.acceptTerms.message}
+            </p>
+          )}
         </div>
 
-        <Button type="submit" className="w-full bg-green-500 hover:bg-green-600" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+            <p>Form Valid: {isValid ? 'Yes' : 'No'}</p>
+            <p>Errors: {Object.keys(errors).length > 0 ? Object.keys(errors).join(', ') : 'None'}</p>
+            <p>Accept Terms: {watch('acceptTerms') ? 'Yes' : 'No'}</p>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-green-500 hover:bg-green-600"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            "Create Account"
+          )}
         </Button>
 
         <div className="text-center mt-4">

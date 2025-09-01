@@ -123,7 +123,7 @@ export default function CategoriesPage() {
 
 
   return (
-    <>
+    <MainLayout>
       <div className="container mx-auto py-8 px-4">
         <Breadcrumbs />
 
@@ -308,6 +308,6 @@ export default function CategoriesPage() {
           </div>
         </LazyLoadWrapper>
       </div>
-    </>
+    </MainLayout>
   )
 }

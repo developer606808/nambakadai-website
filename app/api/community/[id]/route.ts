@@ -6,13 +6,18 @@ import path from 'path';
 // GET /api/community/[id] - Get a specific community
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-
-    // Check if it's a UUID (contains hyphens) or integer ID
-    const isUUID = id.includes('-');
+    const communityId = parseInt(id);
+    
+    if (isNaN(communityId)) {
+      return NextResponse.json(
+        { error: 'Invalid community ID' },
+        { status: 400 }
+      );
+    }
 
     const community = await prisma.community.findUnique({
       where: isUUID ? { uuid: id } as any : { id: parseInt(id) },
