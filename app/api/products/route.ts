@@ -24,16 +24,11 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
-<<<<<<< Updated upstream
-    const stateId = searchParams.get('state');
-    const cityId = searchParams.get('city');
-=======
     const stateId = searchParams.get('stateId');
     const cityId = searchParams.get('cityId');
     const search = searchParams.get('search');
     const sortBy = searchParams.get('sortBy') || 'newest';
     const sellerOnly = searchParams.get('sellerOnly') === 'true';
->>>>>>> Stashed changes
 
     const where: any = {
       // Only show approved products
@@ -58,8 +53,6 @@ export async function GET(request: NextRequest) {
       where.cityId = parseInt(cityId);
     }
 
-<<<<<<< Updated upstream
-=======
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -86,7 +79,6 @@ export async function GET(request: NextRequest) {
         break;
     }
 
->>>>>>> Stashed changes
     const products = await prisma.product.findMany({
       where,
       skip: (page - 1) * limit,
@@ -100,11 +92,6 @@ export async function GET(request: NextRequest) {
             email: true
           }
         },
-<<<<<<< Updated upstream
-        state: true,
-        city: true,
-        unit: true
-=======
         category: {
           select: {
             id: true,
@@ -142,7 +129,6 @@ export async function GET(request: NextRequest) {
             wishlist: true
           }
         }
->>>>>>> Stashed changes
       }
     });
 
@@ -182,11 +168,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({
-<<<<<<< Updated upstream
-      products,
-=======
       products: transformedProducts,
->>>>>>> Stashed changes
       pagination: {
         page,
         limit,
@@ -271,21 +253,6 @@ export async function POST(request: NextRequest) {
 
     const validatedData = productSchema.parse(dataToValidate);
 
-<<<<<<< Updated upstream
-    // Create product
-    const product = await prisma.product.create({
-      data: {
-        ...validatedData,
-        userId: userId,
-        storeId: session.user.storeId // Assuming storeId is added to session
-      },
-      include: {
-        category: true,
-        store: true,
-        state: true,
-        city: true,
-        unit: true
-=======
     // Convert user ID to integer
     const userId = parseInt(session.user.id);
     if (isNaN(userId)) {
@@ -327,7 +294,6 @@ export async function POST(request: NextRequest) {
         stateId: 1, // Default to Tamil Nadu for now
         cityId: 1,  // Default to Chennai for now
         adId: adId
->>>>>>> Stashed changes
       }
     });
     

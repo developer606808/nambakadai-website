@@ -9,15 +9,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-<<<<<<< Updated upstream
-    const communityId = parseInt(params.id);
-    
-    if (isNaN(communityId)) {
-      return NextResponse.json(
-        { error: 'Invalid community ID' },
-        { status: 400 }
-      );
-=======
     const { id } = await params;
 
     // Check if it's a UUID (contains hyphens) or integer ID
@@ -47,7 +38,6 @@ export async function GET(
           { status: 400 }
         );
       }
->>>>>>> Stashed changes
     }
 
     const { searchParams } = new URL(request.url);

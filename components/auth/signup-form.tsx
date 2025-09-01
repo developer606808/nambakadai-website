@@ -1,43 +1,24 @@
 "use client"
 
-<<<<<<< Updated upstream
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Upload } from "lucide-react"
-=======
 import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Upload, Loader2, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, Lock, X as XIcon } from "lucide-react"
->>>>>>> Stashed changes
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-<<<<<<< Updated upstream
-=======
 import { signupSchema, getPasswordStrength, validateIndianPhone, type SignupInput } from "@/lib/validations/auth"
 import Cropper from 'react-easy-crop'
->>>>>>> Stashed changes
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
-<<<<<<< Updated upstream
-  const router = useRouter()
-  const { toast } = useToast()
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-=======
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
   const [cropperState, setCropperState] = useState({
@@ -127,13 +108,8 @@ export default function SignupForm() {
   }
 
   const onSubmit = async (data: SignupInput) => {
->>>>>>> Stashed changes
     setIsLoading(true)
 
-<<<<<<< Updated upstream
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-=======
     try {
       // Create FormData to include the profile image if it exists
       const formData = new FormData()
@@ -150,7 +126,6 @@ export default function SignupForm() {
         method: 'POST',
         body: formData,
       })
->>>>>>> Stashed changes
 
       toast({
         title: "Account created successfully!",
@@ -275,47 +250,6 @@ export default function SignupForm() {
         <p className="text-sm text-gray-500">Add profile picture (optional)</p>
       </div>
 
-<<<<<<< Updated upstream
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" required />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phone" className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            Phone Number (Optional)
-          </Label>
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="9876543210 or +91 98765 43210"
-            {...register('phone')}
-            className={errors.phone ? 'border-red-500' : ''}
-          />
-          {errors.phone && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <XCircle className="w-4 h-4" />
-              {errors.phone.message}
-            </p>
-          )}
-          {!errors.phone && (
-            <p className="text-xs text-gray-500">
-              Enter Indian mobile number (10 digits starting with 6-9) or with +91 country code
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-=======
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="flex items-center gap-2">
@@ -410,22 +344,16 @@ export default function SignupForm() {
             <Lock className="w-4 h-4" />
             Password
           </Label>
->>>>>>> Stashed changes
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-<<<<<<< Updated upstream
-              required
-              className="pr-10"
-=======
               maxLength={128}
               {...register('password', {
                 onChange: (e) => updateCharCount('password', e.target.value)
               })}
               className={`pr-20 ${errors.password ? 'border-red-500' : ''}`}
->>>>>>> Stashed changes
             />
             <button
               type="button"
@@ -483,10 +411,6 @@ export default function SignupForm() {
         </div>
 
         <div className="space-y-2">
-<<<<<<< Updated upstream
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input id="confirmPassword" type="password" placeholder="••••••••" required />
-=======
           <Label htmlFor="confirmPassword" className="flex items-center gap-2">
             <Lock className="w-4 h-4" />
             Confirm Password
@@ -519,7 +443,6 @@ export default function SignupForm() {
               {errors.confirmPassword.message}
             </p>
           )}
->>>>>>> Stashed changes
         </div>
 
 

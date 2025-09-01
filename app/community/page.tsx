@@ -9,15 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-<<<<<<< Updated upstream
-import MainLayout from '@/components/main-layout'
-=======
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from '@/components/ui/use-toast'
 import { MainLayout } from '@/components/main-layout'
 import { useSession } from 'next-auth/react'
->>>>>>> Stashed changes
 
 interface Community {
   id: number

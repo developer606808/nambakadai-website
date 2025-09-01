@@ -6,10 +6,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Trash2, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-<<<<<<< Updated upstream
-import MainLayout from "@/components/main-layout"
-import Breadcrumbs from "@/components/breadcrumbs"
-=======
 import { MainLayout } from "@/components/main-layout"
 import { useWishlist } from "@/hooks/useWishlist"
 
@@ -26,7 +22,6 @@ interface WishlistItem {
     stock: number;
   };
 }
->>>>>>> Stashed changes
 
 export default function WishlistPage() {
   const { data: session } = useSession();

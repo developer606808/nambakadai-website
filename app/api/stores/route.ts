@@ -232,23 +232,6 @@ export async function POST(request: NextRequest) {
     // Create store
     const store = await prisma.store.create({
       data: {
-<<<<<<< Updated upstream
-        ...validatedData,
-        userId: userId
-      }
-    });
-
-    // Set this as the user's current store if they don't have one
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        currentStoreId: store.id,
-        role: 'SELLER' // Update role to seller when they create a store
-      }
-    });
-
-    return NextResponse.json(store, { status: 201 });
-=======
         ...(validatedData as any),
         slug: slug,
         userId: userId
@@ -289,7 +272,6 @@ export async function POST(request: NextRequest) {
       message: 'Store created successfully',
       emailSent: user ? true : false
     }, { status: 201 });
->>>>>>> Stashed changes
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
