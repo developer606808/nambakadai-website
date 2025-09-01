@@ -22,97 +22,34 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Ruler, Loader2, Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Ruler, Loader2, Check, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
-// Mock data for categories
-const mockCategories = [
-  { id: 1, name: "Vegetables", type: "Store" },
-  { id: 2, name: "Fruits", type: "Store" },
-  { id: 3, name: "Grains", type: "Store" },
-  { id: 4, name: "Dairy", type: "Store" },
-  { id: 5, name: "Meat", type: "Store" },
-  { id: 6, name: "Tractors", type: "Rentals" },
-  { id: 7, name: "Tools", type: "Rentals" },
-  { id: 8, name: "Equipment", type: "Rentals" },
-]
+// Define the Unit interface based on the API schema
+interface Unit {
+  id: number
+  name_en: string
+  name_ta: string
+  name_hi?: string
+  symbol: string
+  _count?: {
+    products: number
+  }
+  categories?: Category[]
+  createdAt: string
+  updatedAt: string
+}
 
-// Mock data for units with categories
-const mockUnits = [
-  {
-    id: 1,
-    name: "Kilogram",
-    abbreviation: "kg",
-    description: "Metric unit of mass",
-    categories: [1, 2, 3, 5], // Vegetables, Fruits, Grains, Meat
-  },
-  {
-    id: 2,
-    name: "Gram",
-    abbreviation: "g",
-    description: "Metric unit of mass",
-    categories: [1, 2], // Vegetables, Fruits
-  },
-  {
-    id: 3,
-    name: "Liter",
-    abbreviation: "L",
-    description: "Metric unit of volume",
-    categories: [4], // Dairy
-  },
-  {
-    id: 4,
-    name: "Milliliter",
-    abbreviation: "mL",
-    description: "Metric unit of volume",
-    categories: [4], // Dairy
-  },
-  {
-    id: 5,
-    name: "Piece",
-    abbreviation: "pc",
-    description: "Count unit",
-    categories: [1, 2, 6, 7, 8], // Vegetables, Fruits, Tractors, Tools, Equipment
-  },
-  {
-    id: 6,
-    name: "Bunch",
-    abbreviation: "bunch",
-    description: "Group of items",
-    categories: [1, 2], // Vegetables, Fruits
-  },
-  {
-    id: 7,
-    name: "Box",
-    abbreviation: "box",
-    description: "Container unit",
-    categories: [1, 2, 3], // Vegetables, Fruits, Grains
-  },
-  {
-    id: 8,
-    name: "Pound",
-    abbreviation: "lb",
-    description: "Imperial unit of mass",
-    categories: [1, 2, 3, 5], // Vegetables, Fruits, Grains, Meat
-  },
-  {
-    id: 9,
-    name: "Ounce",
-    abbreviation: "oz",
-    description: "Imperial unit of mass",
-    categories: [1, 2, 5], // Vegetables, Fruits, Meat
-  },
-  {
-    id: 10,
-    name: "Gallon",
-    abbreviation: "gal",
-    description: "Imperial unit of volume",
-    categories: [4], // Dairy
-  },
-]
+// Define the Category interface
+interface Category {
+  id: number
+  name_en: string
+  name_ta: string
+  name_hi?: string
+  slug: string
+}
 
 export default function UnitsPage() {
   const [units, setUnits] = useState(mockUnits)
@@ -122,43 +59,180 @@ export default function UnitsPage() {
   const [currentUnit, setCurrentUnit] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [categories] = useState(mockCategories)
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false)
+  const [allCategories, setAllCategories] = useState<Category[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
 
-  // Filter units based on search query
-  const filteredUnits = units.filter(
-    (unit) =>
-      unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.abbreviation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // Fetch units from API
+  const fetchUnits = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(
+        `/api/admin/units?page=${pagination.page}&limit=${pagination.limit}&search=${searchQuery}`
+      )
+      if (!response.ok) throw new Error('Failed to fetch units')
 
-  const handleAddUnit = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const newUnit = {
-        id: units.length + 1,
-        name: currentUnit.name,
-        abbreviation: currentUnit.abbreviation,
-        description: currentUnit.description,
-        categories: currentUnit.categories || [],
+      const result = await response.json()
+      if (result.success) {
+        setUnits(result.data.units)
+        setPagination(result.data.pagination)
       }
-      setUnits([...units, newUnit])
-      setIsAddDialogOpen(false)
-      setCurrentUnit(null)
+    } catch (error) {
+      console.error('Error fetching units:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/categories?limit=1000') // Get all categories
+      if (!response.ok) throw new Error('Failed to fetch categories')
+
+      const result = await response.json()
+      if (result.success) {
+        setAllCategories(result.data.categories)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    }
+  }
+
+  // Load units and categories on component mount and when dependencies change
+  useEffect(() => {
+    fetchUnits()
+    fetchCategories()
+  }, [pagination.page, pagination.limit])
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setPagination(prev => ({ ...prev, page: 1 }))
+      fetchUnits()
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  // Form validation for units
+  const validateUnitForm = () => {
+    const errors: string[] = []
+
+    if (!currentUnit?.name_en?.trim()) {
+      errors.push('English name is required')
+    }
+    if (!currentUnit?.name_ta?.trim()) {
+      errors.push('Tamil name is required')
+    }
+    if (!currentUnit?.symbol?.trim()) {
+      errors.push('Symbol is required')
+    }
+    if (currentUnit?.name_en && currentUnit.name_en.length > 50) {
+      errors.push('English name must be less than 50 characters')
+    }
+    if (currentUnit?.name_ta && currentUnit.name_ta.length > 50) {
+      errors.push('Tamil name must be less than 50 characters')
+    }
+    if (currentUnit?.name_hi && currentUnit.name_hi.length > 50) {
+      errors.push('Hindi name must be less than 50 characters')
+    }
+    if (currentUnit?.symbol && currentUnit.symbol.length > 10) {
+      errors.push('Symbol must be less than 10 characters')
+    }
+
+    return errors
+  }
+
+  const handleAddUnit = async () => {
+    const validationErrors = validateUnitForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/admin/units', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name_en: currentUnit!.name_en!.trim(),
+          name_ta: currentUnit!.name_ta!.trim(),
+          name_hi: currentUnit?.name_hi?.trim() || '',
+          symbol: currentUnit!.symbol!.trim(),
+          categoryIds: selectedCategories.map(cat => cat.id)
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create unit')
+      }
+
+      if (result.success) {
+        setIsAddDialogOpen(false)
+        setCurrentUnit(null)
+        setSelectedCategories([])
+        fetchUnits() // Refresh the list
+        alert('Unit created successfully!')
+      }
+    } catch (error) {
+      console.error('Error creating unit:', error)
+      alert('Error creating unit: ' + (error as Error).message)
+    } finally {
       setIsLoading(false)
     }, 1000)
   }
 
-  const handleEditUnit = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedUnits = units.map((unit) => (unit.id === currentUnit.id ? { ...unit, ...currentUnit } : unit))
-      setUnits(updatedUnits)
-      setIsEditDialogOpen(false)
-      setCurrentUnit(null)
+  const handleEditUnit = async () => {
+    if (!currentUnit?.id) return
+
+    const validationErrors = validateUnitForm()
+    if (validationErrors.length > 0) {
+      alert('Please fix the following errors:\n' + validationErrors.join('\n'))
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/admin/units/${currentUnit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name_en: currentUnit.name_en!.trim(),
+          name_ta: currentUnit.name_ta!.trim(),
+          name_hi: currentUnit.name_hi?.trim() || '',
+          symbol: currentUnit.symbol!.trim(),
+          categoryIds: selectedCategories.map(cat => cat.id)
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update unit')
+      }
+
+      if (result.success) {
+        setIsEditDialogOpen(false)
+        setCurrentUnit(null)
+        setSelectedCategories([])
+        fetchUnits() // Refresh the list
+        alert('Unit updated successfully!')
+      }
+    } catch (error) {
+      console.error('Error updating unit:', error)
+      alert('Error updating unit: ' + (error as Error).message)
+    } finally {
       setIsLoading(false)
     }, 1000)
   }
@@ -183,7 +257,8 @@ export default function UnitsPage() {
           <div className="flex items-center space-x-2">
             <Button
               onClick={() => {
-                setCurrentUnit({ name: "", abbreviation: "", description: "", categories: [] })
+                setCurrentUnit({ name_en: "", name_ta: "", symbol: "" })
+                setSelectedCategories([])
                 setIsAddDialogOpen(true)
               }}
             >
@@ -210,17 +285,24 @@ export default function UnitsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Abbreviation</TableHead>
-                <TableHead className="hidden md:table-cell">Categories</TableHead>
-                <TableHead className="hidden lg:table-cell">Description</TableHead>
+                <TableHead>Name (English)</TableHead>
+                <TableHead>Name (Tamil)</TableHead>
+                <TableHead className="hidden md:table-cell">Symbol</TableHead>
+                <TableHead className="hidden lg:table-cell">Categories</TableHead>
+                <TableHead className="hidden xl:table-cell">Products</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUnits.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : units.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No units found.
                   </TableCell>
                 </TableRow>
@@ -246,7 +328,27 @@ export default function UnitsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{unit.description}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {unit.categories && unit.categories.length > 0 ? (
+                          unit.categories.slice(0, 2).map((category) => (
+                            <Badge key={category.id} variant="outline" className="text-xs">
+                              {category.name_en}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No categories</span>
+                        )}
+                        {unit.categories && unit.categories.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{unit.categories.length - 2} more
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      {unit._count?.products || 0} products
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -259,6 +361,7 @@ export default function UnitsPage() {
                           <DropdownMenuItem
                             onClick={() => {
                               setCurrentUnit(unit)
+                              setSelectedCategories(unit.categories || [])
                               setIsEditDialogOpen(true)
                             }}
                           >
@@ -411,6 +514,71 @@ export default function UnitsPage() {
                 </div>
               )}
             </div>
+            <div className="grid gap-2">
+              <Label>Categories</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="justify-between"
+                  >
+                    {selectedCategories.length > 0
+                      ? `${selectedCategories.length} selected`
+                      : "Select categories..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search categories..." />
+                    <CommandList>
+                      <CommandEmpty>No categories found.</CommandEmpty>
+                      <CommandGroup>
+                        {allCategories.map((category) => {
+                          const isSelected = selectedCategories.some(cat => cat.id === category.id)
+                          return (
+                            <CommandItem
+                              key={category.id}
+                              onSelect={() => {
+                                if (isSelected) {
+                                  setSelectedCategories(selectedCategories.filter(cat => cat.id !== category.id))
+                                } else {
+                                  setSelectedCategories([...selectedCategories, category])
+                                }
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {category.name_en}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {selectedCategories.map((category) => (
+                    <Badge key={category.id} variant="secondary" className="text-xs">
+                      {category.name_en}
+                      <button
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                        onClick={() => setSelectedCategories(selectedCategories.filter(cat => cat.id !== category.id))}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -535,6 +703,71 @@ export default function UnitsPage() {
                 </div>
               )}
             </div>
+            <div className="grid gap-2">
+              <Label>Categories</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="justify-between"
+                  >
+                    {selectedCategories.length > 0
+                      ? `${selectedCategories.length} selected`
+                      : "Select categories..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search categories..." />
+                    <CommandList>
+                      <CommandEmpty>No categories found.</CommandEmpty>
+                      <CommandGroup>
+                        {allCategories.map((category) => {
+                          const isSelected = selectedCategories.some(cat => cat.id === category.id)
+                          return (
+                            <CommandItem
+                              key={category.id}
+                              onSelect={() => {
+                                if (isSelected) {
+                                  setSelectedCategories(selectedCategories.filter(cat => cat.id !== category.id))
+                                } else {
+                                  setSelectedCategories([...selectedCategories, category])
+                                }
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {category.name_en}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {selectedCategories.map((category) => (
+                    <Badge key={category.id} variant="secondary" className="text-xs">
+                      {category.name_en}
+                      <button
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                        onClick={() => setSelectedCategories(selectedCategories.filter(cat => cat.id !== category.id))}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -566,8 +799,8 @@ export default function UnitsPage() {
           <div className="flex items-center space-x-2 rounded-md border p-4">
             <Ruler className="h-5 w-5 text-muted-foreground" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">{currentUnit?.name}</p>
-              <p className="text-sm text-muted-foreground">{currentUnit?.abbreviation}</p>
+              <p className="text-sm font-medium leading-none">{currentUnit?.name_en}</p>
+              <p className="text-sm text-muted-foreground">{currentUnit?.symbol}</p>
             </div>
           </div>
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">

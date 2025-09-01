@@ -1,13 +1,24 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
 
 export function LanguageSwitcher() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const currentLocale = useLocale();
+  const [currentLocale, setCurrentLocale] = useState('en');
+
+  // Get current locale from cookie
+  useEffect(() => {
+    const locale = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('NEXT_LOCALE='))
+      ?.split('=')[1] || 'en';
+
+    if (locale === 'en' || locale === 'ta') {
+      setCurrentLocale(locale);
+    }
+  }, []);
 
   const handleLocaleChange = (locale: string) => {
     // Set the locale cookie

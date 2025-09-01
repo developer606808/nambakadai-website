@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Upload, Users, Globe, Lock, ImageIcon } from 'lucide-react'
+import { ArrowLeft, Upload, Users, Globe, Lock, ImageIcon, Camera, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,17 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+<<<<<<< Updated upstream
 import { toast } from '@/hooks/use-toast'
 import MainLayout from '@/components/main-layout'
+=======
+import { toast } from '@/components/ui/use-toast'
+import { MainLayout } from '@/components/main-layout'
+>>>>>>> Stashed changes
 import Link from 'next/link'
-
-const categories = [
-  'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability',
-  'Livestock', 'Aquaculture', 'Greenhouse', 'Equipment', 'Seeds', 'Fertilizers'
-]
+import Cropper from 'react-easy-crop'
 
 export default function CreateCommunityPage() {
   const router = useRouter()
+  const [categories, setCategories] = useState<string[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -30,13 +33,154 @@ export default function CreateCommunityPage() {
     privacy: 'public',
     location: '',
     rules: '',
-    image: null as File | null
+    image: null as File | null, // Profile picture
+    banner: null as File | null // Banner image
   })
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [imagePreviews, setImagePreviews] = useState({
+    image: null as string | null, // Profile picture preview
+    banner: null as string | null // Banner preview
+  })
+
+  const [cropperState, setCropperState] = useState({
+    isOpen: false,
+    imageType: null as 'image' | 'banner' | null,
+    imageSrc: null as string | null
+  })
+
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+
+  const fileInputRefs = {
+    image: useRef<HTMLInputElement>(null),
+    banner: useRef<HTMLInputElement>(null)
+  }
+
+  const getCroppedImg = (imageSrc: string, pixelCrop: any): Promise<File> => {
+    return new Promise((resolve) => {
+      const image = new Image()
+      image.src = imageSrc
+      image.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          canvas.width = pixelCrop.width
+          canvas.height = pixelCrop.height
+          ctx.drawImage(
+            image,
+            pixelCrop.x,
+            pixelCrop.y,
+            pixelCrop.width,
+            pixelCrop.height,
+            0,
+            0,
+            pixelCrop.width,
+            pixelCrop.height
+          )
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], `cropped-${cropperState.imageType}.jpg`, { type: 'image/jpeg' })
+              resolve(file)
+            }
+          }, 'image/jpeg')
+        }
+      }
+    })
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true)
+      const response = await fetch('/api/categories')
+      if (response.ok) {
+        const data = await response.json()
+        // Extract category names from the API response
+        if (Array.isArray(data)) {
+          const categoryNames = data.map((cat: any) => cat.name_en)
+          setCategories(categoryNames)
+        } else {
+          // If data is not an array, use default
+          setCategories([
+            'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability',
+            'Livestock', 'Aquaculture', 'Greenhouse', 'Equipment', 'Seeds', 'Fertilizers'
+          ])
+        }
+      } else {
+        // Fallback to default categories if API fails
+        setCategories([
+          'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability',
+          'Livestock', 'Aquaculture', 'Greenhouse', 'Equipment', 'Seeds', 'Fertilizers'
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      // Fallback to default categories
+      setCategories([
+        'Organic', 'Rice', 'Vegetables', 'Technology', 'Fruits', 'Sustainability',
+        'Livestock', 'Aquaculture', 'Greenhouse', 'Equipment', 'Seeds', 'Fertilizers'
+      ])
+    } finally {
+      setIsLoadingCategories(false)
+    }
+  }
+
+  const handleImageUpload = (type: 'image' | 'banner') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setFormData(prev => ({ ...prev, image: file }))
+      // Create image preview for cropper
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setCrop({ x: 0, y: 0 })
+        setZoom(1)
+        setCroppedAreaPixels(null)
+        setCropperState({
+          isOpen: true,
+          imageType: type,
+          imageSrc: event.target?.result as string
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCropComplete = async () => {
+    if (cropperState.imageType && croppedAreaPixels && cropperState.imageSrc) {
+      const croppedFile = await getCroppedImg(cropperState.imageSrc, croppedAreaPixels)
+      const croppedUrl = URL.createObjectURL(croppedFile)
+      setFormData(prev => ({ ...prev, [cropperState.imageType!]: croppedFile }))
+      setImagePreviews(prev => ({
+        ...prev,
+        [cropperState.imageType!]: croppedUrl
+      }))
+    }
+    setCropperState({ isOpen: false, imageType: null, imageSrc: null })
+    setCroppedAreaPixels(null)
+  }
+
+  const handleCropCancel = () => {
+    const currentType = cropperState.imageType
+    setCropperState({ isOpen: false, imageType: null, imageSrc: null })
+    setCroppedAreaPixels(null)
+    // Clear the file input
+    if (currentType && fileInputRefs[currentType].current) {
+      fileInputRefs[currentType].current.value = ''
+    }
+  }
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }
+
+  const removeImage = (type: 'image' | 'banner') => {
+    setFormData(prev => ({ ...prev, [type]: null }))
+    setImagePreviews(prev => ({ ...prev, [type]: null }))
+    if (fileInputRefs[type].current) {
+      fileInputRefs[type].current.value = ''
     }
   }
 
@@ -46,30 +190,35 @@ export default function CreateCommunityPage() {
 
     try {
       // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('name', formData.name)
-      formData.append('description', formData.description)
-      formData.append('category', formData.category)
-      formData.append('privacy', formData.privacy)
-      formData.append('location', formData.location)
-      formData.append('rules', formData.rules)
-      
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('description', formData.description)
+      formDataToSend.append('category', formData.category)
+      formDataToSend.append('privacy', formData.privacy)
+      formDataToSend.append('location', formData.location)
+      formDataToSend.append('rules', formData.rules)
+
       if (formData.image) {
-        formData.append('image', formData.image)
+        formDataToSend.append('image', formData.image)
+      }
+
+      if (formData.banner) {
+        formDataToSend.append('banner', formData.banner)
       }
 
       const response = await fetch('/api/community', {
         method: 'POST',
-        body: formData,
+        body: formDataToSend,
       })
 
       if (response.ok) {
+        const communityData = await response.json()
         toast({
           title: "Community Created!",
           description: "Your farming community has been successfully created.",
         })
-        
-        router.push('/community')
+
+        router.push(`/community/${communityData.uuid}`)
       } else {
         const data = await response.json()
         toast({
@@ -160,7 +309,7 @@ export default function CreateCommunityPage() {
                           <Label htmlFor="category">Category *</Label>
                           <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                             <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Select category" />
+                              <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select category"} />
                             </SelectTrigger>
                             <SelectContent>
                               {categories.map((category) => (
@@ -260,7 +409,7 @@ export default function CreateCommunityPage() {
 
               {/* Sidebar */}
               <div className="space-y-6">
-                {/* Community Image */}
+                {/* Profile Picture */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -269,28 +418,105 @@ export default function CreateCommunityPage() {
                   <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <ImageIcon className="h-5 w-5 text-green-600" />
-                        Community Image
+                        <Camera className="h-5 w-5 text-green-600" />
+                        Profile Picture
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-500 transition-colors">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            id="image-upload"
-                          />
-                          <label htmlFor="image-upload" className="cursor-pointer">
-                            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600">Click to upload image</p>
-                            <p className="text-sm text-gray-400 mt-2">PNG, JPG up to 10MB</p>
-                          </label>
+                        <div className="relative">
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-500 transition-colors">
+                            <input
+                              ref={fileInputRefs.image}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload('image')}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            {!imagePreviews.image ? (
+                              <label htmlFor="image-upload" className="cursor-pointer">
+                                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">Click to upload profile picture</p>
+                                <p className="text-sm text-gray-400 mt-2">PNG, JPG up to 10MB</p>
+                              </label>
+                            ) : (
+                              <div className="relative">
+                                <img
+                                  src={imagePreviews.image}
+                                  alt="Profile preview"
+                                  className="w-32 h-32 object-cover rounded-lg mx-auto mb-4"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage('image')}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        {formData.image && (
+                        {formData.image && !imagePreviews.image && (
                           <p className="text-sm text-green-600">✓ Image selected: {formData.image.name}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Banner Image */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5 text-blue-600" />
+                        Banner Image
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                            <input
+                              ref={fileInputRefs.banner}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload('banner')}
+                              className="hidden"
+                              id="banner-upload"
+                            />
+                            {!imagePreviews.banner ? (
+                              <label htmlFor="banner-upload" className="cursor-pointer">
+                                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">Click to upload banner</p>
+                                <p className="text-sm text-gray-400 mt-2">PNG, JPG up to 10MB</p>
+                              </label>
+                            ) : (
+                              <div className="relative">
+                                <img
+                                  src={imagePreviews.banner}
+                                  alt="Banner preview"
+                                  className="w-full h-32 object-cover rounded-lg mb-4"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage('banner')}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {formData.banner && !imagePreviews.banner && (
+                          <p className="text-sm text-blue-600">✓ Banner selected: {formData.banner.name}</p>
                         )}
                       </div>
                     </CardContent>
@@ -301,27 +527,55 @@ export default function CreateCommunityPage() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ delay: 0.3 }}
                 >
                   <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl">
                     <CardHeader>
                       <CardTitle>Preview</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{formData.name || 'Community Name'}</h3>
-                          <p className="text-sm text-gray-600">{formData.description || 'Community description...'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Users className="h-4 w-4" />
-                          <span>0 members</span>
-                        </div>
-                        {formData.category && (
-                          <div className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                            {formData.category}
+                      <div className="space-y-4">
+                        {/* Banner Preview */}
+                        {imagePreviews.banner && (
+                          <div className="relative">
+                            <img
+                              src={imagePreviews.banner}
+                              alt="Banner preview"
+                              className="w-full h-24 object-cover rounded-lg"
+                            />
                           </div>
                         )}
+
+                        <div className="flex items-start gap-3">
+                          {/* Profile Picture Preview */}
+                          <div className="flex-shrink-0">
+                            {imagePreviews.image ? (
+                              <img
+                                src={imagePreviews.image}
+                                alt="Profile preview"
+                                className="w-12 h-12 object-cover rounded-full border-2 border-white shadow-md"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                                <Users className="h-6 w-6 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{formData.name || 'Community Name'}</h3>
+                            <p className="text-sm text-gray-600">{formData.description || 'Community description...'}</p>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
+                              <Users className="h-4 w-4" />
+                              <span>0 members</span>
+                            </div>
+                            {formData.category && (
+                              <div className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full mt-2">
+                                {formData.category}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -355,6 +609,48 @@ export default function CreateCommunityPage() {
           </form>
         </div>
       </div>
+
+      {/* Image Cropper Modal */}
+      {cropperState.isOpen && cropperState.imageSrc && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Crop {cropperState.imageType === 'image' ? 'Profile Picture' : 'Banner'}
+            </h3>
+            <div className="mb-4 relative" style={{ height: '400px' }}>
+              <Cropper
+                image={cropperState.imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={cropperState.imageType === 'image' ? 1 : 3}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Zoom</label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={handleCropCancel}>
+                Cancel
+              </Button>
+              <Button onClick={handleCropComplete}>
+                Use Image
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   )
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/data/prisma';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
@@ -20,6 +20,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+<<<<<<< Updated upstream
+=======
+    const userId = parseInt(session.user.id as string);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
+>>>>>>> Stashed changes
     const wishlist = await prisma.wishlist.findMany({
       where: { userId: session.user.id },
       include: {
@@ -70,6 +81,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userId = parseInt(session.user.id as string);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const { productId } = body;
@@ -94,12 +113,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already in wishlist
-    const existingWishlistItem = await prisma.wishlist.findUnique({
+    const existingWishlistItem = await prisma.wishlist.findFirst({
       where: {
-        userId_productId: {
-          userId: session.user.id,
-          productId: productId
-        }
+        userId: userId,
+        productId: productId
       }
     });
 
@@ -113,7 +130,7 @@ export async function POST(request: NextRequest) {
     // Add to wishlist
     const wishlistItem = await prisma.wishlist.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         productId: productId
       }
     });
@@ -147,9 +164,25 @@ export async function DELETE(
       );
     }
 
+    const userId = parseInt(session.user.id as string);
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+
+    const itemId = parseInt(params.id);
+    if (isNaN(itemId)) {
+      return NextResponse.json(
+        { error: 'Invalid wishlist item ID' },
+        { status: 400 }
+      );
+    }
+
     // Check if wishlist item exists and belongs to user
     const wishlistItem = await prisma.wishlist.findUnique({
-      where: { id: params.id }
+      where: { id: itemId }
     });
 
     if (!wishlistItem) {
@@ -159,7 +192,7 @@ export async function DELETE(
       );
     }
 
-    if (wishlistItem.userId !== session.user.id) {
+    if (wishlistItem.userId !== userId) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -168,7 +201,7 @@ export async function DELETE(
 
     // Remove from wishlist
     await prisma.wishlist.delete({
-      where: { id: params.id }
+      where: { id: itemId }
     });
 
     return NextResponse.json({ message: 'Removed from wishlist' });

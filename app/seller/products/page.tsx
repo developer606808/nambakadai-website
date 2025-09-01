@@ -1,59 +1,100 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal } from "lucide-react"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import SellerLayout from "@/components/seller/seller-layout"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/components/ui/use-toast"
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  MoreHorizontal, 
+  Edit, 
+  Trash2, 
+  Eye,
+  Package,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Users
+} from "lucide-react"
+import Link from "next/link"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-export default function SellerProductsPage() {
-  // Mock product data
-  const products = [
-    {
-      id: "1",
-      name: "Organic Apples",
-      image: "/placeholder.svg?height=100&width=100",
-      price: 3.99,
-      inventory: 45,
-      category: "Fruits",
-      status: "Active",
-    },
-    {
-      id: "2",
-      name: "Fresh Strawberries",
-      image: "/placeholder.svg?height=100&width=100",
-      price: 4.5,
-      inventory: 32,
-      category: "Fruits",
-      status: "Active",
-    },
-    {
-      id: "3",
-      name: "Heirloom Tomatoes",
-      image: "/placeholder.svg?height=100&width=100",
-      price: 5.99,
-      inventory: 0,
-      category: "Vegetables",
-      status: "Out of Stock",
-    },
-    {
-      id: "4",
-      name: "Organic Honey",
-      image: "/placeholder.svg?height=100&width=100",
-      price: 8.99,
-      inventory: 15,
-      category: "Pantry",
-      status: "Active",
-    },
-    {
-      id: "5",
-      name: "Farm Fresh Eggs",
-      image: "/placeholder.svg?height=100&width=100",
-      price: 6.99,
-      inventory: 24,
-      category: "Dairy",
-      status: "Active",
-    },
-  ]
+export default function SellerProducts() {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const { toast } = useToast()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/products?sellerOnly=true")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch products")
+      }
+      
+      const data = await response.json()
+      setProducts(data.products)
+      setError(null)
+    } catch (err) {
+      console.error("Error fetching products:", err)
+      setError(err.message || "Failed to load products")
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         product.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = filterStatus === "all" || product.status === filterStatus
+    
+    return matchesSearch && matchesStatus
+  })
+
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : products
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>
+      case "low_stock":
+        return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>
+      case "out_of_stock":
+        return <Badge className="bg-red-100 text-red-800">Out of Stock</Badge>
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
+    }
+  }
+
+  const getStockIcon = (stock: number) => {
+    if (stock === 0) return <AlertTriangle className="w-4 h-4 text-red-500" />
+    if (stock <= 10) return <TrendingDown className="w-4 h-4 text-yellow-500" />
+    return <TrendingUp className="w-4 h-4 text-green-500" />
+  }
 
   return (
     <SellerLayout>
@@ -94,68 +135,116 @@ export default function SellerProductsPage() {
               </select>
             </div>
           </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-6 py-3 text-left">Product</th>
-                <th className="px-6 py-3 text-left">Category</th>
-                <th className="px-6 py-3 text-right">Price</th>
-                <th className="px-6 py-3 text-right">Inventory</th>
-                <th className="px-6 py-3 text-center">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="relative h-10 w-10 mr-3">
-                        <Image
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          fill
-                          className="object-cover rounded"
-                        />
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading products</h3>
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchProducts}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm ? "Try adjusting your search terms" : "Get started by adding your first product"}
+              </p>
+              <Link href="/seller/products/new">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Product
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredProducts.map((product) => (
+                <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={product.images?.[0] || "/api/placeholder/100/100"}
+                      alt={product.title || product.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{product.title || product.name}</h3>
+                      <p className="text-sm text-gray-600">{product.category?.name_en || "Unknown Category"}</p>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <span className="text-lg font-bold text-green-600">₹{product.price}</span>
+                        <div className="flex items-center space-x-1">
+                          {getStockIcon(product.stock)}
+                          <span className="text-sm text-gray-600">Stock: {product.stock}</span>
+                        </div>
+                        <span className="text-sm text-gray-500">Updated: {new Date(product.updatedAt || product.createdAt).toLocaleDateString()}</span>
                       </div>
                       <span className="font-medium">{product.name}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{product.category}</td>
-                  <td className="px-6 py-4 text-right font-medium">${product.price.toFixed(2)}</td>
-                  <td className="px-6 py-4 text-right">
-                    {product.inventory > 0 ? product.inventory : <span className="text-red-500">Out of stock</span>}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          product.status === "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {product.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="icon" asChild>
-                        <Link href={`/seller/products/${product.id}/edit`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    {getStatusBadge(product.status)}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push(`/seller/products/edit?id=${product.publicKey}`)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Product
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this product?')) {
+                              try {
+                                const response = await fetch(`/api/products/${product.publicKey}`, {
+                                  method: 'DELETE',
+                                });
+                                
+                                if (!response.ok) {
+                                  throw new Error('Failed to delete product');
+                                }
+                                
+                                // Remove product from list
+                                setProducts(products.filter(p => p.id !== product.id));
+                                toast({
+                                  title: "Product deleted",
+                                  description: "The product has been successfully deleted.",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to delete product. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Product
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               ))}
             </tbody>
           </table>

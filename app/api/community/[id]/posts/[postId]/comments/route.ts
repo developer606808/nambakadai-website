@@ -22,9 +22,9 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '10');
 
     const comments = await prisma.communityComment.findMany({
-      where: { 
+      where: {
         postId,
-        communityId,
+        parentId: null, // Only get top-level comments, not replies
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -48,18 +48,25 @@ export async function GET(
       },
     });
 
-    const total = await prisma.communityComment.count({ 
-      where: { 
+    const total = await prisma.communityComment.count({
+      where: {
         postId,
-        communityId,
-      } 
+        parentId: null,
+      }
     });
 
     return NextResponse.json({
       comments: comments.map(comment => ({
-        ...comment,
-        user: comment.user,
-        likeCount: comment._count.likes,
+        id: comment.id,
+        content: comment.content,
+        author: {
+          name: comment.user?.name || 'Anonymous',
+          avatar: comment.user?.avatar || '/diverse-user-avatars.png',
+          role: 'Member' // Default role since it's not in the schema
+        },
+        timestamp: new Date(comment.createdAt).toLocaleString(),
+        likes: comment.likeCount,
+        isLiked: false,
         replyCount: comment._count.replies,
       })),
       pagination: {
@@ -121,13 +128,12 @@ export async function POST(
         content: body.content,
         userId,
         postId,
-        communityId,
         parentId,
       },
     });
 
     // Update post comment count
-    await prisma.communityPost.update({
+    const updatedPost = await prisma.communityPost.update({
       where: { id: postId },
       data: {
         commentCount: {
@@ -136,19 +142,46 @@ export async function POST(
       },
     });
 
-    // If it's a reply, update parent comment reply count
-    if (parentId) {
-      await prisma.communityComment.update({
-        where: { id: parentId },
-        data: {
-          replyCount: {
-            increment: 1,
+    // If it's a reply, we don't need to update reply count since Prisma handles relations
+    // The reply count can be calculated from the replies relation
+
+    // Get the created comment with user data
+    const createdComment = await prisma.communityComment.findUnique({
+      where: { id: comment.id },
+      include: {
+        user: {
+          select: {
+            name: true,
+            avatar: true,
           },
         },
-      });
-    }
+        _count: {
+          select: {
+            likes: true,
+            replies: true,
+          },
+        },
+      }
+    });
 
-    return NextResponse.json(comment, { status: 201 });
+    const formattedComment = {
+      id: createdComment?.id,
+      content: createdComment?.content,
+      author: {
+        name: createdComment?.user?.name || 'Anonymous',
+        avatar: createdComment?.user?.avatar || '/diverse-user-avatars.png',
+        role: 'Member' // Default role since it's not in the schema
+      },
+      timestamp: new Date(createdComment?.createdAt || new Date()).toLocaleString(),
+      likes: createdComment?._count.likes || 0,
+      isLiked: false,
+      replyCount: createdComment?._count.replies || 0,
+    };
+
+    return NextResponse.json({
+      comment: formattedComment,
+      commentCount: updatedPost.commentCount
+    }, { status: 201 });
   } catch (error) {
     console.error('Error adding comment:', error);
     return NextResponse.json(

@@ -57,7 +57,12 @@ export function LoginFormRedux() {
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+<<<<<<< Updated upstream
             placeholder="name@example.com"
+=======
+            type="email"
+            placeholder="Enter your email"
+>>>>>>> Stashed changes
             {...register("email")}
             className={errors.email ? "border-red-500" : ""}
           />
@@ -75,7 +80,7 @@ export function LoginFormRedux() {
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
+              placeholder="Enter your password"
               {...register("password")}
               className={errors.password ? "border-red-500" : ""}
             />

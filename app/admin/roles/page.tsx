@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Search,
   MoreHorizontal,
@@ -41,6 +42,8 @@ import {
   CreditCard,
   BarChart3,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 // Define permissions
@@ -79,64 +82,37 @@ const allPermissions = [
   { id: "payments", name: "Payments", icon: <CreditCard className="h-4 w-4" />, category: "Financial" },
 ]
 
-// Mock data for roles
-const mockRoles = [
-  {
-    id: 1,
-    name: "Super Admin",
-    description: "Full access to all system features and settings",
-    permissions: allPermissions.map((p) => p.id),
-    userCount: 2,
-    isSystem: true,
-    createdAt: "2024-01-01",
-  },
-  {
-    id: 2,
-    name: "Admin",
-    description: "Access to most features except system settings",
-    permissions: allPermissions.filter((p) => p.id !== "roles" && p.id !== "settings").map((p) => p.id),
-    userCount: 5,
-    isSystem: true,
-    createdAt: "2024-01-01",
-  },
-  {
-    id: 3,
-    name: "Content Manager",
-    description: "Manage products, stores, categories, and banners",
-    permissions: ["dashboard", "products", "stores", "categories", "units", "banners", "reports"],
-    userCount: 8,
-    isSystem: false,
-    createdAt: "2024-02-15",
-  },
-  {
-    id: 4,
-    name: "Customer Support",
-    description: "Handle user inquiries and basic content management",
-    permissions: ["dashboard", "users", "messages", "notifications", "reports"],
-    userCount: 12,
-    isSystem: false,
-    createdAt: "2024-03-01",
-  },
-  {
-    id: 5,
-    name: "Analytics Manager",
-    description: "Access to analytics and reporting features",
-    permissions: ["dashboard", "reports", "analytics", "payments"],
-    userCount: 3,
-    isSystem: false,
-    createdAt: "2024-04-10",
-  },
-]
+// Define interfaces
+interface Role {
+  id: number
+  name: string
+  description: string
+  permissions: string[]
+  isSystem: boolean
+  userCount: number
+  createdAt: string
+}
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState(mockRoles)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [pagination, setPagination] = useState<PaginationData | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [currentRole, setCurrentRole] = useState<any>(null)
+  const [currentRole, setCurrentRole] = useState<Role | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // New role form state
   const [newRole, setNewRole] = useState({
@@ -145,53 +121,141 @@ export default function RolesPage() {
     permissions: [] as string[],
   })
 
-  // Filter roles based on search query
-  const filteredRoles = roles.filter(
-    (role) =>
-      role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      role.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // Fetch roles from API
+  const fetchRoles = async (page = 1, search = "", type = "all") => {
+    try {
+      setIsPageLoading(true)
+      setError(null)
 
-  const handleAddRole = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const role = {
-        ...newRole,
-        id: roles.length + 1,
-        userCount: 0,
-        isSystem: false,
-        createdAt: new Date().toISOString().split("T")[0],
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "10",
+        search,
+        type,
+      })
+
+      const response = await fetch(`/api/admin/roles?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch roles')
       }
-      setRoles([...roles, role])
+
+      setRoles(data.roles)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error('Error fetching roles:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch roles')
+    } finally {
+      setIsPageLoading(false)
+    }
+  }
+
+  // Initial load
+  useEffect(() => {
+    fetchRoles()
+  }, [])
+
+  // Handle search and filter changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchRoles(1, searchQuery, typeFilter)
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, typeFilter])
+
+  const handleAddRole = async () => {
+    if (!newRole.name.trim()) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/admin/roles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newRole),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create role')
+      }
+
+      // Refresh the roles list
+      await fetchRoles(pagination?.page || 1, searchQuery, typeFilter)
       setIsAddDialogOpen(false)
       setNewRole({ name: "", description: "", permissions: [] })
+    } catch (error) {
+      console.error('Error creating role:', error)
+      // You might want to show a toast notification here
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleEditRole = () => {
+  const handleEditRole = async () => {
+    if (!currentRole) return
+
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRoles = roles.map((role) => (role.id === currentRole.id ? { ...role, ...currentRole } : role))
-      setRoles(updatedRoles)
+    try {
+      const response = await fetch(`/api/admin/roles/${currentRole.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: currentRole.name,
+          description: currentRole.description,
+          permissions: currentRole.permissions,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update role')
+      }
+
+      // Refresh the roles list
+      await fetchRoles(pagination?.page || 1, searchQuery, typeFilter)
       setIsEditDialogOpen(false)
       setCurrentRole(null)
+    } catch (error) {
+      console.error('Error updating role:', error)
+      // You might want to show a toast notification here
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleDeleteRole = () => {
+  const handleDeleteRole = async () => {
+    if (!currentRole) return
+
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRoles = roles.filter((role) => role.id !== currentRole.id)
-      setRoles(updatedRoles)
+    try {
+      const response = await fetch(`/api/admin/roles/${currentRole.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete role')
+      }
+
+      // Refresh the roles list
+      await fetchRoles(pagination?.page || 1, searchQuery, typeFilter)
       setIsDeleteDialogOpen(false)
       setCurrentRole(null)
+    } catch (error) {
+      console.error('Error deleting role:', error)
+      // You might want to show a toast notification here
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   const togglePermission = (permissionId: string, isNewRole = false) => {
@@ -200,7 +264,7 @@ export default function RolesPage() {
         ? newRole.permissions.filter((p) => p !== permissionId)
         : [...newRole.permissions, permissionId]
       setNewRole({ ...newRole, permissions: updatedPermissions })
-    } else {
+    } else if (currentRole) {
       const updatedPermissions = currentRole.permissions.includes(permissionId)
         ? currentRole.permissions.filter((p: string) => p !== permissionId)
         : [...currentRole.permissions, permissionId]
@@ -241,7 +305,23 @@ export default function RolesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="system">System Roles</SelectItem>
+              <SelectItem value="custom">Custom Roles</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {error && (
+          <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-md mb-4">
+            {error}
+          </div>
+        )}
 
         <div className="rounded-md border">
           <Table>
@@ -256,14 +336,21 @@ export default function RolesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRoles.length === 0 ? (
+              {isPageLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    Loading roles...
+                  </TableCell>
+                </TableRow>
+              ) : roles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
                     No roles found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRoles.map((role) => (
+                roles.map((role) => (
                   <TableRow key={role.id}>
                     <TableCell>
                       <div className="space-y-1">
@@ -298,7 +385,7 @@ export default function RolesPage() {
                         {role.isSystem ? "System" : "Custom"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{role.createdAt}</TableCell>
+                    <TableCell>{new Date(role.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -333,7 +420,7 @@ export default function RolesPage() {
                               setCurrentRole(role)
                               setIsDeleteDialogOpen(true)
                             }}
-                            disabled={role.isSystem || role.userCount > 0}
+                            disabled={role.isSystem || (role.userCount ?? 0) > 0}
                           >
                             <Trash className="mr-2 h-4 w-4" />
                             Delete
@@ -347,6 +434,52 @@ export default function RolesPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} roles
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchRoles(pagination.page - 1, searchQuery, typeFilter)}
+                disabled={pagination.page <= 1 || isPageLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min(pagination.pages - 4, pagination.page - 2)) + i
+                  if (pageNum > pagination.pages) return null
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === pagination.page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => fetchRoles(pageNum, searchQuery, typeFilter)}
+                      disabled={isPageLoading}
+                    >
+                      {pageNum}
+                    </Button>
+                  )
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchRoles(pagination.page + 1, searchQuery, typeFilter)}
+                disabled={pagination.page >= pagination.pages || isPageLoading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Role Dialog */}
@@ -438,7 +571,11 @@ export default function RolesPage() {
               <Input
                 id="edit-name"
                 value={currentRole?.name || ""}
-                onChange={(e) => setCurrentRole({ ...currentRole, name: e.target.value })}
+                onChange={(e) => {
+                  if (currentRole) {
+                    setCurrentRole({ ...currentRole, name: e.target.value })
+                  }
+                }}
               />
             </div>
 
@@ -447,7 +584,11 @@ export default function RolesPage() {
               <Textarea
                 id="edit-description"
                 value={currentRole?.description || ""}
-                onChange={(e) => setCurrentRole({ ...currentRole, description: e.target.value })}
+                onChange={(e) => {
+                  if (currentRole) {
+                    setCurrentRole({ ...currentRole, description: e.target.value })
+                  }
+                }}
                 rows={3}
               />
             </div>
@@ -555,16 +696,16 @@ export default function RolesPage() {
               </p>
             </div>
           </div>
-          {currentRole?.userCount > 0 && (
+          {(currentRole?.userCount ?? 0) > 0 && (
             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-              This role cannot be deleted because it is assigned to {currentRole.userCount} user(s).
+              This role cannot be deleted because it is assigned to {currentRole?.userCount ?? 0} user(s).
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteRole} disabled={isLoading || currentRole?.userCount > 0}>
+            <Button variant="destructive" onClick={handleDeleteRole} disabled={isLoading || (currentRole?.userCount ?? 0) > 0}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

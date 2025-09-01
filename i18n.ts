@@ -1,22 +1,15 @@
+import { notFound } from 'next/navigation';
 import { getRequestConfig } from 'next-intl/server';
-import { cookies } from 'next/headers';
 
-// You can get the locales from a database or a config file
+// Can be imported from a shared config
 export const locales = ['en', 'ta'];
 export const defaultLocale = 'en';
 
-export default getRequestConfig(async () => {
-  // Get locale from cookie
-  const cookieStore = cookies();
-  let locale = cookieStore.get('NEXT_LOCALE')?.value || defaultLocale;
-  
-  // Validate that the locale is valid
-  if (!locales.includes(locale)) {
-    locale = defaultLocale;
-  }
+export default getRequestConfig(async ({ locale }) => {
+  // Validate that the incoming `locale` parameter is valid
+  if (!locales.includes(locale as any)) notFound();
 
   return {
-    locale,
     messages: (await import(`./messages/${locale}.json`)).default
   };
 });

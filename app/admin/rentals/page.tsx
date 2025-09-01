@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,181 +41,222 @@ import {
   DollarSign,
 } from "lucide-react"
 
-// Mock data for rentals
-const mockRentals = [
-  {
-    id: 1,
-    name: "Tractor - John Deere",
-    owner: "Green Farm",
-    location: "Tokyo",
-    status: "available",
-    price: 15000,
-    type: "Tractor",
-    rating: 4.5,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    name: "Harvester - New Holland",
-    owner: "Orchard Fresh",
-    location: "Osaka",
-    status: "available",
-    price: 25000,
-    type: "Harvester",
-    rating: 4.2,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    name: "Pickup Truck - Toyota",
-    owner: "Happy Cows",
-    location: "Kyoto",
-    status: "rented",
-    price: 8000,
-    type: "Truck",
-    rating: 3.8,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    name: "Mini Excavator",
-    owner: "Grain Valley",
-    location: "Nagoya",
-    status: "available",
-    price: 12000,
-    type: "Excavator",
-    rating: 4.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    name: "ATV - Honda",
-    owner: "Free Range Farms",
-    location: "Sapporo",
-    status: "maintenance",
-    price: 5000,
-    type: "ATV",
-    rating: 4.1,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 6,
-    name: "Utility Vehicle - Kubota",
-    owner: "Ocean Fresh",
-    location: "Fukuoka",
-    status: "available",
-    price: 7500,
-    type: "Utility Vehicle",
-    rating: 4.3,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 7,
-    name: "Sprayer - John Deere",
-    owner: "Herb Garden",
-    location: "Yokohama",
-    status: "rented",
-    price: 9000,
-    type: "Sprayer",
-    rating: 3.9,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 8,
-    name: "Trailer - Heavy Duty",
-    owner: "Nut House",
-    location: "Kobe",
-    status: "available",
-    price: 6000,
-    type: "Trailer",
-    rating: 4.4,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 9,
-    name: "Compact Tractor - Kubota",
-    owner: "Bee Happy",
-    location: "Hiroshima",
-    status: "available",
-    price: 10000,
-    type: "Tractor",
-    rating: 4.6,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 10,
-    name: "Forklift - Toyota",
-    owner: "Mountain Dairy",
-    location: "Sendai",
-    status: "maintenance",
-    price: 8500,
-    type: "Forklift",
-    rating: 3.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+interface Vehicle {
+  id: number
+  name: string
+  description?: string
+  type: string
+  category: string
+  pricePerDay: number | null
+  pricePerHour: number
+  capacity: string
+  fuelType: string
+  location: string
+  features: string[]
+  images: string[]
+  status: string
+  rating: number
+  totalBookings: number
+  adId: string
+  createdAt: string
+  updatedAt: string
+  owner: {
+    id: number
+    name: string
+    email: string
+    store: string
+  }
+  currentBooking: any | null
+}
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
 
 export default function RentalsPage() {
-  const [rentals, setRentals] = useState(mockRentals)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  })
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentRental, setCurrentRental] = useState<any>(null)
+  const [currentVehicle, setCurrentVehicle] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [fuelTypeFilter, setFuelTypeFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  // Filter rentals based on search query and filters
-  const filteredRentals = rentals.filter((rental) => {
-    const matchesSearch =
-      rental.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rental.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rental.location.toLowerCase().includes(searchQuery.toLowerCase())
+  // Fetch vehicles from API
+  const fetchVehicles = async (page = 1, search = "", status = "all", type = "all", fuelType = "all") => {
+    try {
+      setIsLoading(true)
+      setError("")
 
-    const matchesStatus = statusFilter === "all" || rental.status === statusFilter
-    const matchesType = typeFilter === "all" || rental.type === typeFilter
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+      })
 
-    return matchesSearch && matchesStatus && matchesType
-  })
+      if (search) params.append('search', search)
+      if (status !== 'all') params.append('status', status)
+      if (type !== 'all') params.append('type', type)
+      if (fuelType !== 'all') params.append('fuelType', fuelType)
 
-  const handleEditRental = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.map((rental) =>
-        rental.id === currentRental.id ? { ...rental, ...currentRental } : rental,
-      )
-      setRentals(updatedRentals)
-      setIsEditDialogOpen(false)
-      setCurrentRental(null)
+      const response = await fetch(`/api/admin/vehicles?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch vehicles')
+      }
+
+      setVehicles(data.vehicles)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error('Error fetching vehicles:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch vehicles')
+    } finally {
       setIsLoading(false)
-    }, 1000)
+      setIsInitialLoading(false)
+    }
   }
 
-  const handleDeleteRental = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.filter((rental) => rental.id !== currentRental.id)
-      setRentals(updatedRentals)
-      setIsDeleteDialogOpen(false)
-      setCurrentRental(null)
-      setIsLoading(false)
-    }, 1000)
-  }
+  // Load vehicles on component mount and when filters change
+  useEffect(() => {
+    fetchVehicles(pagination.page, searchQuery, statusFilter, typeFilter, fuelTypeFilter)
+  }, [pagination.page, searchQuery, statusFilter, typeFilter, fuelTypeFilter])
 
-  const handleChangeStatus = (rental: any, newStatus: string) => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedRentals = rentals.map((r) => (r.id === rental.id ? { ...r, status: newStatus } : r))
-      setRentals(updatedRentals)
-      setIsLoading(false)
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.page !== 1) {
+        setPagination(prev => ({ ...prev, page: 1 }))
+      } else {
+        fetchVehicles(1, searchQuery, statusFilter, typeFilter, fuelTypeFilter)
+      }
     }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const handleEditVehicle = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const response = await fetch(`/api/admin/vehicles/${currentVehicle.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(currentVehicle),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update vehicle')
+      }
+
+      // Refresh vehicles list
+      await fetchVehicles(pagination.page, searchQuery, statusFilter, typeFilter, fuelTypeFilter)
+      setIsEditDialogOpen(false)
+      setCurrentVehicle(null)
+    } catch (error) {
+      console.error('Error updating vehicle:', error)
+      setError(error instanceof Error ? error.message : 'Failed to update vehicle')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Get unique types for filter
-  const types = Array.from(new Set(rentals.map((rental) => rental.type)))
+  const handleDeleteVehicle = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const response = await fetch(`/api/admin/vehicles/${currentVehicle.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete vehicle')
+      }
+
+      // Refresh vehicles list
+      await fetchVehicles(pagination.page, searchQuery, statusFilter, typeFilter, fuelTypeFilter)
+      setIsDeleteDialogOpen(false)
+      setCurrentVehicle(null)
+    } catch (error) {
+      console.error('Error deleting vehicle:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete vehicle')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleChangeStatus = async (vehicle: Vehicle, newStatus: string) => {
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const updateData = {
+        name: vehicle.name,
+        description: vehicle.description,
+        type: vehicle.type,
+        category: vehicle.category,
+        pricePerDay: vehicle.pricePerDay,
+        pricePerHour: vehicle.pricePerHour,
+        capacity: vehicle.capacity,
+        fuelType: vehicle.fuelType,
+        location: vehicle.location,
+        features: vehicle.features,
+        status: newStatus,
+      }
+
+      const response = await fetch(`/api/admin/vehicles/${vehicle.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update vehicle status')
+      }
+
+      // Refresh vehicles list
+      await fetchVehicles(pagination.page, searchQuery, statusFilter, typeFilter, fuelTypeFilter)
+    } catch (error) {
+      console.error('Error updating vehicle status:', error)
+      setError(error instanceof Error ? error.message : 'Failed to update vehicle status')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }))
+  }
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setStatusFilter("all")
+    setTypeFilter("all")
+    setFuelTypeFilter("all")
+  }
 
   // Status badge variant
   const getStatusVariant = (status: string) => {
@@ -238,12 +279,18 @@ export default function RentalsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Rental Vehicles</h2>
         </div>
 
+        {error && (
+          <div className="bg-destructive/15 text-destructive px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
+
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search rentals..."
+              placeholder="Search vehicles..."
               className="w-full bg-background pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -258,9 +305,10 @@ export default function RentalsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="rented">Rented</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="AVAILABLE">Available</SelectItem>
+                  <SelectItem value="RENTED">Rented</SelectItem>
+                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -270,24 +318,38 @@ export default function RentalsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="TRACTOR">Tractor</SelectItem>
+                  <SelectItem value="TRUCK">Truck</SelectItem>
+                  <SelectItem value="LORRY">Lorry</SelectItem>
+                  <SelectItem value="VAN">Van</SelectItem>
+                  <SelectItem value="HARVESTING_MACHINE">Harvesting Machine</SelectItem>
+                  <SelectItem value="PLANTING_MACHINE">Planting Machine</SelectItem>
+                  <SelectItem value="THRESHING_MACHINE">Threshing Machine</SelectItem>
+                  <SelectItem value="CULTIVATOR">Cultivator</SelectItem>
+                  <SelectItem value="PLOUGH">Plough</SelectItem>
+                  <SelectItem value="SPRAYER">Sprayer</SelectItem>
+                  <SelectItem value="TRAILER">Trailer</SelectItem>
+                  <SelectItem value="OTHER_EQUIPMENT">Other Equipment</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setSearchQuery("")
-                  setStatusFilter("all")
-                  setTypeFilter("all")
-                }}
-              >
-                <Filter className="h-4 w-4" />
+              <Select value={fuelTypeFilter} onValueChange={setFuelTypeFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Fuel Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Fuel Types</SelectItem>
+                  <SelectItem value="PETROL">Petrol</SelectItem>
+                  <SelectItem value="DIESEL">Diesel</SelectItem>
+                  <SelectItem value="ELECTRIC">Electric</SelectItem>
+                  <SelectItem value="CNG">CNG</SelectItem>
+                  <SelectItem value="HYBRID">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" onClick={resetFilters}>
+                <Filter className="mr-2 h-4 w-4" />
+                Reset Filters
               </Button>
             </div>
           </div>
@@ -307,39 +369,55 @@ export default function RentalsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRentals.length === 0 ? (
+              {isInitialLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    No rentals found.
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    Loading vehicles...
+                  </TableCell>
+                </TableRow>
+              ) : vehicles.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No vehicles found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRentals.map((rental) => (
-                  <TableRow key={rental.id}>
+                vehicles.map((vehicle: Vehicle) => (
+                  <TableRow key={vehicle.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 overflow-hidden rounded-md">
                           <Image
-                            src={rental.image || "/placeholder.svg"}
-                            alt={rental.name}
+                            src={vehicle.images[0] || "/placeholder.svg"}
+                            alt={vehicle.name}
                             width={40}
                             height={40}
                             className="h-full w-full object-cover"
                           />
                         </div>
                         <div>
-                          <div className="font-medium">{rental.name}</div>
-                          <div className="text-xs text-muted-foreground">ID: {rental.id}</div>
+                          <div className="font-medium">{vehicle.name}</div>
+                          <div className="text-xs text-muted-foreground">ID: {vehicle.id}</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{rental.owner}</TableCell>
-                    <TableCell>{rental.location}</TableCell>
-                    <TableCell>{rental.type}</TableCell>
-                    <TableCell>¥{rental.price.toLocaleString()}</TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(rental.status)}>
-                        {rental.status.charAt(0).toUpperCase() + rental.status.slice(1)}
+                      <div>
+                        <div className="font-medium">{vehicle.owner.name}</div>
+                        <div className="text-xs text-muted-foreground">{vehicle.owner.store}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{vehicle.location}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {vehicle.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>₹{vehicle.pricePerDay?.toLocaleString() || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Badge variant={vehicle.status === "AVAILABLE" ? "default" : vehicle.status === "RENTED" ? "secondary" : "destructive"}>
+                        {vehicle.status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -353,7 +431,20 @@ export default function RentalsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => {
-                              setCurrentRental(rental)
+                              setCurrentVehicle({
+                                ...vehicle,
+                                name: vehicle.name,
+                                description: vehicle.description || "",
+                                type: vehicle.type,
+                                category: vehicle.category,
+                                pricePerDay: vehicle.pricePerDay,
+                                pricePerHour: vehicle.pricePerHour,
+                                capacity: vehicle.capacity,
+                                fuelType: vehicle.fuelType,
+                                location: vehicle.location,
+                                features: vehicle.features,
+                                status: vehicle.status,
+                              })
                               setIsEditDialogOpen(true)
                             }}
                           >
@@ -364,20 +455,20 @@ export default function RentalsPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          {rental.status !== "available" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "available")}>
+                          {vehicle.status !== "AVAILABLE" && (
+                            <DropdownMenuItem onClick={() => handleChangeStatus(vehicle, "AVAILABLE")}>
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Mark Available
                             </DropdownMenuItem>
                           )}
-                          {rental.status !== "rented" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "rented")}>
+                          {vehicle.status !== "RENTED" && (
+                            <DropdownMenuItem onClick={() => handleChangeStatus(vehicle, "RENTED")}>
                               <Car className="mr-2 h-4 w-4" />
                               Mark Rented
                             </DropdownMenuItem>
                           )}
-                          {rental.status !== "maintenance" && (
-                            <DropdownMenuItem onClick={() => handleChangeStatus(rental, "maintenance")}>
+                          {vehicle.status !== "MAINTENANCE" && (
+                            <DropdownMenuItem onClick={() => handleChangeStatus(vehicle, "MAINTENANCE")}>
                               <XCircle className="mr-2 h-4 w-4" />
                               Mark Maintenance
                             </DropdownMenuItem>
@@ -385,7 +476,7 @@ export default function RentalsPage() {
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => {
-                              setCurrentRental(rental)
+                              setCurrentVehicle(vehicle)
                               setIsDeleteDialogOpen(true)
                             }}
                           >
@@ -402,30 +493,52 @@ export default function RentalsPage() {
           </Table>
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        {pagination.pages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page > 1) handlePageChange(pagination.page - 1)
+                  }}
+                  className={pagination.page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === pagination.page}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page < pagination.pages) handlePageChange(pagination.page + 1)
+                  }}
+                  className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
 
-      {/* Edit Rental Dialog - Responsive */}
+      {/* Edit Vehicle Dialog - Responsive */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[90vw] md:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -436,16 +549,16 @@ export default function RentalsPage() {
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 overflow-hidden rounded-md">
                 <Image
-                  src={currentRental?.image || "/placeholder.svg?height=64&width=64"}
-                  alt={currentRental?.name || "Rental"}
+                  src={currentVehicle?.images?.[0] || "/placeholder.svg?height=64&width=64"}
+                  alt={currentVehicle?.name || "Vehicle"}
                   width={64}
                   height={64}
                   className="h-full w-full object-cover"
                 />
               </div>
               <div>
-                <h3 className="text-lg font-medium">{currentRental?.name}</h3>
-                <p className="text-sm text-muted-foreground">ID: {currentRental?.id}</p>
+                <h3 className="text-lg font-medium">{currentVehicle?.name}</h3>
+                <p className="text-sm text-muted-foreground">ID: {currentVehicle?.id}</p>
               </div>
             </div>
 
@@ -456,8 +569,8 @@ export default function RentalsPage() {
                   <Car className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="edit-name"
-                    value={currentRental?.name || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, name: e.target.value })}
+                    value={currentVehicle?.name || ""}
+                    onChange={(e) => setCurrentVehicle({ ...currentVehicle, name: e.target.value })}
                     className="pl-8"
                   />
                 </div>
@@ -466,8 +579,9 @@ export default function RentalsPage() {
                 <Label htmlFor="edit-owner">Owner</Label>
                 <Input
                   id="edit-owner"
-                  value={currentRental?.owner || ""}
-                  onChange={(e) => setCurrentRental({ ...currentRental, owner: e.target.value })}
+                  value={currentVehicle?.owner?.name || ""}
+                  readOnly
+                  className="bg-muted"
                 />
               </div>
             </div>
@@ -476,34 +590,42 @@ export default function RentalsPage() {
               <div className="grid gap-2">
                 <Label htmlFor="edit-type">Type</Label>
                 <Select
-                  value={currentRental?.type || ""}
-                  onValueChange={(value) => setCurrentRental({ ...currentRental, type: value })}
+                  value={currentVehicle?.type || ""}
+                  onValueChange={(value) => setCurrentVehicle({ ...currentVehicle, type: value })}
                 >
                   <SelectTrigger id="edit-type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {types.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="TRACTOR">Tractor</SelectItem>
+                    <SelectItem value="TRUCK">Truck</SelectItem>
+                    <SelectItem value="LORRY">Lorry</SelectItem>
+                    <SelectItem value="VAN">Van</SelectItem>
+                    <SelectItem value="HARVESTING_MACHINE">Harvesting Machine</SelectItem>
+                    <SelectItem value="PLANTING_MACHINE">Planting Machine</SelectItem>
+                    <SelectItem value="THRESHING_MACHINE">Threshing Machine</SelectItem>
+                    <SelectItem value="CULTIVATOR">Cultivator</SelectItem>
+                    <SelectItem value="PLOUGH">Plough</SelectItem>
+                    <SelectItem value="SPRAYER">Sprayer</SelectItem>
+                    <SelectItem value="TRAILER">Trailer</SelectItem>
+                    <SelectItem value="OTHER_EQUIPMENT">Other Equipment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-status">Status</Label>
                 <Select
-                  value={currentRental?.status || ""}
-                  onValueChange={(value) => setCurrentRental({ ...currentRental, status: value })}
+                  value={currentVehicle?.status || ""}
+                  onValueChange={(value) => setCurrentVehicle({ ...currentVehicle, status: value })}
                 >
                   <SelectTrigger id="edit-status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="rented">Rented</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="AVAILABLE">Available</SelectItem>
+                    <SelectItem value="RENTED">Rented</SelectItem>
+                    <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -511,29 +633,72 @@ export default function RentalsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-price">Price per Day</Label>
+                <Label htmlFor="edit-price-day">Price per Day</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="edit-price"
+                    id="edit-price-day"
                     type="number"
-                    value={currentRental?.price || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, price: Number.parseInt(e.target.value) })}
+                    value={currentVehicle?.pricePerDay || ""}
+                    onChange={(e) => setCurrentVehicle({ ...currentVehicle, pricePerDay: Number.parseFloat(e.target.value) || null })}
                     className="pl-8"
                   />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-location">Location</Label>
+                <Label htmlFor="edit-price-hour">Price per Hour</Label>
                 <div className="relative">
-                  <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="edit-location"
-                    value={currentRental?.location || ""}
-                    onChange={(e) => setCurrentRental({ ...currentRental, location: e.target.value })}
+                    id="edit-price-hour"
+                    type="number"
+                    value={currentVehicle?.pricePerHour || ""}
+                    onChange={(e) => setCurrentVehicle({ ...currentVehicle, pricePerHour: Number.parseFloat(e.target.value) })}
                     className="pl-8"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-capacity">Capacity</Label>
+                <Input
+                  id="edit-capacity"
+                  value={currentVehicle?.capacity || ""}
+                  onChange={(e) => setCurrentVehicle({ ...currentVehicle, capacity: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-fuel-type">Fuel Type</Label>
+                <Select
+                  value={currentVehicle?.fuelType || ""}
+                  onValueChange={(value) => setCurrentVehicle({ ...currentVehicle, fuelType: value })}
+                >
+                  <SelectTrigger id="edit-fuel-type">
+                    <SelectValue placeholder="Select fuel type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PETROL">Petrol</SelectItem>
+                    <SelectItem value="DIESEL">Diesel</SelectItem>
+                    <SelectItem value="ELECTRIC">Electric</SelectItem>
+                    <SelectItem value="CNG">CNG</SelectItem>
+                    <SelectItem value="HYBRID">Hybrid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <div className="relative">
+                <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-location"
+                  value={currentVehicle?.location || ""}
+                  onChange={(e) => setCurrentVehicle({ ...currentVehicle, location: e.target.value })}
+                  className="pl-8"
+                />
               </div>
             </div>
 
@@ -541,8 +706,8 @@ export default function RentalsPage() {
               <Label htmlFor="edit-description">Description</Label>
               <Textarea
                 id="edit-description"
-                value={currentRental?.description || ""}
-                onChange={(e) => setCurrentRental({ ...currentRental, description: e.target.value })}
+                value={currentVehicle?.description || ""}
+                onChange={(e) => setCurrentVehicle({ ...currentVehicle, description: e.target.value })}
                 rows={3}
               />
             </div>
@@ -551,7 +716,7 @@ export default function RentalsPage() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEditRental} disabled={isLoading}>
+            <Button onClick={handleEditVehicle} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -565,7 +730,7 @@ export default function RentalsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Rental Dialog - Responsive */}
+      {/* Delete Vehicle Dialog - Responsive */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[90vw] md:max-w-[425px]">
           <DialogHeader>
@@ -577,17 +742,17 @@ export default function RentalsPage() {
           <div className="flex items-center space-x-3 rounded-md border p-4">
             <div className="h-10 w-10 overflow-hidden rounded-md">
               <Image
-                src={currentRental?.image || "/placeholder.svg?height=40&width=40"}
-                alt={currentRental?.name || "Rental"}
+                src={currentVehicle?.images?.[0] || "/placeholder.svg?height=40&width=40"}
+                alt={currentVehicle?.name || "Vehicle"}
                 width={40}
                 height={40}
                 className="h-full w-full object-cover"
               />
             </div>
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">{currentRental?.name}</p>
+              <p className="text-sm font-medium leading-none">{currentVehicle?.name}</p>
               <p className="text-sm text-muted-foreground">
-                ¥{currentRental?.price?.toLocaleString()} per day • {currentRental?.type}
+                ₹{currentVehicle?.pricePerDay?.toLocaleString() || 'N/A'} per day • {currentVehicle?.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
               </p>
             </div>
           </div>
@@ -595,14 +760,14 @@ export default function RentalsPage() {
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteRental} disabled={isLoading}>
+            <Button variant="destructive" onClick={handleDeleteVehicle} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (
-                "Delete Rental"
+                "Delete Vehicle"
               )}
             </Button>
           </DialogFooter>

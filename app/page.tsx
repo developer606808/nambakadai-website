@@ -1,26 +1,37 @@
-import { Suspense } from "react"
+'use client'
+
+import React, { useState, useEffect } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { Search, ChevronRight, ChevronLeft, Plus, Star } from "lucide-react"
+import { ChevronRight, Star, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MainLayout } from "@/components/main-layout"
+import { BannerSection } from "@/components/home/banner-section"
+import { CategoryCarousel } from "@/components/home/category-carousel"
+import { CreateStoreBanner } from "@/components/home/create-store-banner"
+import { useWishlist } from "@/hooks/useWishlist"
+import { useSession } from "next-auth/react"
 
 // Define types for our data
 interface Product {
   id: number
-  image: string
   title: string
+  slug: string
+  publicKey: string
+  images: string[]
   price: number
-  unit: string
-  rating: number
-  reviews: number
+  unit: {
+    symbol: string
+  }
   location: string
-  seller: string
-  sellerId: string
-  isOrganic?: boolean
-  isBestSeller?: boolean
-  isRental?: boolean
+  store: {
+    id: number
+    name: string
+  }
+  isFeatured: boolean
+  wishlistCount: number
+  createdAt: string
 }
 
 interface Rental {
@@ -55,154 +66,114 @@ interface Banner {
 
 // Server-side data fetching functions
 async function getFeaturedProducts(): Promise<Product[]> {
-  // In a real app, this would fetch from your API/database
-  // For now, we'll use a subset of the mock data
-  return [
-    {
-      id: 1,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Organic Apples",
-      price: 3.99,
-      unit: "per pound",
-      rating: 4.5,
-      reviews: 128,
-      location: "Oakland, CA",
-      seller: "Green Valley Farms",
-      sellerId: "1",
-      isOrganic: true,
-    },
-    {
-      id: 2,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Heirloom Tomatoes",
-      price: 4.99,
-      unit: "per lb",
-      rating: 4.7,
-      reviews: 86,
-      location: "Berkeley, CA",
-      seller: "Miller's Garden",
-      sellerId: "2",
-      isBestSeller: true,
-    },
-    {
-      id: 3,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Organic Strawberries",
-      price: 5.99,
-      unit: "per box",
-      rating: 4.8,
-      reviews: 152,
-      location: "Santa Cruz, CA",
-      seller: "Berry Farm",
-      sellerId: "3",
-      isOrganic: true,
-      isBestSeller: true,
-    },
-    {
-      id: 4,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Fresh Farm Eggs",
-      price: 6.99,
-      unit: "per dozen",
-      rating: 4.9,
-      reviews: 210,
-      location: "Palo Alto, CA",
-      seller: "Happy Hens Farm",
-      sellerId: "4",
-      isOrganic: true,
-    },
-  ]
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/products/featured`, {
+      cache: 'no-store', // Ensure fresh data
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured products');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured products:', error);
+    return [];
+  }
 }
 
 async function getFeaturedRentals(): Promise<Rental[]> {
-  // In a real app, this would fetch from your API/database
-  return [
-    {
-      id: 1,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Farm Tractor - John Deere",
-      price: 150,
-      unit: "per day",
-      rating: 4.5,
-      reviews: 32,
-      location: "San Jose, CA",
-      availability: 12,
-      category: "Heavy Equipment",
-    },
-    {
-      id: 2,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Pickup Truck - Ford F-150",
-      price: 85,
-      unit: "per day",
-      rating: 4.7,
-      reviews: 45,
-      location: "Oakland, CA",
-      availability: 20,
-      category: "Trucks",
-    },
-    {
-      id: 3,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Delivery Van - Transit",
-      price: 95,
-      unit: "per day",
-      rating: 4.6,
-      reviews: 38,
-      location: "San Francisco, CA",
-      availability: 15,
-      category: "Vans",
-    },
-    {
-      id: 4,
-      image: "/placeholder.svg?height=200&width=200",
-      title: "Compact Tractor - Kubota",
-      price: 120,
-      unit: "per day",
-      rating: 4.8,
-      reviews: 28,
-      location: "Fremont, CA",
-      availability: 8,
-      category: "Heavy Equipment",
-    },
-  ]
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/rentals/featured`, {
+      cache: 'no-store', // Ensure fresh data
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured rentals');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured rentals:', error);
+    return [];
+  }
 }
 
-async function getCategories(): Promise<Category[]> {
-  // In a real app, this would fetch from your API/database
-  return [
-    { id: 1, name: "Fruits", icon: "🍎", bgColor: "bg-red-50", slug: "fruits" },
-    { id: 2, name: "Vegetables", icon: "🥦", bgColor: "bg-green-50", slug: "vegetables" },
-    { id: 3, name: "Organic Produce", icon: "🌱", bgColor: "bg-emerald-50", slug: "organic" },
-    { id: 4, name: "Plants", icon: "🌾", bgColor: "bg-teal-50", slug: "plants" },
-    { id: 5, name: "Milk", icon: "🍯", bgColor: "bg-yellow-50", slug: "dairy" },
-    { id: 6, name: "Grains", icon: "🌽", bgColor: "bg-amber-50", slug: "grains" },
-  ]
+async function getFeaturedStores(): Promise<any[]> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/stores/featured`, {
+      cache: 'no-store', // Ensure fresh data
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured stores');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured stores:', error);
+    return [];
+  }
 }
 
-async function getBanners(): Promise<Banner[]> {
-  // In a real app, this would fetch from your API/database
-  return [
-    {
-      id: 1,
-      title: "Fresh Seasonal Produce",
-      subtitle: "Discover fruits and vegetables sourced from local farms",
-      image: "/placeholder.svg?height=400&width=1200",
-      ctaText: "Explore Now",
-      ctaLink: "/seasonal",
-    },
-  ]
-}
+// Remove the old getCategories function - we'll use the dynamic one
 
-// Server component for the home page
-export default async function Home() {
-  // Fetch data server-side
-  const [featuredProducts, featuredRentals, categories, banners] = await Promise.all([
-    getFeaturedProducts(),
-    getFeaturedRentals(),
-    getCategories(),
-    getBanners(),
-  ])
+export default function Home() {
+  const { data: session } = useSession();
+  const { wishlistStatus, toggleWishlist, checkWishlistStatus } = useWishlist();
+
+  // State for server data
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredRentals, setFeaturedRentals] = useState<Rental[]>([]);
+  const [featuredStores, setFeaturedStores] = useState<any[]>([]);
+  const [storeCategories, setStoreCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch data client-side
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsRes, rentalsRes, storesRes, categoriesRes] = await Promise.all([
+          fetch('/api/products/featured'),
+          fetch('/api/rentals/featured'),
+          fetch('/api/stores/featured'),
+          fetch('/api/categories?type=STORE&limit=12'),
+        ]);
+
+        const products = productsRes.ok ? await productsRes.json() : [];
+        const rentals = rentalsRes.ok ? await rentalsRes.json() : [];
+        const stores = storesRes.ok ? await storesRes.json() : [];
+        const categoriesResponse = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
+        const categories = categoriesResponse.categories || [];
+
+        setFeaturedProducts(products);
+        setFeaturedRentals(rentals);
+        setFeaturedStores(stores);
+        setStoreCategories(categories);
+
+        // Check wishlist status for products
+        if (session?.user && products.length > 0) {
+          const productIds = products.map((p: any) => p.id);
+          await checkWishlistStatus(productIds);
+        }
+
+        // Check wishlist status for rentals (assuming rentals have product-like structure)
+        if (session?.user && rentals.length > 0) {
+          const rentalIds = rentals.map((r: any) => r.id);
+          await checkWishlistStatus(rentalIds);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [session?.user, checkWishlistStatus]);
 
   return (
     <MainLayout>
@@ -286,10 +257,22 @@ export default async function Home() {
               View All <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} {...product} />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {featuredProducts.length > 0 ? (
+              featuredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  {...product}
+                  onWishlistToggle={toggleWishlist}
+                  isInWishlist={wishlistStatus[product.id]}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-500 text-lg">No featured products available at the moment.</p>
+                <p className="text-gray-400 text-sm mt-2">Check back later for new products!</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -301,10 +284,22 @@ export default async function Home() {
               View All <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredRentals.map((rental) => (
-              <RentalCard key={rental.id} {...rental} />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {featuredRentals.length > 0 ? (
+              featuredRentals.map((rental) => (
+                <RentalCard
+                  key={rental.id}
+                  {...rental}
+                  onWishlistToggle={toggleWishlist}
+                  isInWishlist={wishlistStatus[rental.id]}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-500 text-lg">No featured rentals available at the moment.</p>
+                <p className="text-gray-400 text-sm mt-2">Check back later for new rental options!</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -351,39 +346,27 @@ export default async function Home() {
               View All Stores <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StoreCard
-              id="1"
-              image="/placeholder.svg?height=150&width=300"
-              name="Green Valley Farm"
-              category="Organic Produce"
-              rating={4.8}
-              reviews={67}
-            />
-            <StoreCard
-              id="2"
-              image="/placeholder.svg?height=150&width=300"
-              name="Happy Hens"
-              category="Poultry & Eggs"
-              rating={4.7}
-              reviews={43}
-            />
-            <StoreCard
-              id="3"
-              image="/placeholder.svg?height=150&width=300"
-              name="Fresh Greens"
-              category="Vegetables"
-              rating={4.9}
-              reviews={81}
-            />
-            <StoreCard
-              id="4"
-              image="/placeholder.svg?height=150&width=300"
-              name="Berry Hill Farm"
-              category="Fruits & Berries"
-              rating={4.6}
-              reviews={54}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {featuredStores.length > 0 ? (
+              featuredStores.map((store) => (
+                <StoreCard
+                  key={store.id}
+                  id={store.id}
+                  slug={store.slug}
+                  publicKey={store.publicKey}
+                  image={store.image}
+                  name={store.name}
+                  category={store.category}
+                  rating={store.rating}
+                  reviews={store.reviews}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-500 text-lg">No featured stores available at the moment.</p>
+                <p className="text-gray-400 text-sm mt-2">Check back later for new stores!</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -507,81 +490,81 @@ function CategoryItem({
 // Component for product cards
 function ProductCard({
   id,
-  image,
   title,
+  slug,
+  publicKey,
+  images,
   price,
   unit,
-  rating,
-  reviews,
   location,
-  seller,
-  sellerId,
-  isOrganic,
-  isBestSeller,
-  isRental,
+  store,
+  isFeatured,
+  onWishlistToggle,
+  isInWishlist,
 }: {
   id: number
-  image: string
   title: string
+  slug: string
+  publicKey: string
+  images: string[]
   price: number
-  unit: string
-  rating: number
-  reviews: number
+  unit: {
+    symbol: string
+  }
   location: string
-  seller: string
-  sellerId: string
-  isOrganic?: boolean
-  isBestSeller?: boolean
-  isRental?: boolean
+  store: {
+    id: number
+    name: string
+  }
+  isFeatured: boolean
+  onWishlistToggle?: (productId: number) => void
+  isInWishlist?: boolean
 }) {
   return (
     <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative">
         <Image
-          src={image || "/placeholder.svg"}
+          src={images[0] || "/placeholder.svg"}
           alt={title}
           width={300}
           height={200}
           className="w-full h-48 object-cover"
         />
-        {isOrganic && (
-          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">Organic</div>
+        {isFeatured && (
+          <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">Featured</div>
         )}
-        {isBestSeller && (
-          <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">Best Seller</div>
-        )}
-        {isRental && (
-          <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">Rental</div>
-        )}
+        {/* Wish Icon */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            onWishlistToggle?.(id);
+          }}
+          className="absolute top-2 right-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+        >
+          <Heart className={`h-4 w-4 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
+        </button>
       </div>
       <div className="p-4">
         <h3 className="font-semibold mb-1">{title}</h3>
         <div className="flex items-baseline mb-2">
-          <span className="text-lg font-bold text-green-600">${price.toFixed(2)}</span>
-          <span className="text-xs text-gray-500 ml-1">{unit}</span>
+          <span className="text-base sm:text-lg font-bold text-green-600">${price.toFixed(2)}</span>
+          <span className="text-xs text-gray-500 ml-1">/{unit.symbol}</span>
         </div>
-        <div className="flex items-center mb-2">
-          <div className="flex items-center">
-            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs ml-1">{rating}</span>
-          </div>
-          <span className="text-xs text-gray-500 ml-2">({reviews})</span>
-        </div>
-        <div className="text-xs text-gray-500 mb-3">
-          <div>📍 {location}</div>
-          <div>
-            Seller:{" "}
-            <Link href={`/stores/${sellerId}`} className="text-green-600 hover:underline">
-              {seller}
+        <div className="text-xs text-gray-500 mb-3 flex-1">
+          <div className="truncate">📍 {location}</div>
+          <div className="truncate">
+            Store:{" "}
+            <Link href={`/stores/${store.id}`} className="text-green-600 hover:underline">
+              {store.name}
             </Link>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
-            <Link href={`/products/${id}`}>More Details</Link>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" size="sm" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs" asChild>
+            <Link href={`/products/${slug}/${publicKey}`}>Details</Link>
           </Button>
-          <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50" asChild>
-            <Link href={`/stores/${sellerId}`}>Visit Store</Link>
+          <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50 text-xs" asChild>
+            <Link href={`/stores/${store.id}`}>Store</Link>
           </Button>
         </div>
       </div>
@@ -592,14 +575,18 @@ function ProductCard({
 // Component for store cards
 function StoreCard({
   id,
+  slug,
+  publicKey,
   image,
   name,
   category,
   rating,
   reviews,
-}: { id: string; image: string; name: string; category: string; rating: number; reviews: number }) {
+}: { id: string; slug?: string; publicKey?: string; image: string; name: string; category: string; rating: number; reviews: number }) {
+  const storeUrl = slug && publicKey ? `/stores/${slug}/${publicKey}` : `/stores/${id}`;
+
   return (
-    <Link href={`/stores/${id}`}>
+    <Link href={storeUrl}>
       <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
         <div className="relative h-32">
           <Image src={image || "/placeholder.svg"} alt={name} fill className="object-cover" />
@@ -626,6 +613,8 @@ function StoreCard({
 // Component for vehicle rental cards
 function RentalCard({
   id,
+  slug,
+  publicKey,
   image,
   title,
   price,
@@ -635,8 +624,12 @@ function RentalCard({
   location,
   availability,
   category,
+  onWishlistToggle,
+  isInWishlist,
 }: {
   id: number
+  slug?: string
+  publicKey?: string
   image: string
   title: string
   price: number
@@ -646,7 +639,12 @@ function RentalCard({
   location: string
   availability: number
   category: string
+  onWishlistToggle?: (productId: number) => void
+  isInWishlist?: boolean
 }) {
+  const rentalUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}` : `/rentals/${id}`;
+  const rentalRequestUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}/request` : `/rentals/${id}/request`;
+
   return (
     <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative">
@@ -661,6 +659,16 @@ function RentalCard({
         <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
           {availability} Available
         </div>
+        {/* Wish Icon */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            onWishlistToggle?.(id);
+          }}
+          className="absolute top-12 right-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+        >
+          <Heart className={`h-4 w-4 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
+        </button>
       </div>
       <div className="p-4">
         <h3 className="font-semibold mb-1">{title}</h3>
@@ -681,10 +689,10 @@ function RentalCard({
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
-            <Link href={`/rentals/${id}`}>View Details</Link>
+            <Link href={rentalUrl}>View Details</Link>
           </Button>
           <Button size="sm" className="bg-green-500 hover:bg-green-600" asChild>
-            <Link href={`/rentals/${id}/request`}>Rent Now</Link>
+            <Link href={rentalRequestUrl}>Rent Now</Link>
           </Button>
         </div>
       </div>

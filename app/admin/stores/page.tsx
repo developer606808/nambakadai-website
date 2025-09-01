@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,124 +40,51 @@ import {
   MapPin,
   Phone,
   Calendar,
+  Check,
+  X,
 } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
-// Mock data for stores
-const mockStores = [
-  {
-    id: 1,
-    name: "Green Farm",
-    owner: "John Doe",
-    location: "Tokyo",
-    status: "active",
-    productCount: 45,
-    rating: 4.5,
-    joinDate: "2023-01-15",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    name: "Orchard Fresh",
-    owner: "Jane Smith",
-    location: "Osaka",
-    status: "active",
-    productCount: 32,
-    rating: 4.2,
-    joinDate: "2023-02-20",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    name: "Happy Cows",
-    owner: "Robert Johnson",
-    location: "Kyoto",
-    status: "inactive",
-    productCount: 18,
-    rating: 3.8,
-    joinDate: "2023-03-10",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    name: "Grain Valley",
-    owner: "Emily Davis",
-    location: "Nagoya",
-    status: "active",
-    productCount: 27,
-    rating: 4.7,
-    joinDate: "2023-04-05",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    name: "Free Range Farms",
-    owner: "Michael Wilson",
-    location: "Sapporo",
-    status: "active",
-    productCount: 22,
-    rating: 4.1,
-    joinDate: "2023-05-12",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 6,
-    name: "Ocean Fresh",
-    owner: "Sarah Brown",
-    location: "Fukuoka",
-    status: "active",
-    productCount: 15,
-    rating: 4.3,
-    joinDate: "2023-06-18",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 7,
-    name: "Herb Garden",
-    owner: "David Lee",
-    location: "Yokohama",
-    status: "inactive",
-    productCount: 12,
-    rating: 3.9,
-    joinDate: "2023-07-22",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 8,
-    name: "Nut House",
-    owner: "Lisa Taylor",
-    location: "Kobe",
-    status: "active",
-    productCount: 19,
-    rating: 4.4,
-    joinDate: "2023-08-30",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 9,
-    name: "Bee Happy",
-    owner: "James Anderson",
-    location: "Hiroshima",
-    status: "active",
-    productCount: 8,
-    rating: 4.6,
-    joinDate: "2023-09-14",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 10,
-    name: "Mountain Dairy",
-    owner: "Patricia Martin",
-    location: "Sendai",
-    status: "inactive",
-    productCount: 14,
-    rating: 3.7,
-    joinDate: "2023-10-05",
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+interface Store {
+  id: number
+  name: string
+  description?: string
+  address?: string
+  phone?: string
+  email?: string
+  logo?: string
+  banner?: string
+  isApproved: boolean
+  isBlocked: boolean
+  createdAt: string
+  owner: {
+    id: number
+    name: string
+    email: string
+  }
+  stats: {
+    products: number
+    ratings: number
+    averageRating: number
+  }
+}
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
 
 export default function StoresPage() {
-  const [stores, setStores] = useState(mockStores)
+  const { toast } = useToast()
+  const [stores, setStores] = useState<Store[]>([])
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  })
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [currentStore, setCurrentStore] = useState<any>(null)
@@ -165,60 +92,232 @@ export default function StoresPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [locationFilter, setLocationFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
 
-  // Filter stores based on search query and filters
-  const filteredStores = stores.filter((store) => {
-    const matchesSearch =
-      store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      store.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      store.location.toLowerCase().includes(searchQuery.toLowerCase())
+  // Fetch stores from API
+  const fetchStores = async (page = 1, search = "", status = "all", location = "all") => {
+    try {
+      setIsLoading(true)
 
-    const matchesStatus = statusFilter === "all" || store.status === statusFilter
-    const matchesLocation = locationFilter === "all" || store.location === locationFilter
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+      })
 
-    return matchesSearch && matchesStatus && matchesLocation
-  })
+      if (search) params.append('search', search)
+      if (status !== 'all') params.append('status', status)
+      if (location !== 'all') params.append('location', location)
 
-  const handleEditStore = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedStores = stores.map((store) =>
-        store.id === currentStore.id ? { ...store, ...currentStore } : store,
-      )
-      setStores(updatedStores)
+      const response = await fetch(`/api/admin/stores?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch stores')
+      }
+
+      setStores(data.stores)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error('Error fetching stores:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to fetch stores',
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+      setIsInitialLoading(false)
+    }
+  }
+
+  // Load stores on component mount and when filters change
+  useEffect(() => {
+    fetchStores(pagination.page, searchQuery, statusFilter, locationFilter)
+  }, [pagination.page, searchQuery, statusFilter, locationFilter])
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.page !== 1) {
+        setPagination(prev => ({ ...prev, page: 1 }))
+      } else {
+        fetchStores(1, searchQuery, statusFilter, locationFilter)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const handleEditStore = async () => {
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`/api/admin/stores/${currentStore.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(currentStore),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update store')
+      }
+
+      // Refresh stores list
+      await fetchStores(pagination.page, searchQuery, statusFilter, locationFilter)
       setIsEditDialogOpen(false)
       setCurrentStore(null)
+
+      toast({
+        title: "Success",
+        description: "Store updated successfully",
+      })
+    } catch (error) {
+      console.error('Error updating store:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update store',
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleDeleteStore = () => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedStores = stores.filter((store) => store.id !== currentStore.id)
-      setStores(updatedStores)
+  const handleDeleteStore = async () => {
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`/api/admin/stores/${currentStore.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete store')
+      }
+
+      // Refresh stores list
+      await fetchStores(pagination.page, searchQuery, statusFilter, locationFilter)
       setIsDeleteDialogOpen(false)
       setCurrentStore(null)
+
+      toast({
+        title: "Success",
+        description: "Store deleted successfully",
+      })
+    } catch (error) {
+      console.error('Error deleting store:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to delete store',
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
-  const handleToggleStatus = (store: any) => {
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      const updatedStores = stores.map((s) =>
-        s.id === store.id ? { ...s, status: s.status === "active" ? "inactive" : "active" } : s,
-      )
-      setStores(updatedStores)
+  const handleToggleApproval = async (store: Store) => {
+    try {
+      setIsLoading(true)
+
+      const updateData = {
+        name: store.name,
+        description: store.description,
+        address: store.address,
+        phone: store.phone,
+        email: store.email,
+        isApproved: !store.isApproved, // Toggle the approval status
+        isBlocked: store.isBlocked,
+      }
+
+      const response = await fetch(`/api/admin/stores/${store.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update store approval status')
+      }
+
+      // Refresh stores list
+      await fetchStores(pagination.page, searchQuery, statusFilter, locationFilter)
+
+      toast({
+        title: "Success",
+        description: `Store ${!store.isApproved ? 'approved' : 'unapproved'} successfully`,
+      })
+    } catch (error) {
+      console.error('Error updating store approval:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update store approval status',
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
-  // Get unique locations for filter
-  const locations = Array.from(new Set(stores.map((store) => store.location)))
+  const handleToggleActivation = async (store: Store) => {
+    try {
+      setIsLoading(true)
+
+      const updateData = {
+        name: store.name,
+        description: store.description,
+        address: store.address,
+        phone: store.phone,
+        email: store.email,
+        isApproved: store.isApproved,
+        isBlocked: !store.isBlocked, // Toggle the blocked status
+      }
+
+      const response = await fetch(`/api/admin/stores/${store.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update store activation status')
+      }
+
+      // Refresh stores list
+      await fetchStores(pagination.page, searchQuery, statusFilter, locationFilter)
+
+      toast({
+        title: "Success",
+        description: `Store ${!store.isBlocked ? 'activated' : 'deactivated'} successfully`,
+      })
+    } catch (error) {
+      console.error('Error updating store activation:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update store activation status',
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }))
+  }
 
   return (
     <div className="flex flex-col">
@@ -226,6 +325,7 @@ export default function StoresPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Stores</h2>
         </div>
+
 
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div className="relative w-full md:w-96">
@@ -248,7 +348,9 @@ export default function StoresPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="blocked">Blocked</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="unapproved">Unapproved</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -258,11 +360,7 @@ export default function StoresPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
+                  {/* We'll populate this dynamically from API if needed */}
                 </SelectContent>
               </Select>
 
@@ -295,20 +393,27 @@ export default function StoresPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStores.length === 0 ? (
+              {isInitialLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    Loading stores...
+                  </TableCell>
+                </TableRow>
+              ) : stores.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
                     No stores found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredStores.map((store) => (
+                stores.map((store: Store) => (
                   <TableRow key={store.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 overflow-hidden rounded-md">
                           <Image
-                            src={store.image || "/placeholder.svg"}
+                            src={store.logo || "/placeholder.svg"}
                             alt={store.name}
                             width={40}
                             height={40}
@@ -321,19 +426,24 @@ export default function StoresPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{store.owner}</TableCell>
-                    <TableCell>{store.location}</TableCell>
-                    <TableCell>{store.productCount}</TableCell>
+                    <TableCell>{store.owner.name}</TableCell>
+                    <TableCell>{store.address || "N/A"}</TableCell>
+                    <TableCell>{store.stats.products}</TableCell>
                     <TableCell>
                       <div className="flex items-center">
-                        <span className="mr-1">{store.rating}</span>
+                        <span className="mr-1">{store.stats.averageRating}</span>
                         <span className="text-yellow-400">★</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={store.status === "active" ? "success" : "destructive"}>
-                        {store.status === "active" ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-col space-y-1">
+                        <Badge variant={store.isApproved ? "default" : "secondary"}>
+                          {store.isApproved ? "Approved" : "Unapproved"}
+                        </Badge>
+                        <Badge variant={!store.isBlocked ? "outline" : "destructive"}>
+                          {!store.isBlocked ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -346,7 +456,16 @@ export default function StoresPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => {
-                              setCurrentStore(store)
+                              setCurrentStore({
+                                ...store,
+                                name: store.name,
+                                description: store.description || "",
+                                address: store.address || "",
+                                phone: store.phone || "",
+                                email: store.email || "",
+                                isApproved: store.isApproved,
+                                isBlocked: store.isBlocked,
+                              })
                               setIsEditDialogOpen(true)
                             }}
                           >
@@ -357,16 +476,29 @@ export default function StoresPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Store
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(store)}>
-                            {store.status === "active" ? (
+                          <DropdownMenuItem onClick={() => handleToggleApproval(store)}>
+                            {store.isApproved ? (
                               <>
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Deactivate
+                                <X className="mr-2 h-4 w-4" />
+                                Unapprove
                               </>
                             ) : (
                               <>
+                                <Check className="mr-2 h-4 w-4" />
+                                Approve
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleActivation(store)}>
+                            {store.isBlocked ? (
+                              <>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Activate
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Deactivate
                               </>
                             )}
                           </DropdownMenuItem>
@@ -390,27 +522,49 @@ export default function StoresPage() {
           </Table>
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                2
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        {pagination.pages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page > 1) handlePageChange(pagination.page - 1)
+                  }}
+                  className={pagination.page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === pagination.page}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page < pagination.pages) handlePageChange(pagination.page + 1)
+                  }}
+                  className={pagination.page >= pagination.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
 
       {/* Edit Store Dialog - Responsive */}
@@ -454,39 +608,34 @@ export default function StoresPage() {
                 <Label htmlFor="edit-owner">Owner</Label>
                 <Input
                   id="edit-owner"
-                  value={currentStore?.owner || ""}
-                  onChange={(e) => setCurrentStore({ ...currentStore, owner: e.target.value })}
+                  value={currentStore?.owner?.name || ""}
+                  readOnly
+                  className="bg-muted"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-location">Location</Label>
+                <Label htmlFor="edit-address">Address</Label>
                 <div className="relative">
                   <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="edit-location"
-                    value={currentStore?.location || ""}
-                    onChange={(e) => setCurrentStore({ ...currentStore, location: e.target.value })}
+                    id="edit-address"
+                    value={currentStore?.address || ""}
+                    onChange={(e) => setCurrentStore({ ...currentStore, address: e.target.value })}
                     className="pl-8"
                   />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={currentStore?.status || ""}
-                  onValueChange={(value) => setCurrentStore({ ...currentStore, status: value })}
-                >
-                  <SelectTrigger id="edit-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={currentStore?.email || ""}
+                  onChange={(e) => setCurrentStore({ ...currentStore, email: e.target.value })}
+                />
               </div>
             </div>
 
@@ -504,17 +653,37 @@ export default function StoresPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-join-date">Join Date</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="edit-join-date"
-                    type="date"
-                    value={currentStore?.joinDate || ""}
-                    onChange={(e) => setCurrentStore({ ...currentStore, joinDate: e.target.value })}
-                    className="pl-8"
-                  />
-                </div>
+                <Label htmlFor="edit-approved">Approval Status</Label>
+                <Select
+                  value={currentStore?.isApproved ? "approved" : "unapproved"}
+                  onValueChange={(value) => setCurrentStore({ ...currentStore, isApproved: value === "approved" })}
+                >
+                  <SelectTrigger id="edit-approved">
+                    <SelectValue placeholder="Select approval status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="unapproved">Unapproved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-blocked">Block Status</Label>
+                <Select
+                  value={currentStore?.isBlocked ? "blocked" : "active"}
+                  onValueChange={(value) => setCurrentStore({ ...currentStore, isBlocked: value === "blocked" })}
+                >
+                  <SelectTrigger id="edit-blocked">
+                    <SelectValue placeholder="Select block status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -568,7 +737,7 @@ export default function StoresPage() {
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium leading-none">{currentStore?.name}</p>
               <p className="text-sm text-muted-foreground">
-                {currentStore?.productCount} products • {currentStore?.location}
+                {currentStore?.stats?.products || 0} products • {currentStore?.address || 'N/A'}
               </p>
             </div>
           </div>

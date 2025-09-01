@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 // GET /api/community/[id]/posts - Get community posts
 export async function GET(
@@ -7,6 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+<<<<<<< Updated upstream
     const communityId = parseInt(params.id);
     
     if (isNaN(communityId)) {
@@ -14,6 +17,37 @@ export async function GET(
         { error: 'Invalid community ID' },
         { status: 400 }
       );
+=======
+    const { id } = await params;
+
+    // Check if it's a UUID (contains hyphens) or integer ID
+    const isUUID = id.includes('-');
+    let communityId: number;
+
+    if (isUUID) {
+      // Find community by UUID to get the integer ID
+      const community = await prisma.community.findUnique({
+        where: { uuid: id } as any,
+        select: { id: true }
+      });
+
+      if (!community) {
+        return NextResponse.json(
+          { error: 'Community not found' },
+          { status: 404 }
+        );
+      }
+
+      communityId = community.id;
+    } else {
+      communityId = parseInt(id);
+      if (isNaN(communityId)) {
+        return NextResponse.json(
+          { error: 'Invalid community ID' },
+          { status: 400 }
+        );
+      }
+>>>>>>> Stashed changes
     }
 
     const { searchParams } = new URL(request.url);
@@ -48,10 +82,21 @@ export async function GET(
 
     return NextResponse.json({
       posts: posts.map(post => ({
-        ...post,
-        user: post.user,
-        commentCount: post._count.comments,
-        likeCount: post._count.likes,
+        id: post.id,
+        publicKey: (post as any).publicKey,
+        content: post.content,
+        type: post.type.toLowerCase(),
+        media: post.mediaUrl,
+        author: {
+          id: post.user?.id,
+          name: post.user?.name || 'Anonymous',
+          avatar: post.user?.avatar || '/diverse-user-avatars.png',
+        },
+        timestamp: new Date(post.createdAt).toLocaleString(),
+        likes: post._count.likes,
+        comments: post._count.comments,
+        isLiked: false,
+        isBookmarked: false
       })),
       pagination: {
         page,
@@ -72,20 +117,46 @@ export async function GET(
 // POST /api/community/[id]/posts - Create a new post
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    
-    if (isNaN(communityId)) {
-      return NextResponse.json(
-        { error: 'Invalid community ID' },
-        { status: 400 }
-      );
+    const { id } = await params;
+
+    // Check if it's a UUID (contains hyphens) or integer ID
+    const isUUID = id.includes('-');
+    let communityId: number;
+
+    if (isUUID) {
+      // Find community by UUID to get the integer ID
+      const community = await prisma.community.findUnique({
+        where: { uuid: id } as any,
+        select: { id: true }
+      });
+
+      if (!community) {
+        return NextResponse.json(
+          { error: 'Community not found' },
+          { status: 404 }
+        );
+      }
+
+      communityId = community.id;
+    } else {
+      communityId = parseInt(id);
+      if (isNaN(communityId)) {
+        return NextResponse.json(
+          { error: 'Invalid community ID' },
+          { status: 400 }
+        );
+      }
     }
 
-    const body = await request.json();
-    const userId = body.userId; // In a real app, get from session
+    // Handle FormData for file uploads
+    const formData = await request.formData();
+    const content = formData.get('content')?.toString() || '';
+    const type = formData.get('type')?.toString() || 'TEXT';
+    const userId = parseInt(formData.get('userId')?.toString() || '1');
+    const mediaFile = formData.get('media') as File | null;
 
     // Check if user is a member of the community
     const member = await prisma.communityMember.findUnique({
@@ -104,14 +175,51 @@ export async function POST(
       );
     }
 
+    let mediaUrl = null;
+
+    // Handle file upload if provided
+    if (mediaFile) {
+      // Ensure upload directory exists
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'posts');
+      try {
+        await fs.access(uploadDir);
+      } catch {
+        await fs.mkdir(uploadDir, { recursive: true });
+      }
+
+      // Save file
+      const fileName = `post-${Date.now()}-${Math.random().toString(36).substring(7)}.${mediaFile.name.split('.').pop()}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      const fileBuffer = Buffer.from(await mediaFile.arrayBuffer());
+      await fs.writeFile(filePath, fileBuffer);
+
+      mediaUrl = `/uploads/posts/${fileName}`;
+    }
+
     // Create post
     const post = await prisma.communityPost.create({
       data: {
-        content: body.content,
-        type: body.type || 'TEXT',
-        mediaUrl: body.mediaUrl || null,
+        content,
+        type: type as any,
+        mediaUrl,
         userId,
         communityId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            likes: true,
+          },
+        },
       },
     });
 
@@ -125,7 +233,24 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(post, { status: 201 });
+    return NextResponse.json({
+      id: post.id,
+      publicKey: (post as any).publicKey,
+      content: post.content,
+      type: post.type.toLowerCase(),
+      media: post.mediaUrl,
+      author: {
+        id: post.user.id,
+        name: post.user.name || 'Anonymous',
+        avatar: post.user.avatar || '/diverse-user-avatars.png',
+        role: 'Community Member'
+      },
+      timestamp: 'Just now',
+      likes: post._count.likes,
+      comments: post._count.comments,
+      isLiked: false,
+      isBookmarked: false
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating post:', error);
     return NextResponse.json(

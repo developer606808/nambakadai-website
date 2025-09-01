@@ -10,44 +10,59 @@ datasource db {
 // Models
 
 model User {
-  id             String      @id
-  name           String
-  email          String      @unique
-  phone          String?
-  password       String
-  role           Role        @default(BUYER)
-  isVerified     Boolean     @default(false)
-  isBlocked      Boolean     @default(false)
-  avatar         String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  stores         Store[]
-  products       Product[]
-  wishlist       Wishlist[]
-  following      FollowStore[]
-  ratings        Rating[]
-  reportsMade    Report[]    @relation("UserReports")
-  reportedUsers  Report[]    @relation("UserReported")
-  tickets        Ticket[]
-  // Community relations
-  communityMemberships CommunityMember[]
-  communityPosts       CommunityPost[]
-  communityComments    CommunityComment[]
-  communityLikes       CommunityLike[]
-  communityBookmarks   CommunityBookmark[]
-  communityFollows     CommunityFollower[]
-  communityReports     CommunityReport[]   @relation("UserCommunityReports")
-  reportedCommunities  CommunityReport[]   @relation("UserReportedCommunities")
-}
-
-enum Role {
-  BUYER
-  SELLER
-  ADMIN
+  name                    String
+  email                   String              @unique
+  phone                   String?
+  password                String
+  role                    Role                @default(BUYER)
+  adminRoleId             Int?
+  isVerified              Boolean             @default(false)
+  isBlocked               Boolean             @default(false)
+  avatar                  String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  deletedAt               DateTime?
+  id                      Int                 @id @default(autoincrement())
+  currentStoreId          Int?
+  deviceToken             String?
+  fcmToken                String?             // Firebase Cloud Messaging token
+  emailVerificationExpiry DateTime?
+  emailVerificationToken  String?
+  lastLoginAt             DateTime?
+  adminRole               AdminRole?          @relation(fields: [adminRoleId], references: [id])
+  communityBookmarks      CommunityBookmark[]
+  communityComments       CommunityComment[]
+  communityFollows        CommunityFollower[]
+  communityLikes          CommunityLike[]
+  communityMemberships    CommunityMember[]
+  communityPosts          CommunityPost[]
+  communityReports        CommunityReport[]   @relation("UserCommunityReports")
+  reportedCommunities     CommunityReport[]   @relation("UserReportedCommunities")
+  conversations1          Conversation[]      @relation("UserConversations1")
+  conversations2          Conversation[]      @relation("UserConversations2")
+  demandPosts             DemandPost[]
+  demandResponses         DemandResponse[]
+  following               FollowStore[]
+  loginLogs               LoginLog[]
+  receivedMessages        Message[]           @relation("ReceivedMessages")
+  sentMessages            Message[]           @relation("SentMessages")
+  notifications           Notification[]
+  offers                  Offer[]
+  products                Product[]
+  ratings                 Rating[]
+  reportsMade             Report[]            @relation("UserReports")
+  reportedUsers           Report[]            @relation("UserReported")
+  stores                  Store[]
+  tickets                 Ticket[]
+  currentStore            Store?              @relation("UserCurrentStore", fields: [currentStoreId], references: [id])
+  vehicles                Vehicle[]
+  vehicleBookings         VehicleBooking[]
+  wishlist                Wishlist[]
+  productComments         ProductComment[]
+  productCommentLikes     ProductCommentLike[]
 }
 
 model Store {
-  id             String     @id
   name           String
   description    String?
   logo           String?
@@ -57,62 +72,82 @@ model Store {
   email          String?
   website        String?
   qrCode         String?
-  followersCount Int        @default(0)
-  isApproved     Boolean    @default(false)
-  isBlocked      Boolean    @default(false)
-  userId         String
-  user           User       @relation(fields: [userId], references: [id])
-  products       Product[]
+  followersCount Int           @default(0)
+  isApproved     Boolean       @default(false)
+  isBlocked      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  contactName    String?
+  slug           String         @unique @default("")
+  publicKey      String         @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  stateId        Int?
+  cityId         Int?
+  pincode        String?
   followers      FollowStore[]
+  products       Product[]
   ratings        Rating[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  user           User          @relation(fields: [userId], references: [id])
+  currentUsers   User[]        @relation("UserCurrentStore")
+  state          State?        @relation(fields: [stateId], references: [id])
+  city           City?         @relation(fields: [cityId], references: [id])
+
+  @@index([slug])
 }
 
 model Product {
-  id             String     @id
-  title          String
-  description    String
-  price          Float
-  images         String[]
-  isFeatured     Boolean   @default(false)
-  categoryId     String
-  category       Category  @relation(fields: [categoryId], references: [id])
-  storeId        String
-  store          Store     @relation(fields: [storeId], references: [id])
-  userId         String
-  user           User      @relation(fields: [userId], references: [id])
-  stateId        String
-  state          State     @relation(fields: [stateId], references: [id])
-  cityId         String
-  city           City      @relation(fields: [cityId], references: [id])
-  unitId         String
-  unit           Unit      @relation(fields: [unitId], references: [id])
-  wishlist       Wishlist[]
-  reports        Report[]  @relation("ProductReports")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  title       String
+  description String
+  price       Float
+  images      String[]
+  isFeatured  Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  id          Int        @id @default(autoincrement())
+  categoryId  Int
+  storeId     Int
+  userId      Int
+  stateId     Int
+  cityId      Int
+  unitId      Int
+  slug        String     @unique
+  stock       Int        @default(0)
+  publicKey   String     @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  adId        String     @unique
+  offers      Offer[]
+  category    Category   @relation(fields: [categoryId], references: [id])
+  city        City       @relation(fields: [cityId], references: [id])
+  state       State      @relation(fields: [stateId], references: [id])
+  store       Store      @relation(fields: [storeId], references: [id])
+  unit        Unit       @relation(fields: [unitId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+  reports     Report[]   @relation("ProductReports")
+  wishlist    Wishlist[]
+  comments    ProductComment[]
+
+  @@index([slug])
 }
 
 model Category {
-  id        String     @id
-  name      String
-  slug      String     @unique
-  image     String?
-  products  Product[]
-
-  // Parent / Child self relation
-  parentId  String?    
-  type      CategoryType @default(STORE)
-  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  slug           String         @unique
+  image          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  type           CategoryType   @default(STORE)
+  name_en        String
+  name_hi        String?
+  name_ta        String
+  id             Int            @id @default(autoincrement())
+  parentId       Int?
+  icon           String?
+  parent         Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       Category[]     @relation("CategoryHierarchy")
+  products       Product[]
+  unitCategories UnitCategory[]
 }
 
 model Banner {
-  id        String   @id
   title     String
   image     String
   url       String?
@@ -120,221 +155,454 @@ model Banner {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
 }
 
 model Unit {
-  id        String   @id
-  name      String
-  symbol    String
-  products  Product[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  symbol     String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  name_en    String
+  name_hi    String?
+  name_ta    String
+  id         Int            @id @default(autoincrement())
+  products   Product[]
+  categories UnitCategory[]
+}
+
+model UnitCategory {
+  id         Int      @id @default(autoincrement())
+  unitId     Int
+  categoryId Int
+  createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  unit       Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, categoryId])
 }
 
 model State {
-  id        String   @id
-  name      String
-  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  name_en   String
+  name_hi   String?
+  name_ta   String
+  stateCode String
+  id        Int       @id @default(autoincrement())
   cities    City[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  products  Product[]
+  stores    Store[]
 }
 
 model City {
-  id        String   @id
-  name      String
-  stateId   String
-  state     State    @relation(fields: [stateId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  name_en   String
+  name_hi   String?
+  name_ta   String
+  id        Int       @id @default(autoincrement())
+  stateId   Int
+  state     State     @relation(fields: [stateId], references: [id])
   products  Product[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  stores    Store[]
 }
 
 model Wishlist {
-  id        String   @id
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productId])
+}
+
+model ProductComment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  productId Int
+  userId    Int
+  parentId  Int?
+  likeCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  parent    ProductComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   ProductComment[] @relation("CommentReplies")
+  likes     ProductCommentLike[]
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model ProductCommentLike {
+  id        Int            @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime       @default(now())
+  comment   ProductComment @relation(fields: [commentId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
+
+  @@unique([userId, commentId])
 }
 
 model FollowStore {
-  id        String   @id
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
   createdAt DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  storeId   Int
+  store     Store    @relation(fields: [storeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, storeId])
 }
 
 model Rating {
-  id        String   @id
-  value     Int      // 1-5 stars
+  value     Int
   comment   String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  storeId   Int
+  store     Store    @relation(fields: [storeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, storeId])
 }
 
 model Report {
-  id          String   @id
   reason      String
   description String?
-  reporterId  String
-  reporter    User     @relation("UserReports", fields: [reporterId], references: [id])
-  productId   String?
-  product     Product? @relation("ProductReports", fields: [productId], references: [id])
-  userId      String?
-  user        User?    @relation("UserReported", fields: [userId], references: [id])
   resolved    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  reporterId  Int
+  productId   Int?
+  userId      Int?
+  product     Product? @relation("ProductReports", fields: [productId], references: [id])
+  reporter    User     @relation("UserReports", fields: [reporterId], references: [id])
+  user        User?    @relation("UserReported", fields: [userId], references: [id])
 }
 
 model Ticket {
-  id        String       @id
   title     String
   message   String
   status    TicketStatus @default(OPEN)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  id        Int          @id @default(autoincrement())
+  userId    Int
+  user      User         @relation(fields: [userId], references: [id])
 }
 
 // Community Models
 model Community {
-  id              Int                 @id @default(autoincrement())
-  name            String
-  description     String
-  image           String?
-  category        String
-  privacy         CommunityPrivacy    @default(PUBLIC)
-  location        String?
-  rules           String?
-  memberCount     Int                 @default(0)
-  postCount       Int                 @default(0)
-  isVerified      Boolean             @default(false)
-  isBlocked       Boolean             @default(false)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  // Relations
-  members         CommunityMember[]
-  posts           CommunityPost[]
-  followers       CommunityFollower[]
-  reports         CommunityReport[]   @relation("CommunityReports")
+  id          Int                 @id @default(autoincrement())
+  uuid        String              @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  name        String
+  description String
+  image       String?
+  banner      String?
+  category    String
+  privacy     CommunityPrivacy    @default(PUBLIC)
+  location    String?
+  rules       String?
+  memberCount Int                 @default(0)
+  postCount   Int                 @default(0)
+  isVerified  Boolean             @default(false)
+  isBlocked   Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  followers   CommunityFollower[]
+  members     CommunityMember[]
+  posts       CommunityPost[]
+  reports     CommunityReport[]   @relation("CommunityReports")
+
+  @@index([uuid])
 }
 
 model CommunityMember {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  id          Int        @id @default(autoincrement())
   communityId Int
-  community   Community   @relation(fields: [communityId], references: [id])
-  role        MemberRole  @default(MEMBER)
-  isApproved  Boolean     @default(true)
-  joinedAt    DateTime    @default(now())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  role        MemberRole @default(MEMBER)
+  isApproved  Boolean    @default(true)
+  joinedAt    DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      Int
+  community   Community  @relation(fields: [communityId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
 
   @@unique([userId, communityId])
 }
 
 model CommunityPost {
-  id          Int               @id @default(autoincrement())
-  content     String
-  type        CommunityPostType @default(TEXT)
-  mediaUrl    String?
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
-  communityId Int
-  community   Community         @relation(fields: [communityId], references: [id])
-  likeCount   Int               @default(0)
-  commentCount Int              @default(0)
-  isPinned    Boolean           @default(false)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  // Relations
-  comments    CommunityComment[]
-  likes       CommunityLike[]
-  bookmarks   CommunityBookmark[]
+  id           Int                 @id @default(autoincrement())
+  content      String
+  type         CommunityPostType   @default(TEXT)
+  mediaUrl     String?
+  communityId  Int
+  likeCount    Int                 @default(0)
+  commentCount Int                 @default(0)
+  isPinned     Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  userId       Int
+  publicKey    String              @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  bookmarks    CommunityBookmark[]
+  comments     CommunityComment[]
+  likes        CommunityLike[]
+  community    Community           @relation(fields: [communityId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+
+  @@index([publicKey])
 }
 
 model CommunityComment {
-  id          Int         @id @default(autoincrement())
-  content     String
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  postId      Int
-  post        CommunityPost @relation(fields: [postId], references: [id])
-  parentId    Int?
-  parent      CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies     CommunityComment[] @relation("CommentReplies")
-  likeCount   Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  // Relations
-  likes       CommunityLike[]
+  id        Int                @id @default(autoincrement())
+  content   String
+  postId    Int
+  parentId  Int?
+  likeCount Int                @default(0)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  userId    Int
+  parent    CommunityComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   CommunityComment[] @relation("CommentReplies")
+  post      CommunityPost      @relation(fields: [postId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  likes     CommunityLike[]
 }
 
 model CommunityLike {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  postId      Int?
-  post        CommunityPost? @relation(fields: [postId], references: [id])
-  commentId   Int?
-  comment     CommunityComment? @relation(fields: [commentId], references: [id])
-  createdAt   DateTime    @default(now())
+  id        Int               @id @default(autoincrement())
+  postId    Int?
+  commentId Int?
+  createdAt DateTime          @default(now())
+  userId    Int
+  comment   CommunityComment? @relation(fields: [commentId], references: [id])
+  post      CommunityPost?    @relation(fields: [postId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
 
   @@unique([userId, postId, commentId])
 }
 
 model CommunityBookmark {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  postId      Int
-  post        CommunityPost @relation(fields: [postId], references: [id])
-  createdAt   DateTime    @default(now())
+  id        Int           @id @default(autoincrement())
+  postId    Int
+  createdAt DateTime      @default(now())
+  userId    Int
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
 
   @@unique([userId, postId])
 }
 
 model CommunityFollower {
-  id          Int         @id @default(autoincrement())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  id          Int       @id @default(autoincrement())
   communityId Int
-  community   Community   @relation(fields: [communityId], references: [id])
-  isNotified  Boolean     @default(true)
-  createdAt   DateTime    @default(now())
+  isNotified  Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  userId      Int
+  community   Community @relation(fields: [communityId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
 
   @@unique([userId, communityId])
 }
 
 model CommunityReport {
-  id          Int         @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   reason      String
   description String?
-  reporterId  String
-  reporter    User        @relation("UserCommunityReports", fields: [reporterId], references: [id])
   communityId Int?
-  community   Community?  @relation("CommunityReports", fields: [communityId], references: [id])
-  userId      String?
-  user        User?       @relation("UserReportedCommunities", fields: [userId], references: [id])
-  resolved    Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  resolved    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  reporterId  Int
+  userId      Int?
+  community   Community? @relation("CommunityReports", fields: [communityId], references: [id])
+  reporter    User       @relation("UserCommunityReports", fields: [reporterId], references: [id])
+  user        User?      @relation("UserReportedCommunities", fields: [userId], references: [id])
 }
+
+model LoginLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  ipAddress     String
+  userAgent     String
+  deviceInfo    String?
+  location      String?
+  loginAt       DateTime @default(now())
+  success       Boolean  @default(true)
+  failureReason String?
+  deviceToken   String?
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([loginAt])
+}
+
+model Vehicle {
+  id               Int              @id @default(autoincrement())
+  name             String
+  description      String
+  type             VehicleType
+  category         String
+  pricePerDay      Float?
+  pricePerHour     Float
+  capacity         String
+  fuelType         VehicleFuelType
+  location         String
+  features         String[]
+  images           String[]
+  status           VehicleStatus    @default(AVAILABLE)
+  rating           Float            @default(0)
+  totalBookings    Int              @default(0)
+  userId           Int
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  attachments      String[]
+  horsepower       Int?
+  minimumHours     Int?
+  operatorIncluded Boolean          @default(false)
+  workingWidth     Float?
+  publicKey        String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  adId             String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  bookings         VehicleBooking[]
+
+  @@index([category])
+}
+
+model VehicleBooking {
+  id            Int           @id @default(autoincrement())
+  vehicleId     Int
+  customerId    Int
+  startDate     DateTime
+  endDate       DateTime
+  totalHours    Int?
+  totalDays     Int?
+  totalAmount   Float
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  customerName  String
+  customerPhone String
+  customerEmail String
+  purpose       String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  customer      User          @relation(fields: [customerId], references: [id])
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
+}
+
+model Conversation {
+  id             Int       @id @default(autoincrement())
+  participant1Id Int
+  participant2Id Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  participant1   User      @relation("UserConversations1", fields: [participant1Id], references: [id])
+  participant2   User      @relation("UserConversations2", fields: [participant2Id], references: [id])
+  messages       Message[]
+
+  @@unique([participant1Id, participant2Id])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  receiverId     Int
+  content        String
+  messageType    MessageType  @default(TEXT)
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  title       String
+  message     String
+  type        NotificationType
+  relatedId   Int?
+  relatedType String?
+  actionUrl   String?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id])
+}
+
+model DemandPost {
+  id            Int              @id @default(autoincrement())
+  title         String
+  description   String
+  productName   String
+  quantity      String
+  frequency     DemandFrequency
+  preferredTime String?
+  location      String
+  contactMethod ContactMethod
+  tags          String[]
+  isUrgent      Boolean          @default(false)
+  images        String[]
+  budget        Float?
+  validUntil    DateTime?
+  status        DemandStatus     @default(ACTIVE)
+  userId        Int
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation(fields: [userId], references: [id])
+  responses     DemandResponse[]
+}
+
+model DemandResponse {
+  id               Int            @id @default(autoincrement())
+  demandId         Int
+  sellerId         Int
+  message          String
+  proposedPrice    Float?
+  proposedQuantity String?
+  contactInfo      String
+  status           ResponseStatus @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  demand           DemandPost     @relation(fields: [demandId], references: [id])
+  seller           User           @relation(fields: [sellerId], references: [id])
+}
+
+model Offer {
+  id              Int         @id @default(autoincrement())
+  title           String
+  description     String
+  productId       Int?
+  originalPrice   Float
+  offerPrice      Float
+  discountPercent Float
+  quantity        String
+  location        String
+  startDate       DateTime    @default(now())
+  endDate         DateTime
+  isActive        Boolean     @default(true)
+  tags            String[]
+  reason          OfferReason
+  sellerId        Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  product         Product?    @relation(fields: [productId], references: [id])
+  seller          User        @relation(fields: [sellerId], references: [id])
+}
+
 
 enum CommunityPrivacy {
   PUBLIC
@@ -363,4 +631,136 @@ enum TicketStatus {
 enum CategoryType {
   STORE
   RENTAL
+}
+
+enum VehicleType {
+  TRACTOR
+  TRUCK
+  LORRY
+  VAN
+  HARVESTING_MACHINE
+  PLANTING_MACHINE
+  THRESHING_MACHINE
+  CULTIVATOR
+  PLOUGH
+  SPRAYER
+  TRAILER
+  OTHER_EQUIPMENT
+}
+
+enum VehicleFuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  CNG
+  HYBRID
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  BOOKING_REQUESTED
+  BOOKING_CONFIRMED
+  BOOKING_STARTED
+  BOOKING_COMPLETED
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  NEW_MESSAGE
+  SYSTEM_ALERT
+  PROMOTION
+  DEMAND_POSTED
+  DEMAND_MATCHED
+  OFFER_POSTED
+  OFFER_EXPIRED
+}
+
+enum DemandFrequency {
+  ONE_TIME
+  DAILY
+  WEEKLY
+  MONTHLY
+  SEASONAL
+}
+
+enum ContactMethod {
+  CALL
+  WHATSAPP
+  IN_APP_CHAT
+  EMAIL
+}
+
+enum DemandStatus {
+  ACTIVE
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}
+
+enum ResponseStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEGOTIATING
+}
+
+enum OfferReason {
+  SURPLUS_HARVEST
+  SEASONAL_PEAK
+  BULK_DISCOUNT
+  CLEARANCE_SALE
+  PROMOTIONAL
+  URGENT_SALE
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+model AdminRole {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  users       User[]
+
+  @@map("admin_roles")
 }

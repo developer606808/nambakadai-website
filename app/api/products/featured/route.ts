@@ -1,62 +1,62 @@
 import { NextResponse } from 'next/server';
-
-// Mock data - in a real app, this would come from a database
-const featuredProducts = [
-  {
-    id: 1,
-    image: "/placeholder.svg?height=200&width=200",
-    title: "Fresh Organic Apples",
-    price: 3.99,
-    unit: "per pound",
-    rating: 4.5,
-    reviews: 128,
-    location: "Oakland, CA",
-    seller: "Green Valley Farms",
-    sellerId: "1",
-    isOrganic: true,
-  },
-  {
-    id: 2,
-    image: "/placeholder.svg?height=200&width=200",
-    title: "Heirloom Tomatoes",
-    price: 4.99,
-    unit: "per lb",
-    rating: 4.7,
-    reviews: 86,
-    location: "Berkeley, CA",
-    seller: "Miller's Garden",
-    sellerId: "2",
-    isBestSeller: true,
-  },
-  {
-    id: 3,
-    image: "/placeholder.svg?height=200&width=200",
-    title: "Organic Strawberries",
-    price: 5.99,
-    unit: "per box",
-    rating: 4.8,
-    reviews: 152,
-    location: "Santa Cruz, CA",
-    seller: "Berry Farm",
-    sellerId: "3",
-    isOrganic: true,
-    isBestSeller: true,
-  },
-  {
-    id: 4,
-    image: "/placeholder.svg?height=200&width=200",
-    title: "Fresh Farm Eggs",
-    price: 6.99,
-    unit: "per dozen",
-    rating: 4.9,
-    reviews: 210,
-    location: "Palo Alto, CA",
-    seller: "Happy Hens Farm",
-    sellerId: "4",
-    isOrganic: true,
-  },
-];
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  return NextResponse.json(featuredProducts);
+  try {
+    // Fetch featured products from database
+    const products = await prisma.product.findMany({
+      where: {
+        isFeatured: true,
+      },
+      include: {
+        store: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        city: {
+          select: {
+            name_en: true,
+          },
+        },
+        unit: {
+          select: {
+            symbol: true,
+          },
+        },
+        _count: {
+          select: {
+            wishlist: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 8, // Limit to 8 featured products
+    });
+
+    // Transform data for frontend
+    const featuredProducts = products.map(product => ({
+      id: product.id,
+      image: product.images[0] || "/placeholder.svg",
+      title: product.title,
+      price: product.price,
+      unit: product.unit.symbol,
+      rating: 4.5, // Default rating, could be calculated from reviews
+      reviews: product._count.wishlist, // Using wishlist count as proxy for popularity
+      location: product.city.name_en,
+      seller: product.store.name,
+      sellerId: product.store.id.toString(),
+      isOrganic: product.title.toLowerCase().includes('organic'),
+      isBestSeller: product._count.wishlist > 10, // Consider products with many wishlists as best sellers
+    }));
+
+    return NextResponse.json(featuredProducts);
+  } catch (error) {
+    console.error('Error fetching featured products:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch featured products' },
+      { status: 500 }
+    );
+  }
 }

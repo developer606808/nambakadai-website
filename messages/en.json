@@ -1,55 +1,14 @@
 {
-  "HomePage": {
-    "title": "Welcome to Nambakadai",
-    "description": "Your trusted marketplace for agricultural products",
-    "featuredProducts": "Featured Products",
-    "viewAll": "View All",
-    "categories": "Categories",
-    "latestProducts": "Latest Products"
-  },
   "Navigation": {
     "home": "Home",
     "categories": "Categories",
     "products": "Products",
     "stores": "Stores",
     "community": "Community",
+    "demand": "Demand",
+    "offers": "Offers",
     "wishlist": "Wishlist",
-    "profile": "Profile",
     "login": "Login",
-    "signup": "Sign Up",
-    "logout": "Logout",
-    "admin": "Admin",
-    "seller": "Seller"
-  },
-  "Auth": {
-    "login": "Login",
-    "signup": "Sign Up",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "name": "Name",
-    "phone": "Phone",
-    "forgotPassword": "Forgot Password?",
-    "resetPassword": "Reset Password",
-    "sendResetLink": "Send Reset Link",
-    "backToLogin": "Back to Login",
-    "noAccount": "Don't have an account?",
-    "haveAccount": "Already have an account?",
-    "createAccount": "Create Account"
-  },
-  "Common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "success": "Success",
-    "search": "Search",
-    "filter": "Filter",
-    "sort": "Sort",
-    "apply": "Apply",
-    "clear": "Clear"
+    "signup": "Sign Up"
   }
 }
