@@ -20,8 +20,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-<<<<<<< Updated upstream
-=======
     const userId = parseInt(session.user.id as string);
     if (isNaN(userId)) {
       return NextResponse.json(
@@ -30,7 +28,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
->>>>>>> Stashed changes
     const wishlist = await prisma.wishlist.findMany({
       where: { userId: userId },
       include: {

@@ -5,13 +5,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-<<<<<<< Updated upstream
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import MainLayout from "@/components/main-layout"
-=======
 import { MainLayout } from "@/components/main-layout"
->>>>>>> Stashed changes
 import Breadcrumbs from "@/components/breadcrumbs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
