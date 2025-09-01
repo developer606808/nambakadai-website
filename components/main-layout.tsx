@@ -1,15 +1,9 @@
 'use client';
 
-<<<<<<< Updated upstream
-=======
 import { useState, useEffect } from 'react';
->>>>>>> Stashed changes
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-<<<<<<< Updated upstream
-import { LanguageSwitcher } from '@/components/language-switcher';
-=======
 import Image from 'next/image';
 import { Menu, X, Home, Grid3X3, Package, Store, Users, Heart } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -21,7 +15,6 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useFirebase } from '@/hooks/useFirebase';
 import enMessages from '../messages/en.json';
 import taMessages from '../messages/ta.json';
->>>>>>> Stashed changes
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -31,17 +24,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const { unreadCount: messageCount } = useUnreadMessages();
   const { notification } = useFirebase();
 
-<<<<<<< Updated upstream
-  const navItems = [
-    { href: '/', label: t('home'), icon: Home },
-    { href: '/categories', label: t('categories'), icon: Grid3X3 },
-    { href: '/products', label: t('products'), icon: Package },
-    { href: '/stores', label: t('stores'), icon: Store },
-    { href: '/community', label: t('community'), icon: Users },
-    { href: '/wishlist', label: t('wishlist'), icon: Heart },
-  ];
-
-=======
   // Get current locale from cookie (client-side)
   const [currentLocale, setCurrentLocale] = useState('en');
 
@@ -104,7 +86,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               <span className="text-xl sm:text-2xl font-bold text-primary">
                 Nambakadai
               </span>
->>>>>>> Stashed changes
             </Link>
 
             {/* Desktop Navigation */}

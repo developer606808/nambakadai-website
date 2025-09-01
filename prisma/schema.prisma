@@ -62,7 +62,6 @@ model User {
 
 model Store {
   name           String
-  contactName    String?
   description    String?
   logo           String?
   banner         String?

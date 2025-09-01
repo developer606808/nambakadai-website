@@ -11,10 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-<<<<<<< Updated upstream
-import { toast } from '@/hooks/use-toast'
-import MainLayout from '@/components/main-layout'
-=======
 import { toast } from '@/components/ui/use-toast'
 import { MainLayout } from '@/components/main-layout'
 >>>>>>> Stashed changes

@@ -320,12 +320,6 @@ export default function UnitsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  </TableCell>
-                </TableRow>
-              ) : units.length === 0 ? (
-                <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
                     <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                   </TableCell>
@@ -345,9 +339,6 @@ export default function UnitsPage() {
                       <Badge variant="secondary" className="text-xs">
                         {unit.symbol}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {unit._count?.products || 0} products
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1">

@@ -229,6 +229,23 @@ export async function POST(request: NextRequest) {
       counter++;
     }
 
+    // Generate slug for the store
+    const baseSlug = validatedData.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .trim();
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Check if slug already exists
+    while (await (prisma as any).store.findFirst({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
     // Create store
     const store = await prisma.store.create({
       data: {
