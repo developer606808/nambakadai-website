@@ -71,9 +71,13 @@ export async function GET(request: NextRequest) {
 // PUT /api/admin/users/:id/block - Block/unblock a user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params in Next.js 15
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
     // Apply rate limiting
     const rateLimitResponse = await rateLimitMiddleware(request, { limit: 'api' });
     if (rateLimitResponse) return rateLimitResponse;
@@ -101,7 +105,7 @@ export async function PUT(
 
     // Update user
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: parseInt(id) },
       data: { isBlocked: block }
     });
 
