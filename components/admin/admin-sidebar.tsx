@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -34,6 +35,16 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Don't render if not authenticated or not admin
+  if (status === "loading") {
+    return null
+  }
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return null
+  }
 
   const routes = [
     {
@@ -129,7 +140,7 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   ]
 
   const isRouteActive = (href: string) => {
-    return pathname === href || pathname.startsWith(href + '/')
+    return pathname === href || (pathname && pathname.startsWith(href + '/'))
   }
 
   const handleLogout = () => {

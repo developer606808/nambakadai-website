@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { useToast } from "@/components/ui/use-toast"
+import { motion } from "framer-motion"
 import { ArrowLeft, Save, Package, Upload, XCircle } from "lucide-react"
 import Link from "next/link"
 import { z } from "zod"
@@ -318,73 +319,113 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/seller/products">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Products
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
-            <p className="text-gray-600">Create a new product listing for your store</p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <Link href="/seller/products">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-12 px-4 bg-white hover:bg-gray-50 border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                <span className="hidden sm:inline">Back to Products</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+            </Link>
+            <div className="space-y-1">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="h-6 w-6 text-white" />
+                </div>
+                Add New Product
+              </h1>
+              <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+                Create a new product listing for your store with rich details
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Product Information
-            </CardTitle>
-            <CardDescription>
-              Enter the basic details about your product
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="bg-white rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
+              <CardTitle className="flex items-center gap-3 text-xl sm:text-2xl">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                Product Information
+              </CardTitle>
+              <CardDescription className="text-base text-gray-600 mt-2">
+                Enter the basic details about your product to create an attractive listing
+              </CardDescription>
+            </CardHeader>
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Product Name</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   id="name"
                   placeholder="Enter product name"
                   {...register('title')}
-                  className={errors.title ? 'border-red-500' : ''}
+                  className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}
                 />
                 {errors.title && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.title.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.title.message}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug *</Label>
+              <div className="space-y-3">
+                <Label htmlFor="slug" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Slug</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   id="slug"
                   placeholder="product-slug"
                   {...register('slug')}
-                  className={errors.slug ? 'border-red-500' : ''}
+                  className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.slug ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}
                 />
                 {errors.slug && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.slug.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.slug.message}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+              <div className="space-y-3">
+                <Label htmlFor="category" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Category</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select onValueChange={(value) => setValue('category', value)}>
-                  <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                  <SelectTrigger className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.category ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -402,71 +443,91 @@ export default function NewProductPage() {
                   </SelectContent>
                 </Select>
                 {errors.category && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.category.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.category.message}</p>
+                  </div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+            <div className="space-y-3">
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-700 flex items-center">
+                <span>Description</span>
+                <span className="text-red-500 ml-1">*</span>
+              </Label>
               <Textarea
                 id="description"
                 placeholder="Describe your product, its quality, origin, and benefits..."
                 rows={4}
                 {...register('description')}
-                className={errors.description ? 'border-red-500' : ''}
+                className={`text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none ${
+                  errors.description ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                }`}
               />
               {errors.description && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <XCircle className="w-3 h-3" />
-                  {errors.description.message}
-                </p>
+                <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                  <XCircle className="w-4 h-4" />
+                  <p className="text-sm font-medium">{errors.description.message}</p>
+                </div>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (₹) *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="price" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Price (₹)</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   id="price"
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   {...register('price', { valueAsNumber: true })}
-                  className={errors.price ? 'border-red-500' : ''}
+                  className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.price ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}
                 />
                 {errors.price && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.price.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.price.message}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock Quantity *</Label>
+              <div className="space-y-3">
+                <Label htmlFor="stock" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Stock Quantity</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   id="stock"
                   type="number"
                   placeholder="0"
                   {...register('stock', { valueAsNumber: true })}
-                  className={errors.stock ? 'border-red-500' : ''}
+                  className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.stock ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}
                 />
                 {errors.stock && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.stock.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.stock.message}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unit *</Label>
+              <div className="space-y-3 sm:col-span-2">
+                <Label htmlFor="unit" className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span>Unit</span>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select onValueChange={(value) => setValue('unit', value)}>
-                  <SelectTrigger className={errors.unit ? 'border-red-500' : ''}>
+                  <SelectTrigger className={`h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                    errors.unit ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}>
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
@@ -484,93 +545,137 @@ export default function NewProductPage() {
                   </SelectContent>
                 </Select>
                 {errors.unit && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.unit.message}
-                  </p>
+                  <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300">
+                    <XCircle className="w-4 h-4" />
+                    <p className="text-sm font-medium">{errors.unit.message}</p>
+                  </div>
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
+        </motion.div>
 
         {/* Product Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Product Images
-            </CardTitle>
-            <CardDescription>
-              Upload high-quality images of your product (1-5 images)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {productImages.length < 5 && (
-              <ImageUpload
-                onImageChange={handleImageChange}
-                aspectRatio={1}
-                cropShape="rect"
-                maxSize={3}
-                placeholder="Upload product image"
-                required={productImages.length === 0}
-              />
-            )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="bg-white rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-gray-100">
+              <CardTitle className="flex items-center gap-3 text-xl sm:text-2xl">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Upload className="w-6 h-6 text-white" />
+                </div>
+                Product Images
+              </CardTitle>
+              <CardDescription className="text-base text-gray-600 mt-2">
+                Upload high-quality images of your product (1-5 images, max 5MB each)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              {productImages.length < 5 && (
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 transition-colors duration-200 bg-gray-50 hover:bg-green-50">
+                  <ImageUpload
+                    onImageChange={handleImageChange}
+                    aspectRatio={1}
+                    cropShape="rect"
+                    maxSize={5}
+                    placeholder="Click to upload product image"
+                    required={productImages.length === 0}
+                  />
+                  <p className="text-sm text-gray-500 mt-2">Supported formats: JPEG, PNG, WebP (Max 5MB)</p>
+                </div>
+              )}
 
-            {productImages.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {productImages.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={image}
-                      alt={`Product ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleImageRemove(index)}
-                    >
-                      <XCircle className="w-3 h-3" />
-                    </Button>
+              {productImages.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-gray-900">Uploaded Images ({productImages.length}/5)</h4>
+                    <div className="text-sm text-gray-500">
+                      {productImages.length < 5 && "Upload more images to showcase your product"}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {productImages.map((image, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="relative group"
+                      >
+                        <img
+                          src={image}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg"
+                          onClick={() => handleImageRemove(index)}
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {errors.images && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.images.message}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              {errors.images && (
+                <div className="flex items-center gap-2 text-red-600 animate-in slide-in-from-top-2 duration-300 bg-red-50 p-4 rounded-lg border border-red-200">
+                  <XCircle className="w-5 h-5" />
+                  <p className="text-sm font-medium">{errors.images.message}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Submit Button */}
-        <div className="flex justify-end space-x-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="flex flex-col sm:flex-row sm:justify-end gap-4 pt-6 border-t border-gray-200"
+        >
           <Link href="/seller/products">
-            <Button variant="outline" type="button">
+            <Button
+              variant="outline"
+              type="button"
+              className="h-12 px-8 border-gray-300 hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
               Cancel
             </Button>
           </Link>
-          <Button type="submit" disabled={isLoading}>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="h-12 px-8 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100"
+          >
             {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Creating...
-              </>
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Creating Product...</span>
+              </div>
             ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Create Product
-              </>
+              <div className="flex items-center space-x-2">
+                <Save className="w-5 h-5" />
+                <span>Create Product</span>
+              </div>
             )}
           </Button>
-        </div>
+        </motion.div>
       </form>
+      </div>
     </div>
   )
 }

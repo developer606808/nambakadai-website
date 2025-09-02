@@ -467,41 +467,47 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Categories Pills */}
+          {/* Categories Horizontal Scroll */}
           <div className="mb-8">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <Package className="w-5 h-5 mr-2 text-green-600" />
               Browse by Category
             </h3>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                onClick={() => handleCategorySelect(null)}
-                className={`rounded-full px-6 py-3 font-medium transition-all ${
-                  selectedCategory === null
-                    ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
-                    : "border-2 border-gray-200 hover:border-green-300 hover:bg-green-50"
-                }`}
-                size="sm"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                All Categories
-              </Button>
-              {Array.isArray(categories) && categories.map((category) => (
+            <div className="relative">
+              <div className="flex overflow-x-auto scrollbar-hide gap-3 pb-4 px-1">
                 <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  onClick={() => handleCategorySelect(category.id)}
-                  className={`rounded-full px-6 py-3 font-medium transition-all ${
-                    selectedCategory === category.id
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  onClick={() => handleCategorySelect(null)}
+                  className={`rounded-full px-6 py-3 font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    selectedCategory === null
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
                       : "border-2 border-gray-200 hover:border-green-300 hover:bg-green-50"
                   }`}
                   size="sm"
                 >
-                  {category.name_en}
+                  <Package className="w-4 h-4 mr-2" />
+                  All Categories
                 </Button>
-              ))}
+                {Array.isArray(categories) && categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className={`rounded-full px-6 py-3 font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                      selectedCategory === category.id
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
+                        : "border-2 border-gray-200 hover:border-green-300 hover:bg-green-50"
+                    }`}
+                    size="sm"
+                  >
+                    {category.name_en}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Scroll Indicators */}
+              <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none opacity-60"></div>
+              <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none opacity-60"></div>
             </div>
           </div>
 

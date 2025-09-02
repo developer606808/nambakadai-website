@@ -10,6 +10,8 @@ interface WishlistItem {
   createdAt: string;
   product: {
     id: number;
+    publicKey: string;
+    slug: string;
     title: string;
     price: number;
     images: string[];
@@ -170,16 +172,22 @@ export function useWishlist(): UseWishlistReturn {
     }
   }, [wishlistStatus, addToWishlist, removeFromWishlist]);
 
-  // Initialize wishlist data when user logs in
+  // Initialize wishlist data when user logs in - only fetch count first for performance
   useEffect(() => {
     if (session?.user) {
-      refreshWishlist();
+      // Only fetch count initially for faster loading
+      refreshCount();
+      // Fetch full wishlist data after a short delay to avoid blocking initial page load
+      const timer = setTimeout(() => {
+        refreshWishlist();
+      }, 1000);
+      return () => clearTimeout(timer);
     } else {
       setWishlistItems([]);
       setWishlistStatus({});
       setWishlistCount(0);
     }
-  }, [session?.user, refreshWishlist]);
+  }, [session?.user, refreshCount, refreshWishlist]);
 
   return {
     wishlistItems,

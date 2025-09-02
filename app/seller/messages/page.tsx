@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { motion } from "framer-motion"
 
 interface Conversation {
   id: string
@@ -321,53 +322,100 @@ export default function SellerMessages() {
   const userId = session?.user?.id || null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-gray-600 mt-1">
-            Communicate with your customers and manage inquiries
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <Badge variant="outline" className="text-blue-700 border-blue-200">
-            {conversations.reduce((count, c) => count + (c.unreadCount > 0 ? 1 : 0), 0)} Unread
-          </Badge>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Conversations</p>
-                <p className="text-2xl font-bold">{conversations.length}</p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+        >
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <MessageSquare className="h-6 w-6 text-white" />
               </div>
-              <MessageSquare className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Unread Messages</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {conversations.reduce((count, c) => count + c.unreadCount, 0)}
-                </p>
-              </div>
-              <Clock className="w-8 h-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              Messages
+            </h1>
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+              Communicate with your customers and manage inquiries effectively
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 px-4 py-2 text-sm font-medium shadow-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              {conversations.reduce((count, c) => count + (c.unreadCount > 0 ? 1 : 0), 0)} Unread
+            </Badge>
+          </div>
+        </motion.div>
 
-      {/* Messages Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
+        >
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-blue-800">Total Conversations</p>
+                    <p className="text-3xl font-bold text-blue-700">{conversations.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-blue-600">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">Active chats</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-red-800">Unread Messages</p>
+                    <p className="text-3xl font-bold text-red-700">
+                      {conversations.reduce((count, c) => count + c.unreadCount, 0)}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-red-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-red-600">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                  <span className="text-xs font-medium">Requires attention</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+        {/* Messages Interface */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="bg-white rounded-xl border-2 border-gray-200 shadow-lg overflow-hidden"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[600px] lg:h-[600px]">
         {/* Conversations List */}
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -659,6 +707,8 @@ export default function SellerMessages() {
             </CardContent>
           )}
         </Card>
+      </div>
+      </motion.div>
       </div>
     </div>
   )

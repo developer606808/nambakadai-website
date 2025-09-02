@@ -43,9 +43,10 @@ export default function AdminLoginPage() {
           setError("Login failed. Please try again.")
         }
       } else if (result?.ok) {
-        // Check if user has admin role by examining the session
-        // This will be handled by the layout component
+        // Successful login, redirect to dashboard
+        // The layout component will handle role checking
         router.push("/admin/dashboard")
+        router.refresh() // Force a refresh to update the session
       }
     } catch (err) {
       console.error("Login error:", err)

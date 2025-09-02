@@ -17,40 +17,68 @@ export default function PrivacyPolicyPage() {
         keywords="privacy, policy, data protection, personal information, Nanbakadai"
       />
       <MainLayout>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            {/* Nature-inspired floating elements */}
+            <div className="absolute top-20 left-10 w-32 h-32 bg-green-200/20 rounded-full animate-float-slow"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 bg-emerald-300/15 rounded-full animate-float-medium"></div>
+            <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-teal-200/10 rounded-full animate-float-fast"></div>
+            <div className="absolute top-1/3 right-10 w-28 h-28 bg-green-300/20 rounded-full animate-float-slow"></div>
+            <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-emerald-200/15 rounded-full animate-float-medium"></div>
+
+            {/* Leaf patterns */}
+            <div className="absolute top-16 left-1/3 text-green-300/30 text-6xl animate-sway">🌿</div>
+            <div className="absolute top-32 right-1/4 text-emerald-400/25 text-5xl animate-sway-delayed">🍃</div>
+            <div className="absolute bottom-40 left-16 text-teal-300/20 text-7xl animate-sway">🌱</div>
+            <div className="absolute bottom-16 right-16 text-green-400/30 text-4xl animate-sway-delayed">🌾</div>
+
+            {/* Subtle pattern overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-green-100/5 to-emerald-100/10"></div>
+          </div>
+
           {/* Hero Section */}
-          <section className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-16">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto text-center">
-                <Shield className="h-16 w-16 mx-auto mb-6" />
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
-                <p className="text-xl mb-4">Last updated: May 15, 2024</p>
-                <p className="text-lg opacity-90">
-                  Your privacy is important to us. This policy explains how we collect, use, and protect your data.
-                </p>
+          <section className="relative z-10 pt-16 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mb-8 shadow-lg">
+                <Shield className="text-3xl text-white" />
               </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-6">
+                Privacy Policy
+              </h1>
+              <p className="text-xl sm:text-2xl text-gray-600 mb-4">Last updated: May 15, 2024</p>
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Your privacy is important to us. This policy explains how we collect, use, and protect your data.
+              </p>
             </div>
           </section>
 
-          {/* Content */}
-          <section className="py-12">
-            <div className="container mx-auto px-4 max-w-4xl">
-              <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
-                {/* Introduction */}
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                    <Lock className="h-6 w-6 mr-2 text-green-600" />
-                    1. Introduction
-                  </h2>
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    At Nanbakadai ("we," "our," or "us"), we respect your privacy and are committed to protecting your
-                    personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your
-                    information when you visit our website or use our services.
-                  </p>
-                  <p className="text-gray-700 leading-relaxed">
-                    Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy
-                    Policy, please do not access the site or use our services.
-                  </p>
+          {/* Enhanced Content */}
+          <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 sm:p-8 lg:p-12 space-y-8 hover:shadow-2xl transition-all duration-300">
+                {/* Enhanced Introduction */}
+                <div className="relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
+                  <div className="pl-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-6 flex items-center">
+                      <div className="w-8 h-8 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                        <Lock className="h-5 w-5 text-green-600" />
+                      </div>
+                      1. Introduction
+                    </h2>
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 mb-6">
+                      <p className="text-gray-700 leading-relaxed mb-4">
+                        At Nanbakadai ("we," "our," or "us"), we respect your privacy and are committed to protecting your
+                        personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your
+                        information when you visit our website or use our services.
+                      </p>
+                      <p className="text-gray-700 leading-relaxed">
+                        Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy
+                        Policy, please do not access the site or use our services.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Information We Collect */}

@@ -1,36 +1,110 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
+import React, { Suspense } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Star, Heart } from "lucide-react"
+import { ChevronRight, Star, Heart, QrCode, Share2, MapPin, Store as StoreIcon, Package, Truck, Eye, ShoppingCart, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MainLayout } from "@/components/main-layout"
 import { BannerSection } from "@/components/home/banner-section"
 import { CategoryCarousel } from "@/components/home/category-carousel"
 import { CreateStoreBanner } from "@/components/home/create-store-banner"
-import { useWishlist } from "@/hooks/useWishlist"
-import { useSession } from "next-auth/react"
+import { ProductCard } from "@/components/home/product-card"
+import { StoreCard } from "@/components/home/store-card"
+import { RentalCard } from "@/components/home/rental-card"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { ProductSkeleton, RentalSkeleton, StoreSkeleton } from "@/components/ui/skeletons"
+
+// Server-side data fetching functions
+async function getFeaturedProducts() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/products/featured`, {
+      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured products');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured products:', error);
+    return [];
+  }
+}
+
+async function getFeaturedRentals() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/rentals/featured`, {
+      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured rentals');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured rentals:', error);
+    return [];
+  }
+}
+
+async function getFeaturedStores() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/stores/featured`, {
+      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch featured stores');
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching featured stores:', error);
+    return [];
+  }
+}
+
+async function getStoreCategories() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/categories?type=STORE&limit=12`, {
+      next: { revalidate: 3600 }, // ISR: revalidate every hour for categories
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch categories');
+      return { categories: [] };
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return { categories: [] };
+  }
+}
 
 // Define types for our data
 interface Product {
   id: number
   title: string
-  slug: string
-  publicKey: string
-  images: string[]
+  slug?: string
+  publicKey?: string
+  images?: string[]
   price: number
-  unit: {
-    symbol: string
-  }
+  unit?: string | { symbol: string }
   location: string
-  store: {
+  store?: {
     id: number
     name: string
   }
-  isFeatured: boolean
-  wishlistCount: number
-  createdAt: string
+  seller?: string
+  sellerId?: string
+  isFeatured?: boolean
+  wishlistCount?: number
+  createdAt?: string
 }
 
 interface Rental {
@@ -50,122 +124,137 @@ interface Rental {
 
 
 
-// Server-side data fetching functions
-async function getFeaturedProducts(): Promise<Product[]> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/products/featured`, {
-      cache: 'no-store', // Ensure fresh data
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured products');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured products:', error);
-    return [];
-  }
-}
-
-async function getFeaturedRentals(): Promise<Rental[]> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/rentals/featured`, {
-      cache: 'no-store', // Ensure fresh data
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured rentals');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured rentals:', error);
-    return [];
-  }
-}
-
-async function getFeaturedStores(): Promise<any[]> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/stores/featured`, {
-      cache: 'no-store', // Ensure fresh data
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured stores');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured stores:', error);
-    return [];
-  }
-}
-
 // Remove the old getCategories function - we'll use the dynamic one
 
-export default function Home() {
-  const { data: session } = useSession();
-  const { wishlistStatus, toggleWishlist, checkWishlistStatus } = useWishlist();
-
-  // State for server data
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [featuredRentals, setFeaturedRentals] = useState<Rental[]>([]);
-  const [featuredStores, setFeaturedStores] = useState<any[]>([]);
-  const [storeCategories, setStoreCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch data client-side
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsRes, rentalsRes, storesRes, categoriesRes] = await Promise.all([
-          fetch('/api/products/featured'),
-          fetch('/api/rentals/featured'),
-          fetch('/api/stores/featured'),
-          fetch('/api/categories?type=STORE&limit=12'),
-        ]);
-
-        const products = productsRes.ok ? await productsRes.json() : [];
-        const rentals = rentalsRes.ok ? await rentalsRes.json() : [];
-        const stores = storesRes.ok ? await storesRes.json() : [];
-        const categoriesResponse = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
-        const categories = categoriesResponse.categories || [];
-
-        setFeaturedProducts(products);
-        setFeaturedRentals(rentals);
-        setFeaturedStores(stores);
-        setStoreCategories(categories);
-
-        // Check wishlist status for products
-        if (session?.user && products.length > 0) {
-          const productIds = products.map((p: any) => p.id);
-          await checkWishlistStatus(productIds);
+// Transform API data to match component expectations
+function transformProductData(apiProduct: any): Product {
+  return {
+    id: apiProduct.id,
+    title: apiProduct.title,
+    slug: apiProduct.slug || `product-${apiProduct.id}`,
+    publicKey: apiProduct.publicKey || `key-${apiProduct.id}`,
+    images: apiProduct.image ? [apiProduct.image] : ["/placeholder.svg"],
+    price: apiProduct.price,
+    unit: typeof apiProduct.unit === 'string'
+      ? { symbol: apiProduct.unit }
+      : apiProduct.unit || { symbol: 'unit' },
+    location: apiProduct.location,
+    store: apiProduct.seller && apiProduct.sellerId
+      ? {
+          id: parseInt(apiProduct.sellerId),
+          name: apiProduct.seller
         }
+      : undefined,
+    isFeatured: apiProduct.isBestSeller || false,
+  };
+}
 
-        // Check wishlist status for rentals (assuming rentals have product-like structure)
-        if (session?.user && rentals.length > 0) {
-          const rentalIds = rentals.map((r: any) => r.id);
-          await checkWishlistStatus(rentalIds);
+// Transform for ProductCard component specifically
+function transformForProductCard(apiProduct: any): {
+  id: number;
+  title: string;
+  slug?: string;
+  publicKey?: string;
+  images?: string[];
+  price: number;
+  unit: { symbol: string };
+  location: string;
+  store?: { id: number; name: string; slug?: string; publicKey?: string };
+  isFeatured?: boolean;
+} {
+  // Ensure unit is always an object with symbol property
+  let unit: { symbol: string } = { symbol: 'unit' };
+  if (apiProduct.unit) {
+    if (typeof apiProduct.unit === 'string') {
+      unit = { symbol: apiProduct.unit };
+    } else if (apiProduct.unit && apiProduct.unit.symbol) {
+      unit = { symbol: apiProduct.unit.symbol };
+    }
+  }
+
+  return {
+    id: apiProduct.id,
+    title: apiProduct.title,
+    slug: apiProduct.slug || `product-${apiProduct.id}`,
+    publicKey: apiProduct.publicKey || `key-${apiProduct.id}`,
+    images: apiProduct.image ? [apiProduct.image] : ["/placeholder.svg"],
+    price: apiProduct.price,
+    unit: unit,
+    location: apiProduct.location,
+    store: apiProduct.seller && apiProduct.sellerId
+      ? {
+          id: parseInt(apiProduct.sellerId),
+          name: apiProduct.seller,
+          slug: apiProduct.sellerSlug,
+          publicKey: apiProduct.sellerPublicKey
         }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      : undefined,
+    isFeatured: apiProduct.isBestSeller || false,
+  };
+}
 
-    fetchData();
-  }, [session?.user, checkWishlistStatus]);
+// Server Component - Main Home Page
+export default async function Home() {
+  // Fetch data with better error handling and caching
+  let featuredProducts = [];
+  let featuredRentals = [];
+  let featuredStores = [];
+  let storeCategories = [];
+
+  try {
+    // Use Promise.allSettled for better error handling
+    const results = await Promise.allSettled([
+      getFeaturedProducts(),
+      getFeaturedRentals(),
+      getFeaturedStores(),
+      getStoreCategories(),
+    ]);
+
+    // Extract successful results
+    if (results[0].status === 'fulfilled') {
+      featuredProducts = results[0].value;
+    }
+    if (results[1].status === 'fulfilled') {
+      featuredRentals = results[1].value;
+    }
+    if (results[2].status === 'fulfilled') {
+      featuredStores = results[2].value;
+    }
+    if (results[3].status === 'fulfilled') {
+      storeCategories = results[3].value.categories || [];
+    }
+  } catch (error) {
+    console.error('Error fetching home page data:', error);
+    // Continue with empty arrays if all fail
+  }
+
+  // Transform product data to match component expectations
+  const transformedProducts: Array<{
+    id: number;
+    title: string;
+    slug?: string;
+    publicKey?: string;
+    images?: string[];
+    price: number;
+    unit: { symbol: string };
+    location: string;
+    store?: { id: number; name: string; slug?: string; publicKey?: string };
+    isFeatured?: boolean;
+  }> = featuredProducts.map(transformForProductCard);
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-[#f9fcf7] relative">
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className="bg-pattern"></div>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 relative">
+        {/* Simplified Background Elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Reduced floating elements for better performance */}
+          <div className="absolute top-20 left-10 w-24 h-24 bg-green-200/10 rounded-full"></div>
+          <div className="absolute top-40 right-20 w-20 h-20 bg-emerald-300/8 rounded-full"></div>
+          <div className="absolute bottom-32 left-1/4 w-32 h-32 bg-teal-200/6 rounded-full"></div>
+
+          {/* Simplified leaf patterns */}
+          <div className="absolute top-16 left-1/3 text-green-300/20 text-4xl">🌿</div>
+          <div className="absolute bottom-16 right-16 text-green-400/20 text-3xl">🌾</div>
         </div>
 
         {/* Dynamic Banner Section - Now the main hero */}
@@ -183,160 +272,243 @@ export default function Home() {
           showViewAll={true}
         />
 
-        {/* Featured Products */}
-        <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold">Featured Products</h2>
-            <Link href="/products" className="text-sm text-green-600 hover:underline flex items-center self-start sm:self-auto">
-              View All <ChevronRight className="h-4 w-4 ml-1" />
+        {/* Enhanced Featured Products */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+                <Package className="h-4 w-4" />
+                Fresh Products
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                Featured Products
+              </h2>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Discover the finest agricultural products from local farmers</p>
+            </div>
+            <Link href="/products" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+              View All Products
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredProducts.length > 0 ? (
-              featuredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  {...product}
-                  onWishlistToggle={toggleWishlist}
-                  isInWishlist={wishlistStatus[product.id]}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500 text-lg">No featured products available at the moment.</p>
-                <p className="text-gray-400 text-sm mt-2">Check back later for new products!</p>
+          <ErrorBoundary>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <Suspense fallback={<ProductSkeleton />}>
+                {transformedProducts.length > 0 ? (
+                  transformedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      {...(product as any)}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500 text-lg">No featured products available at the moment.</p>
+                    <p className="text-gray-400 text-sm mt-2">Check back later for new products!</p>
+                  </div>
+                )}
+              </Suspense>
+            </div>
+          </ErrorBoundary>
+        </section>
+
+        {/* Enhanced Featured Rentals */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-blue-100/80 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+                <Truck className="h-4 w-4" />
+                Equipment Rental
               </div>
-            )}
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
+                Featured Rentals
+              </h2>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Rent farming equipment and tools from trusted providers</p>
+            </div>
+            <Link href="/rentals" className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+              View All Rentals
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            <Suspense fallback={<RentalSkeleton />}>
+              {featuredRentals.length > 0 ? (
+                featuredRentals.map((rental: any) => (
+                  <RentalCard
+                    key={rental.id}
+                    {...rental}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500 text-lg">No featured rentals available at the moment.</p>
+                  <p className="text-gray-400 text-sm mt-2">Check back later for new rental options!</p>
+                </div>
+              )}
+            </Suspense>
           </div>
         </section>
 
-        {/* Featured Rentals */}
-        <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold">Featured Rentals</h2>
-            <Link href="/rentals" className="text-sm text-green-600 hover:underline flex items-center self-start sm:self-auto">
-              View All <ChevronRight className="h-4 w-4 ml-1" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredRentals.length > 0 ? (
-              featuredRentals.map((rental) => (
-                <RentalCard
-                  key={rental.id}
-                  {...rental}
-                  onWishlistToggle={toggleWishlist}
-                  isInWishlist={wishlistStatus[rental.id]}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500 text-lg">No featured rentals available at the moment.</p>
-                <p className="text-gray-400 text-sm mt-2">Check back later for new rental options!</p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Sell on Platform */}
+        {/* Compact Sell on Platform */}
         <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="bg-[#f0f9ed] rounded-lg p-6 sm:p-8 flex flex-col lg:flex-row items-center gap-6 sm:gap-8 relative overflow-hidden">
-            {/* Animated farm background */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 sm:p-8 border border-green-100 shadow-lg relative overflow-hidden">
+            {/* Subtle animated background */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="farm-pattern"></div>
-              <div className="floating-seed floating-seed-1"></div>
-              <div className="floating-seed floating-seed-2"></div>
-              <div className="floating-seed floating-seed-3"></div>
+              <div className="absolute top-4 right-4 w-12 h-12 bg-green-200/10 rounded-full animate-float-slow"></div>
+              <div className="absolute bottom-4 left-4 text-green-300/15 text-2xl animate-sway">🌱</div>
             </div>
 
-            <div className="lg:w-1/2 z-10 text-center lg:text-left">
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4">Start Selling on Nanbakadai</h2>
-              <p className="text-gray-600 mb-6 text-sm sm:text-base">
-                Join thousands of farmers and vendors who have found success in our marketplace. Our simple platform
-                makes it easy to start selling today.
-              </p>
-              <Link href="/seller/register">
-                <Button className="bg-green-500 hover:bg-green-600 flex items-center w-full sm:w-auto justify-center">
-                  Create Your Store <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-            <div className="lg:w-1/2 flex justify-center z-10">
-              <Image
-                src="/placeholder.svg"
-                alt="Selling on Nanbakadai"
-                width={400}
-                height={300}
-                className="rounded-lg w-full max-w-sm lg:max-w-none"
-              />
+            <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8 relative z-10">
+              <div className="lg:w-2/3 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium mb-4">
+                  <StoreIcon className="h-4 w-4" />
+                  Join Our Community
+                </div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">
+                  Start Selling on Nambakadai
+                </h2>
+                <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed max-w-2xl">
+                  Join thousands of farmers and vendors who have found success in our marketplace. Start selling today and connect with local customers.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                  <Link href="/seller/register">
+                    <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 px-6 py-2.5 text-sm font-semibold">
+                      <StoreIcon className="h-4 w-4 mr-2" />
+                      Create Store
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link href="/products">
+                    <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 px-6 py-2.5 text-sm font-semibold">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Browse Products
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="lg:w-1/3 flex justify-center">
+                <div className="relative">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-3 rounded-xl shadow-lg text-center">
+                    <div className="text-lg font-bold">10K+</div>
+                    <div className="text-xs opacity-90">Happy Sellers</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Popular Stores */}
-        <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold">Popular Stores</h2>
-            <Link href="/stores" className="text-sm text-green-600 hover:underline flex items-center self-start sm:self-auto">
-              View All Stores <ChevronRight className="h-4 w-4 ml-1" />
+        {/* Enhanced Popular Stores */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-purple-100/80 text-purple-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+                <StoreIcon className="h-4 w-4" />
+                Trusted Sellers
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-700 via-pink-600 to-rose-600 bg-clip-text text-transparent">
+                Popular Stores
+              </h2>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Discover amazing stores from verified farmers and vendors</p>
+            </div>
+            <Link href="/stores" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+              View All Stores
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredStores.length > 0 ? (
-              featuredStores.map((store) => (
-                <StoreCard
-                  key={store.id}
-                  id={store.id}
-                  slug={store.slug}
-                  publicKey={store.publicKey}
-                  image={store.image}
-                  name={store.name}
-                  category={store.category}
-                  rating={store.rating}
-                  reviews={store.reviews}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500 text-lg">No featured stores available at the moment.</p>
-                <p className="text-gray-400 text-sm mt-2">Check back later for new stores!</p>
-              </div>
-            )}
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            <Suspense fallback={<StoreSkeleton />}>
+              {featuredStores.length > 0 ? (
+                featuredStores.map((store: any) => (
+                  <StoreCard
+                    key={store.id}
+                    id={store.id}
+                    slug={store.slug}
+                    publicKey={store.publicKey}
+                    image={store.image}
+                    name={store.name}
+                    category={store.category}
+                    rating={store.rating}
+                    reviews={store.reviews}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500 text-lg">No featured stores available at the moment.</p>
+                  <p className="text-gray-400 text-sm mt-2">Check back later for new stores!</p>
+                </div>
+              )}
+            </Suspense>
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative overflow-hidden">
+        {/* Enhanced Testimonials */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative overflow-hidden">
+          {/* Animated nature background */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="floating-particle floating-particle-1"></div>
-            <div className="floating-particle floating-particle-2"></div>
-            <div className="floating-particle floating-particle-3"></div>
-            <div className="floating-particle floating-particle-4"></div>
-            <div className="floating-particle floating-particle-5"></div>
+            <div className="absolute top-20 left-10 w-32 h-32 bg-green-200/10 rounded-full animate-float-slow"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 bg-emerald-300/8 rounded-full animate-float-medium"></div>
+            <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-teal-200/6 rounded-full animate-float-fast"></div>
+            <div className="absolute top-1/3 right-10 text-green-300/15 text-5xl animate-sway">🌾</div>
+            <div className="absolute bottom-20 right-1/3 text-emerald-400/12 text-4xl animate-sway-delayed">🌱</div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-center mb-2 relative z-10">What Our Users Say</h2>
-          <p className="text-gray-600 text-center mb-8 relative z-10 text-sm sm:text-base max-w-2xl mx-auto">
-            Join thousands of satisfied customers who buy, sell, and rent on our platform.
-          </p>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
+          <div className="text-center mb-12 relative z-10">
+            <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <Star className="h-4 w-4 fill-current" />
+              Customer Stories
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              What Our Users Say
+            </h2>
+            <p className="text-gray-600 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed">
+              Join thousands of satisfied customers who buy, sell, and rent on our platform.
+              Real stories from real people building their agricultural dreams.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
             <TestimonialCard
               avatar="/placeholder.svg"
               name="Emily Johnson"
               role="Local Customer"
               quote="I love buying fresh produce directly from local farmers. The quality is amazing and I know exactly where my food comes from."
+              rating={5}
             />
             <TestimonialCard
               avatar="/placeholder.svg"
               name="Michael Chang"
               role="Farm Owner"
               quote="Setting up my store on Nanbakadai was incredibly easy. Now I can sell directly to customers and avoid the middleman."
+              rating={5}
             />
             <TestimonialCard
               avatar="/placeholder.svg"
               name="Sarah Wilson"
               role="Organic Gardener"
               quote="Being able to rent farming equipment when I need it has been a game changer for my small garden project."
+              rating={5}
             />
+          </div>
+
+          {/* Call to action */}
+          <div className="text-center mt-12 relative z-10">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border border-green-100 shadow-lg">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Ready to Join Our Community?</h3>
+              <p className="text-gray-600 mb-6">Start your journey with Nambakadai today</p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/signup">
+                  <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3">
+                    Get Started
+                  </Button>
+                </Link>
+                <Link href="/stores">
+                  <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 px-8 py-3">
+                    Explore Stores
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -346,233 +518,57 @@ export default function Home() {
 
 
 
-// Removed old CategoryItem component - using dynamic CategoryCarousel now
 
-// Component for product cards
-function ProductCard({
-  id,
-  title,
-  slug,
-  publicKey,
-  images,
-  price,
-  unit,
-  location,
-  store,
-  isFeatured,
-  onWishlistToggle,
-  isInWishlist,
-}: {
-  id: number
-  title: string
-  slug: string
-  publicKey: string
-  images: string[]
-  price: number
-  unit: {
-    symbol: string
-  }
-  location: string
-  store: {
-    id: number
-    name: string
-  }
-  isFeatured: boolean
-  onWishlistToggle?: (productId: number) => void
-  isInWishlist?: boolean
+// Enhanced Testimonial Card Component
+function TestimonialCard({ avatar, name, role, quote, rating }: {
+  avatar: string;
+  name: string;
+  role: string;
+  quote: string;
+  rating?: number;
 }) {
   return (
-    <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col">
-      <div className="relative">
-        <Image
-          src={images[0] || "/placeholder.svg"}
-          alt={title}
-          width={300}
-          height={200}
-          className="w-full h-40 sm:h-48 object-cover"
-        />
-        {isFeatured && (
-          <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">Featured</div>
-        )}
-        {/* Wish Icon */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onWishlistToggle?.(id);
-          }}
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
-        >
-          <Heart className={`h-4 w-4 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
-        </button>
-      </div>
-      <div className="p-3 sm:p-4 flex-1 flex flex-col">
-        <h3 className="font-semibold mb-1 text-sm sm:text-base line-clamp-2">{title}</h3>
-        <div className="flex items-baseline mb-2">
-          <span className="text-base sm:text-lg font-bold text-green-600">${price.toFixed(2)}</span>
-          <span className="text-xs text-gray-500 ml-1">/{unit.symbol}</span>
-        </div>
-        <div className="text-xs text-gray-500 mb-3 flex-1">
-          <div className="truncate">📍 {location}</div>
-          <div className="truncate">
-            Store:{" "}
-            <Link href={`/stores/${store.id}`} className="text-green-600 hover:underline">
-              {store.name}
-            </Link>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" size="sm" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs" asChild>
-            <Link href={`/products/${slug}/${publicKey}`}>Details</Link>
-          </Button>
-          <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50 text-xs" asChild>
-            <Link href={`/stores/${store.id}`}>Store</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 relative overflow-hidden group">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 to-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-// Component for store cards
-function StoreCard({
-  id,
-  slug,
-  publicKey,
-  image,
-  name,
-  category,
-  rating,
-  reviews,
-}: { id: string; slug?: string; publicKey?: string; image: string; name: string; category: string; rating: number; reviews: number }) {
-  const storeUrl = slug && publicKey ? `/stores/${slug}/${publicKey}` : `/stores/${id}`;
+      {/* Quote icon */}
+      <div className="absolute top-4 right-4 text-green-300/30 text-2xl group-hover:text-green-400/50 transition-colors">"</div>
 
-  return (
-    <Link href={storeUrl}>
-      <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-        <div className="relative h-32">
-          <Image src={image || "/placeholder.svg"} alt={name} fill className="object-cover" />
-        </div>
-        <div className="p-4">
-          <h3 className="font-semibold">{name}</h3>
-          <p className="text-xs text-gray-500 mb-2">{category}</p>
-          <div className="flex items-center mb-3">
-            <div className="flex items-center">
-              <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-              <span className="text-xs ml-1">{rating}</span>
+      <div className="relative z-10">
+        <div className="flex items-center mb-4">
+          <div className="relative">
+            <Image
+              src={avatar || "/placeholder.svg"}
+              alt={name}
+              width={48}
+              height={48}
+              className="rounded-full border-2 border-green-100 group-hover:border-green-300 transition-colors"
+            />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white p-1 rounded-full">
+              <Star className="h-3 w-3 fill-current" />
             </div>
-            <span className="text-xs text-gray-500 ml-2">({reviews} reviews)</span>
           </div>
-          <Button variant="outline" size="sm" className="w-full border-gray-300 text-gray-700 hover:bg-gray-50">
-            Visit Store
-          </Button>
-        </div>
-      </div>
-    </Link>
-  )
-}
-
-// Component for vehicle rental cards
-function RentalCard({
-  id,
-  slug,
-  publicKey,
-  image,
-  title,
-  price,
-  unit,
-  rating,
-  reviews,
-  location,
-  availability,
-  category,
-  onWishlistToggle,
-  isInWishlist,
-}: {
-  id: number
-  slug?: string
-  publicKey?: string
-  image: string
-  title: string
-  price: number
-  unit: string
-  rating: number
-  reviews: number
-  location: string
-  availability: number
-  category: string
-  onWishlistToggle?: (productId: number) => void
-  isInWishlist?: boolean
-}) {
-  const rentalUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}` : `/rentals/${id}`;
-  const rentalRequestUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}/request` : `/rentals/${id}/request`;
-
-  return (
-    <div className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-      <div className="relative">
-        <Image
-          src={image || "/placeholder.svg"}
-          alt={title}
-          width={300}
-          height={200}
-          className="w-full h-48 object-cover"
-        />
-        <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">Rental</div>
-        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-          {availability} Available
-        </div>
-        {/* Wish Icon */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onWishlistToggle?.(id);
-          }}
-          className="absolute top-12 right-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
-        >
-          <Heart className={`h-4 w-4 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
-        </button>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold mb-1">{title}</h3>
-        <p className="text-xs text-gray-500 mb-2">{category}</p>
-        <div className="flex items-baseline mb-2">
-          <span className="text-lg font-bold text-green-600">${price.toFixed(2)}</span>
-          <span className="text-xs text-gray-500 ml-1">{unit}</span>
-        </div>
-        <div className="flex items-center mb-2">
-          <div className="flex items-center">
-            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs ml-1">{rating}</span>
+          <div className="ml-4 flex-1">
+            <h4 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{name}</h4>
+            <p className="text-sm text-gray-500">{role}</p>
+            {rating && (
+              <div className="flex items-center mt-1">
+                {[...Array(rating)].map((_, i) => (
+                  <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                ))}
+              </div>
+            )}
           </div>
-          <span className="text-xs text-gray-500 ml-2">({reviews})</span>
         </div>
-        <div className="text-xs text-gray-500 mb-3">
-          <div>📍 {location}</div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
-            <Link href={rentalUrl}>View Details</Link>
-          </Button>
-          <Button size="sm" className="bg-green-500 hover:bg-green-600" asChild>
-            <Link href={rentalRequestUrl}>Rent Now</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
-// Component for testimonial cards
-function TestimonialCard({ avatar, name, role, quote }: { avatar: string; name: string; role: string; quote: string }) {
-  return (
-    <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-      <div className="flex items-center mb-4">
-        <Image src={avatar || "/placeholder.svg"} alt={name} width={40} height={40} className="rounded-full mr-3" />
-        <div>
-          <h4 className="font-semibold">{name}</h4>
-          <p className="text-xs text-gray-500">{role}</p>
-        </div>
+        <p className="text-gray-600 italic leading-relaxed group-hover:text-gray-700 transition-colors">
+          "{quote}"
+        </p>
+
+        {/* Decorative element */}
+        <div className="absolute bottom-4 left-4 w-8 h-8 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       </div>
-      <p className="text-sm text-gray-600 italic">"{quote}"</p>
     </div>
   )
 }

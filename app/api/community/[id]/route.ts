@@ -17,6 +17,21 @@ export async function GET(
     const community = await prisma.community.findUnique({
       where: isUUID ? { uuid: id } as any : { id: parseInt(id) },
       include: {
+        members: {
+          where: {
+            role: 'ADMIN'
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          take: 1,
+        },
         _count: {
           select: {
             members: true,
@@ -33,10 +48,14 @@ export async function GET(
       );
     }
 
+    // Get the owner from the first admin member
+    const owner = (community as any).members?.[0]?.user || null;
+
     return NextResponse.json({
       ...community,
       memberCount: (community as any)._count.members,
       postCount: (community as any)._count.posts,
+      owner: owner,
     });
   } catch (error) {
     console.error('Error fetching community:', error);
