@@ -65,10 +65,11 @@ export async function GET(
 // POST /api/community/[id]/members - Join a community
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
+    const { id } = await params;
+    const communityId = parseInt(id);
     
     if (isNaN(communityId)) {
       return NextResponse.json(
@@ -142,10 +143,11 @@ export async function POST(
 // DELETE /api/community/[id]/members - Leave a community
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
+    const { id } = await params;
+    const communityId = parseInt(id);
     
     if (isNaN(communityId)) {
       return NextResponse.json(
