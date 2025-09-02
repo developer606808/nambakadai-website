@@ -194,11 +194,18 @@ export default function SignupForm() {
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg border shadow-sm">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">Create an Account</h1>
-        <p className="text-gray-500 mt-2">Join Nanbakadai Farm Marketplace</p>
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-4 right-4 text-white/20 text-4xl">🌱</div>
+        <div className="relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create an Account</h1>
+          <p className="text-white/90 text-sm sm:text-base">Join Nanbakadai Farm Marketplace</p>
+        </div>
       </div>
+
+      <div className="p-6 sm:p-8 space-y-6">
 
       {/* Profile Image Upload */}
       <div className="mb-6 flex flex-col items-center">
@@ -485,7 +492,7 @@ export default function SignupForm() {
 
         <Button
           type="submit"
-          className="w-full bg-green-500 hover:bg-green-600"
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -549,6 +556,7 @@ export default function SignupForm() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -46,6 +46,7 @@ interface Post {
   community: {
     name: string
     uuid: string
+    image?: string
   }
   timestamp: string
   likes: number
@@ -86,6 +87,16 @@ export default function CommunityPage() {
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [isCreatingPost, setIsCreatingPost] = useState(false)
   const [commentInputs, setCommentInputs] = useState<{[key: number]: string}>({})
+
+  // Character count states
+  const [postCharCount, setPostCharCount] = useState(0)
+  const [commentCharCounts, setCommentCharCounts] = useState<{[key: number]: number}>({})
+
+  // Max lengths
+  const maxLengths = {
+    post: 1000,
+    comment: 500
+  }
   const [showComments, setShowComments] = useState<{[key: number]: boolean}>({})
   const [postComments, setPostComments] = useState<{[key: number]: any[]}>({})
   const [loadingComments, setLoadingComments] = useState<{[key: number]: boolean}>({})
@@ -94,6 +105,7 @@ export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Community[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [searchCharCount, setSearchCharCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -485,7 +497,7 @@ export default function CommunityPage() {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      const img = new Image()
+      const img = new window.Image()
 
       img.onload = () => {
         // Set canvas size to match image
@@ -537,7 +549,7 @@ export default function CommunityPage() {
       toast({
         title: "File Too Large",
         description: "Please select a file smaller than 5MB.",
-        variant: "destructive"
+        variant: "destructive" as const
       })
       return
     }
@@ -644,7 +656,8 @@ export default function CommunityPage() {
           },
           community: {
             name: userCommunity.name,
-            uuid: userCommunity.uuid
+            uuid: userCommunity.uuid,
+            image: userCommunity.image
           },
           timestamp: 'Just now',
           likes: 0,
@@ -656,6 +669,7 @@ export default function CommunityPage() {
 
         setPosts(prev => [newPostData, ...prev])
         setNewPost('')
+        setPostCharCount(0) // Reset character count
         setSelectedFile(null)
         setFilePreview(null)
         if (fileInputRef.current) {
@@ -745,277 +759,346 @@ export default function CommunityPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-100">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link href="/community" className="text-2xl font-bold text-green-600">
-                  🌱 FarmConnect
-                </Link>
-                <div className="hidden md:flex items-center gap-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/community">
-                      <Home className="h-4 w-4 mr-2" />
-                      Home
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center gap-2">
-                  {session?.user && (
-                    <>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href="/community">
-                          <Users className="h-4 w-4 mr-2" />
-                          Community
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Messages
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Bell className="h-4 w-4 mr-2" />
-                        Notifications
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {session?.user ? (
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={session.user.image || "/diverse-user-avatars.png"} />
-                    <AvatarFallback>{session.user.name?.[0] || 'Y'}</AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/login">Login</Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
         {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
             {/* Left Sidebar */}
-            <div className="hidden lg:block lg:col-span-1">
+            <div className="hidden xl:block xl:col-span-3">
               <div className="sticky top-20 space-y-4">
                 {/* Community Profile Card */}
-                <Card className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={userCommunity?.image || "/placeholder.svg"} />
-                      <AvatarFallback>{userCommunity?.name?.[0] || 'C'}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold">{userCommunity?.name || 'No Community'}</h3>
-                      <p className="text-sm text-gray-500">
-                        {userCommunity ? `${userCommunity.category} • ${userCommunity.memberCount} members` : 'Create your community'}
-                      </p>
-                    </div>
-                  </div>
-                  {userCommunity ? (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Members</span>
-                        <span className="font-semibold">
-                          {userCommunity.memberCount?.toLocaleString() || 0}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Posts</span>
-                        <span className="font-semibold">
-                          {userCommunity.postCount?.toLocaleString() || 0}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Category</span>
-                        <span className="font-semibold">
-                          {userCommunity.category}
-                        </span>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-6">
+                      <Avatar className="h-14 w-14 ring-4 ring-green-200">
+                        <AvatarImage src={userCommunity?.image || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-green-100 text-green-700 text-lg font-bold">
+                          {userCommunity?.name?.[0] || 'C'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-900">{userCommunity?.name || 'No Community'}</h3>
+                        <p className="text-sm text-gray-600">
+                          {userCommunity ? `${userCommunity.category} • ${userCommunity.memberCount} members` : 'Create your community'}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500 mb-3">You haven't created a community yet</p>
-                      <Button size="sm" asChild>
-                        <Link href="/community/create">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create Community
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
+                    {userCommunity ? (
+                      <div className="space-y-4">
+                        <div className="bg-white/70 rounded-lg p-3 border border-green-200">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Members</span>
+                            <span className="font-bold text-green-700 text-lg">
+                              {userCommunity.memberCount?.toLocaleString() || 0}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="bg-white/70 rounded-lg p-3 border border-green-200">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Posts</span>
+                            <span className="font-bold text-green-700 text-lg">
+                              {userCommunity.postCount?.toLocaleString() || 0}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="bg-white/70 rounded-lg p-3 border border-green-200">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">Category</span>
+                            <span className="font-bold text-green-700">
+                              {userCommunity.category}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Plus className="w-6 h-6 text-white" />
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4">You haven't created a community yet</p>
+                        <p className="text-xs text-gray-500">Use the main create community card above to get started</p>
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
 
                 {/* Navigation */}
-                <Card className="p-4">
-                  <nav className="space-y-2">
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href="/community">
-                        <Home className="h-4 w-4 mr-3" />
-                        Home
-                      </Link>
-                    </Button>
-                    {userCommunity && (
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <Link href={`/community/${userCommunity.uuid}`}>
-                          <Users className="h-4 w-4 mr-3" />
-                          My Community
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg">
+                  <CardContent className="p-6">
+                    <nav className="space-y-3">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                        asChild
+                      >
+                        <Link href="/community">
+                          <Home className="h-5 w-5 mr-3 text-green-600" />
+                          Home
                         </Link>
                       </Button>
-                    )}
-                    {userCommunity && (
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <Link href={`/community/${userCommunity.uuid}/settings`}>
-                          <Settings className="h-4 w-4 mr-3" />
-                          Community Settings
-                        </Link>
+                      {userCommunity && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                          asChild
+                        >
+                          <Link href={`/community/${userCommunity.slug || userCommunity.name?.toLowerCase().replace(/\s+/g, '-')}/${userCommunity.publicKey || userCommunity.uuid}`}>
+                            <Users className="h-5 w-5 mr-3 text-green-600" />
+                            My Community
+                          </Link>
+                        </Button>
+                      )}
+                      {userCommunity && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                          asChild
+                        >
+                          <Link href={`/community/${userCommunity.slug || userCommunity.name?.toLowerCase().replace(/\s+/g, '-')}/${userCommunity.publicKey || userCommunity.uuid}/settings`}>
+                            <Settings className="h-5 w-5 mr-3 text-green-600" />
+                            Community Settings
+                          </Link>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                      >
+                        <User className="h-5 w-5 mr-3 text-green-600" />
+                        Profile
                       </Button>
-                    )}
-                    <Button variant="ghost" className="w-full justify-start">
-                      <User className="h-4 w-4 mr-3" />
-                      Profile
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <MessageCircle className="h-4 w-4 mr-3" />
-                      Messages
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Settings className="h-4 w-4 mr-3" />
-                      Settings
-                    </Button>
-                  </nav>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                      >
+                        <MessageCircle className="h-5 w-5 mr-3 text-green-600" />
+                        Messages
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start bg-white/70 hover:bg-white border border-green-200 text-gray-700 hover:text-green-700 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                      >
+                        <Settings className="h-5 w-5 mr-3 text-green-600" />
+                        Settings
+                      </Button>
+                    </nav>
+                  </CardContent>
                 </Card>
               </div>
             </div>
 
             {/* Center Feed */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="xl:col-span-6 space-y-4 sm:space-y-6">
               {/* Create Post - Only show if user has a community */}
               {userCommunity ? (
-                <Card className="p-4">
-                  <div className="flex gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={session?.user?.image || "/diverse-user-avatars.png"} />
-                      <AvatarFallback>{session?.user?.name?.[0] || 'Y'}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder={`What's on your farming mind${session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}?`}
-                        value={newPost}
-                        onChange={(e) => setNewPost(e.target.value)}
-                        className="min-h-[80px] border-0 bg-gray-50 focus:bg-white resize-none"
-                      />
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Card className="bg-white border-2 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex gap-3 sm:gap-4">
+                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-green-200 flex-shrink-0">
+                          <AvatarImage src={session?.user?.image || "/diverse-user-avatars.png"} />
+                          <AvatarFallback className="bg-green-100 text-green-700">{session?.user?.name?.[0] || 'Y'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="relative">
+                            <Textarea
+                              placeholder={`What's on your farming mind${session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}? 🌱`}
+                              value={newPost}
+                              onChange={(e) => {
+                                setNewPost(e.target.value)
+                                setPostCharCount(e.target.value.length)
+                              }}
+                              maxLength={maxLengths.post}
+                              className="min-h-[80px] sm:min-h-[100px] border-2 border-gray-200 bg-gradient-to-br from-green-50 to-emerald-50 focus:bg-white focus:border-green-400 focus:ring-2 focus:ring-green-200 resize-none text-base rounded-lg transition-all duration-200 pr-20"
+                            />
+                            <div className="absolute right-3 bottom-3 text-xs font-medium">
+                              <span className={`${postCharCount > maxLengths.post * 0.9 ? 'text-red-500' : postCharCount > maxLengths.post * 0.8 ? 'text-yellow-500' : 'text-gray-500'}`}>
+                                {postCharCount}/{maxLengths.post}
+                              </span>
+                            </div>
+                          </div>
 
-                      {/* File Preview */}
-                      {filePreview && (
-                        <div className="relative mt-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {selectedFile?.type.startsWith('image/') ? (
-                                <Image
-                                  src={filePreview}
-                                  alt="Preview"
-                                  width={60}
-                                  height={60}
-                                  className="rounded-lg object-cover"
-                                />
-                              ) : (
-                                <div className="w-15 h-15 bg-gray-200 rounded-lg flex items-center justify-center">
-                                  <Video className="h-6 w-6 text-gray-500" />
+                          {/* File Preview */}
+                          {filePreview && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="relative mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  {selectedFile?.type.startsWith('image/') ? (
+                                    <Image
+                                      src={filePreview}
+                                      alt="Preview"
+                                      width={60}
+                                      height={60}
+                                      className="rounded-lg object-cover ring-2 ring-green-200"
+                                    />
+                                  ) : (
+                                    <div className="w-15 h-15 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center ring-2 ring-green-200">
+                                      <Video className="h-6 w-6 text-green-600" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-800">{selectedFile?.name}</p>
+                                    <p className="text-xs text-gray-600">
+                                      {(selectedFile?.size! / (1024 * 1024)).toFixed(2)} MB
+                                    </p>
+                                  </div>
                                 </div>
-                              )}
-                              <div>
-                                <p className="text-sm font-medium">{selectedFile?.name}</p>
-                                <p className="text-xs text-gray-500">
-                                  {(selectedFile?.size! / (1024 * 1024)).toFixed(2)} MB
-                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={removeFile}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full w-8 h-8 p-0"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
                               </div>
+                            </motion.div>
+                          )}
+
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,video/*"
+                                onChange={handleFileSelect}
+                                className="hidden"
+                                id="media-upload"
+                              />
+                              <label htmlFor="media-upload">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="cursor-pointer border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 transition-all duration-200"
+                                  asChild
+                                >
+                                  <span>
+                                    <Camera className="h-4 w-4 mr-2" />
+                                    <span className="hidden sm:inline">Photo/Video</span>
+                                    <span className="sm:hidden">Media</span>
+                                  </span>
+                                </Button>
+                              </label>
                             </div>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={removeFile}
-                              className="text-red-500 hover:text-red-700"
+                              onClick={handleCreatePost}
+                              disabled={(!newPost.trim() && !selectedFile) || isCreatingPost}
+                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold px-6 py-2 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100"
                             >
-                              <X className="h-4 w-4" />
+                              {isCreatingPost ? (
+                                <div className="flex items-center space-x-2">
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                  />
+                                  <span>Posting...</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2">
+                                  <Send className="h-5 w-5" />
+                                  <span>Post</span>
+                                </div>
+                              )}
                             </Button>
                           </div>
                         </div>
-                      )}
-
-                      <div className="flex items-center justify-between mt-3">
-                        <div className="flex items-center gap-2">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*,video/*"
-                            onChange={handleFileSelect}
-                            className="hidden"
-                            id="media-upload"
-                          />
-                          <label htmlFor="media-upload">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="cursor-pointer"
-                              asChild
-                            >
-                              <span>
-                                <Camera className="h-4 w-4 mr-1" />
-                                Photo/Video
-                              </span>
-                            </Button>
-                          </label>
-                        </div>
-                        <Button
-                          onClick={handleCreatePost}
-                          disabled={(!newPost.trim() && !selectedFile) || isCreatingPost}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {isCreatingPost ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                            />
-                          ) : (
-                            <Send className="h-4 w-4 mr-2" />
-                          )}
-                          {isCreatingPost ? 'Posting...' : 'Post'}
-                        </Button>
                       </div>
-                    </div>
-                  </div>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ) : (
-                /* Show message when user doesn't have a community */
-                <Card className="p-8 text-center">
-                  <div className="text-4xl mb-4">🌱</div>
-                  <h3 className="text-lg font-semibold mb-2">Join the Community</h3>
-                  <p className="text-gray-500 mb-4">
-                    Create your own community or join an existing one to start sharing and connecting with fellow farmers.
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Button asChild>
-                      <Link href="/community/create">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Community
-                      </Link>
-                    </Button>
-                    <Button variant="outline" onClick={handleFindCommunities}>
-                      <Search className="h-4 w-4 mr-2" />
-                      Find Communities
-                    </Button>
-                  </div>
-                </Card>
+                /* Show centered create community card when user doesn't have a community */
+                <div className="flex items-center justify-center min-h-[60vh] px-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="max-w-md w-full"
+                  >
+                    <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 shadow-xl">
+                      {/* Decorative background elements */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-green-200 rounded-full -mr-16 -mt-16 opacity-20"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-200 rounded-full -ml-12 -mb-12 opacity-20"></div>
+
+                      <CardContent className="relative p-8 text-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.2, duration: 0.5, type: "spring", bounce: 0.4 }}
+                          className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
+                        >
+                          <Sprout className="w-10 h-10 text-white" />
+                        </motion.div>
+
+                        <motion.h3
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4, duration: 0.5 }}
+                          className="text-2xl font-bold text-gray-800 mb-3"
+                        >
+                          Start Your Farming Journey
+                        </motion.h3>
+
+                        <motion.p
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.6, duration: 0.5 }}
+                          className="text-gray-600 mb-8 leading-relaxed"
+                        >
+                          Create your own community or join fellow farmers to share knowledge, experiences, and build connections in the agricultural world.
+                        </motion.p>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.8, duration: 0.5 }}
+                          className="flex flex-col sm:flex-row gap-4 justify-center"
+                        >
+                          <Button
+                            asChild
+                            size="lg"
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                          >
+                            <Link href="/community/create">
+                              <Plus className="h-5 w-5 mr-2" />
+                              Create Community
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={handleFindCommunities}
+                            className="border-2 border-green-300 text-green-700 hover:bg-green-50 font-semibold px-8 py-3 transition-all duration-300 hover:scale-105"
+                          >
+                            <Search className="h-5 w-5 mr-2" />
+                            Find Communities
+                          </Button>
+                        </motion.div>
+
+                        {/* Additional visual elements */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 1.0, duration: 0.5 }}
+                          className="mt-8 flex justify-center space-x-2"
+                        >
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                        </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </div>
               )}
 
               {/* Posts Feed */}
@@ -1026,125 +1109,232 @@ export default function CommunityPage() {
                     <p className="text-gray-500">Loading posts...</p>
                   </Card>
                 ) : posts.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <div className="text-4xl mb-4">📝</div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      {userCommunity ? 'No posts yet' : 'Welcome to FarmConnect Community'}
-                    </h3>
-                    <p className="text-gray-500">
-                      {userCommunity
-                        ? 'Be the first to share something with your community!'
-                        : 'Create your community or join an existing one to start sharing and connecting with fellow farmers.'
-                      }
-                    </p>
-                    {!userCommunity && (
-                      <div className="flex gap-3 justify-center mt-4">
-                        <Button asChild>
-                          <Link href="/community/create">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Community
-                          </Link>
-                        </Button>
-                        <Button variant="outline" onClick={handleFindCommunities}>
-                          <Search className="h-4 w-4 mr-2" />
-                          Find Communities
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex items-center justify-center min-h-[50vh] px-4"
+                  >
+                    <Card className="max-w-lg w-full bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 shadow-lg">
+                      <CardContent className="p-8 text-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.2, duration: 0.5, type: "spring", bounce: 0.4 }}
+                          className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
+                        >
+                          <Type className="w-8 h-8 text-white" />
+                        </motion.div>
+
+                        <motion.h3
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4, duration: 0.5 }}
+                          className="text-xl font-bold text-gray-800 mb-3"
+                        >
+                          {userCommunity ? 'No posts yet' : 'Welcome to FarmConnect Community'}
+                        </motion.h3>
+
+                        <motion.p
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.6, duration: 0.5 }}
+                          className="text-gray-600 mb-6 leading-relaxed"
+                        >
+                          {userCommunity
+                            ? 'Be the first to share something with your community! Start the conversation and inspire fellow farmers.'
+                            : 'Create your community or join an existing one to start sharing and connecting with fellow farmers.'
+                          }
+                        </motion.p>
+
+                        {!userCommunity && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.8, duration: 0.5 }}
+                            className="text-center"
+                          >
+                            <p className="text-sm text-gray-600">Use the main create community card above to get started</p>
+                          </motion.div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ) : (
-                  posts.map((post) => (
-                    <Card key={post.id} className="p-4">
-                      {/* Post Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={post.author.avatar} />
-                            <AvatarFallback>{post.author.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h4 className="font-semibold text-sm">{post.author.name}</h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span>{post.author.role}</span>
-                              <span>•</span>
-                              <span>{post.timestamp}</span>
-                              <span>•</span>
-                              <span>in {post.community.name}</span>
+                  posts.map((post, index) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    >
+                      <Card className="bg-white border-2 border-green-100 hover:border-green-300 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01] overflow-hidden">
+                        <CardContent className="p-4 sm:p-6">
+                          {/* Enhanced Post Header with Community and User Info */}
+                          <div className="mb-4 space-y-3">
+                            {/* Community Header - Top */}
+                            <div className="flex items-center justify-center">
+                              <div className="flex items-center gap-3 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 px-4 py-2 rounded-full border-2 border-green-200 shadow-md hover:shadow-lg transition-all duration-300">
+                                {/* Community Logo */}
+                                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center ring-2 ring-green-300 shadow-sm flex-shrink-0">
+                                  {post.community?.image ? (
+                                    <Image
+                                      src={post.community.image}
+                                      alt={post.community.name}
+                                      width={24}
+                                      height={24}
+                                      className="rounded-full object-cover w-full h-full"
+                                    />
+                                  ) : (
+                                    <span className="text-white font-bold text-sm">
+                                      {(post.community?.name || 'C')[0].toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Community Name and Timestamp */}
+                                <div className="flex flex-col items-center min-w-0">
+                                  <span className="text-green-800 font-bold text-sm text-center">
+                                    {post.community?.name || 'Community'}
+                                  </span>
+                                  <span className="text-green-600 text-xs font-medium">
+                                    {post.timestamp}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* User Info and Options - Bottom */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {/* User Avatar */}
+                                <div className="relative w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center ring-2 ring-gray-200 shadow-sm flex-shrink-0">
+                                  {post.author?.avatar && post.author.avatar.startsWith('http') ? (
+                                    <Image
+                                      src={post.author.avatar}
+                                      alt={post.author.name}
+                                      width={24}
+                                      height={24}
+                                      className="rounded-full object-cover w-full h-full"
+                                      onError={(e) => {
+                                        // Hide the image if it fails to load
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : null}
+                                  {/* Always show fallback initial */}
+                                  <span className="text-white font-bold text-sm">
+                                    {post.author?.name?.[0]?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                                {/* User Name and Role */}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-gray-900 font-semibold text-sm truncate">
+                                    {post.author?.name || 'Anonymous'}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                      {post.author?.role || 'Member'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* More Options */}
+                              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full w-8 h-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </div>
 
-                      {/* Post Content */}
-                      <div className="mb-3">
-                        {post.content && <p className="text-gray-800 mb-3">{post.content}</p>}
-                        {post.media && (
-                          <div className="rounded-lg overflow-hidden border">
-                            {post.type === 'image' && (
-                              <Image
-                                src={post.media}
-                                alt="Post media"
-                                width={500}
-                                height={300}
-                                className="w-full h-auto object-cover"
-                              />
+                          {/* Post Content */}
+                          <div className="mb-6">
+                            {post.content && (
+                              <div className="bg-gradient-to-r from-gray-50 to-green-50 p-4 rounded-lg border border-green-100 mb-4">
+                                <p className="text-gray-800 text-base leading-relaxed font-medium">{post.content}</p>
+                              </div>
                             )}
-                            {post.type === 'video' && (
-                              <video
-                                src={post.media}
-                                controls
-                                className="w-full h-auto max-h-96 object-cover"
-                              >
-                                Your browser does not support the video tag.
-                              </video>
+                            {post.media && (
+                              <div className="rounded-xl overflow-hidden border-2 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                                {post.type === 'image' && (
+                                  <div className="relative group">
+                                    <Image
+                                      src={post.media}
+                                      alt="Post media"
+                                      width={600}
+                                      height={400}
+                                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  </div>
+                                )}
+                                {post.type === 'video' && (
+                                  <div className="relative">
+                                    <video
+                                      src={post.media}
+                                      controls
+                                      className="w-full h-auto max-h-96 object-cover rounded-xl"
+                                      poster="/video-poster.jpg"
+                                    >
+                                      Your browser does not support the video tag.
+                                    </video>
+                                    <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs font-medium">
+                                      Video
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Post Actions */}
-                      <div className="flex items-center justify-between pt-3 border-t">
-                        <div className="flex items-center gap-6">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleLikePost(post.id)}
-                            className={post.isLiked ? 'text-red-500' : 'text-gray-500'}
-                          >
-                            <ThumbsUp className={`h-4 w-4 mr-2 ${post.isLiked ? 'fill-current' : ''}`} />
-                            {post.likes}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleComments(post.id)}
-                            className="text-gray-500"
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            {post.comments}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSharePost(post)}
-                            className="text-gray-500"
-                          >
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Share
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleBookmarkPost(post.id)}
-                          className={post.isBookmarked ? 'text-yellow-500' : 'text-gray-500'}
-                        >
-                          <Bookmark className={`h-4 w-4 ${post.isBookmarked ? 'fill-current' : ''}`} />
-                        </Button>
-                      </div>
+                          {/* Enhanced Post Actions */}
+                          <div className="bg-gradient-to-r from-gray-50 to-green-50 p-4 rounded-lg border border-green-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 sm:gap-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleLikePost(post.id)}
+                                  className={`h-10 px-3 rounded-full transition-all duration-300 hover:scale-110 shadow-sm ${
+                                    post.isLiked
+                                      ? 'text-red-600 bg-red-100 hover:bg-red-200 border border-red-200'
+                                      : 'text-gray-600 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200'
+                                  }`}
+                                >
+                                  <ThumbsUp className={`h-5 w-5 mr-1 ${post.isLiked ? 'fill-current' : ''}`} />
+                                  <span className="font-semibold text-sm">{post.likes}</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleComments(post.id)}
+                                  className="h-10 px-3 rounded-full text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all duration-300 hover:scale-110 shadow-sm"
+                                >
+                                  <MessageSquare className="h-5 w-5 mr-1" />
+                                  <span className="font-semibold text-sm">{post.comments}</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSharePost(post)}
+                                  className="h-10 px-3 rounded-full text-gray-600 hover:text-purple-600 hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all duration-300 hover:scale-110 shadow-sm"
+                                >
+                                  <Share2 className="h-5 w-5 mr-1" />
+                                  <span className="font-semibold text-sm">Share</span>
+                                </Button>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleBookmarkPost(post.id)}
+                                className={`h-10 w-10 rounded-full transition-all duration-300 hover:scale-110 shadow-sm ${
+                                  post.isBookmarked
+                                    ? 'text-yellow-600 bg-yellow-100 hover:bg-yellow-200 border border-yellow-200'
+                                    : 'text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 border border-transparent hover:border-yellow-200'
+                                }`}
+                              >
+                                <Bookmark className={`h-5 w-5 ${post.isBookmarked ? 'fill-current' : ''}`} />
+                              </Button>
+                            </div>
+                          </div>
 
                       {/* Comments Section */}
                       {showComments[post.id] && (
@@ -1157,25 +1347,52 @@ export default function CommunityPage() {
                             </div>
                           ) : (
                             postComments[post.id] && postComments[post.id].length > 0 && (
-                              <div className="space-y-3 mb-4">
+                              <div className="space-y-4 mb-6">
                                 {postComments[post.id].map((comment: any) => (
-                                  <div key={comment.id} className="flex gap-3">
-                                    <Avatar className="h-8 w-8 flex-shrink-0">
-                                      <AvatarImage src={comment.author.avatar} />
-                                      <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1">
-                                      <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className="font-semibold text-sm">{comment.author.name}</span>
-                                          <span className="text-xs text-gray-500">{comment.timestamp}</span>
-                                        </div>
-                                        <p className="text-sm">{comment.content}</p>
+                                  <div key={comment.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
+                                    <div className="flex gap-3">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center ring-2 ring-blue-200 shadow-sm flex-shrink-0">
+                                        {comment.author?.avatar && comment.author.avatar.startsWith('http') ? (
+                                          <Image
+                                            src={comment.author.avatar}
+                                            alt={comment.author.name}
+                                            width={24}
+                                            height={24}
+                                            className="rounded-full object-cover w-full h-full"
+                                          />
+                                        ) : null}
+                                        <span className="text-white font-bold text-sm">
+                                          {comment.author?.name?.[0]?.toUpperCase() || 'U'}
+                                        </span>
                                       </div>
-                                      <div className="flex items-center gap-4 mt-1 ml-3">
-                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                                          Like ({comment.likes})
-                                        </Button>
+                                      <div className="flex-1">
+                                        <div className="bg-white rounded-lg px-4 py-3 shadow-sm border border-blue-100">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span className="font-semibold text-sm text-gray-900">{comment.author.name}</span>
+                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                              {comment.author.role || 'Member'}
+                                            </span>
+                                            <span className="text-xs text-gray-500 ml-auto">{comment.timestamp}</span>
+                                          </div>
+                                          <p className="text-sm text-gray-800 leading-relaxed">{comment.content}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2 ml-4">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-3 text-xs text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
+                                          >
+                                            <ThumbsUp className="h-3 w-3 mr-1" />
+                                            Like ({comment.likes || 0})
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-3 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                                          >
+                                            Reply
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1184,128 +1401,189 @@ export default function CommunityPage() {
                             )
                           )}
 
-                          {/* Comment Input */}
-                          <div className="flex gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={session?.user?.image || "/diverse-user-avatars.png"} />
-                              <AvatarFallback>{session?.user?.name?.[0] || 'Y'}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 flex gap-2">
-                              <Input
-                                placeholder="Write a comment..."
-                                value={commentInputs[post.id] || ''}
-                                onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
-                                className="flex-1"
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault()
-                                    handleCommentPost(post.id)
-                                  }
-                                }}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => handleCommentPost(post.id)}
-                                disabled={!commentInputs[post.id]?.trim() || submittingComment[post.id]}
-                              >
-                                {submittingComment[post.id] ? (
-                                  <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                          {/* Enhanced Comment Input */}
+                          <div className="bg-white p-4 rounded-lg border-2 border-green-200 shadow-sm">
+                            <div className="flex gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center ring-2 ring-gray-200 shadow-sm flex-shrink-0">
+                                {session?.user?.image && session.user.image.startsWith('http') ? (
+                                  <Image
+                                    src={session.user.image}
+                                    alt={session.user.name || 'User'}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full object-cover w-full h-full"
                                   />
-                                ) : (
-                                  <Send className="h-4 w-4" />
-                                )}
-                              </Button>
+                                ) : null}
+                                <span className="text-white font-bold text-sm">
+                                  {session?.user?.name?.[0]?.toUpperCase() || 'U'}
+                                </span>
+                              </div>
+                              <div className="flex-1 flex gap-2">
+                                <div className="flex-1 relative">
+                                  <Input
+                                    placeholder="Write a thoughtful comment..."
+                                    value={commentInputs[post.id] || ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      setCommentInputs(prev => ({ ...prev, [post.id]: value }))
+                                      setCommentCharCounts(prev => ({ ...prev, [post.id]: value.length }))
+                                    }}
+                                    maxLength={maxLengths.comment}
+                                    className="h-10 pr-16 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault()
+                                        handleCommentPost(post.id)
+                                      }
+                                    }}
+                                  />
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium">
+                                    <span className={`${(commentCharCounts[post.id] || 0) > maxLengths.comment * 0.9 ? 'text-red-500' : (commentCharCounts[post.id] || 0) > maxLengths.comment * 0.8 ? 'text-yellow-500' : 'text-gray-500'}`}>
+                                      {(commentCharCounts[post.id] || 0)}/{maxLengths.comment}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCommentPost(post.id)}
+                                  disabled={!commentInputs[post.id]?.trim() || submittingComment[post.id]}
+                                  className="h-10 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100"
+                                >
+                                  {submittingComment[post.id] ? (
+                                    <motion.div
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                    />
+                                  ) : (
+                                    <Send className="h-5 w-5" />
+                                  )}
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </CardContent>
                     </Card>
+                    </motion.div>
                   ))
                 )}
               </div>
             </div>
 
             {/* Right Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="xl:col-span-3">
               <div className="sticky top-20 space-y-6">
                 {/* Suggested Communities */}
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-4">Suggested Communities</h3>
-                  <div className="space-y-3">
-                    {suggestedCommunities.slice(0, 5).map((community) => (
-                      <div key={community.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Image
-                            src={community.image || "/placeholder.svg"}
-                            alt={community.name}
-                            width={32}
-                            height={32}
-                            className="rounded-lg object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{community.name}</h4>
-                          <p className="text-xs text-gray-500">{community.memberCount} members</p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Join
-                        </Button>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                        <Users className="w-4 h-4 text-white" />
                       </div>
-                    ))}
-                  </div>
+                      <h3 className="font-bold text-lg text-gray-900">Suggested Communities</h3>
+                    </div>
+                    <div className="space-y-4">
+                      {suggestedCommunities.slice(0, 5).map((community) => (
+                        <div key={community.id} className="flex items-center gap-4 p-3 bg-white/70 hover:bg-white border border-green-200 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md">
+                          <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center ring-2 ring-green-200">
+                            <Image
+                              src={community.image || "/placeholder.svg"}
+                              alt={community.name}
+                              width={32}
+                              height={32}
+                              className="rounded-lg object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm text-gray-900 truncate">{community.name}</h4>
+                            <p className="text-xs text-gray-600">{community.memberCount} members</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium px-4 py-1 text-xs shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                          >
+                            Join
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
                 </Card>
 
                 {/* Trending Topics */}
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-4">Trending Topics</h3>
-                  <div className="space-y-2">
-                    {[
-                      '#OrganicFarming',
-                      '#RiceCultivation',
-                      '#SustainableAgri',
-                      '#FarmTech',
-                      '#CropRotation'
-                    ].map((topic) => (
-                      <div key={topic} className="text-sm text-blue-600 hover:underline cursor-pointer">
-                        {topic}
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-white" />
                       </div>
-                    ))}
-                  </div>
+                      <h3 className="font-bold text-lg text-gray-900">Trending Topics</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        '#OrganicFarming',
+                        '#RiceCultivation',
+                        '#SustainableAgri',
+                        '#FarmTech',
+                        '#CropRotation'
+                      ].map((topic, index) => (
+                        <motion.div
+                          key={topic}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1, duration: 0.3 }}
+                          className="bg-white/70 hover:bg-white border border-green-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                        >
+                          <div className="text-sm font-semibold text-green-700 hover:text-green-800">
+                            {topic}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
                 </Card>
 
                 {/* Quick Actions */}
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-4">Quick Actions</h3>
-                  <div className="space-y-2">
-                    {!userCommunity && (
-                      <Button className="w-full" size="sm" asChild>
-                        <Link href="/community/create">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create Community
-                        </Link>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                        <Sun className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className="font-bold text-lg text-gray-900">Quick Actions</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <Button
+                        variant="outline"
+                        className="w-full border-2 border-green-300 text-green-700 hover:bg-green-50 font-semibold h-12 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                        size="sm"
+                        onClick={handleFindCommunities}
+                      >
+                        <Search className="h-5 w-5 mr-2" />
+                        Find Communities
                       </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                      onClick={handleFindCommunities}
-                    >
-                      <Search className="h-4 w-4 mr-2" />
-                      Find Communities
-                    </Button>
-                    {userCommunity && (
-                      <Button variant="outline" className="w-full" size="sm" asChild>
-                        <Link href={`/community/${userCommunity.uuid}/settings`}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Manage Community
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
+                      {userCommunity && (
+                        <Button
+                          variant="outline"
+                          className="w-full border-2 border-green-300 text-green-700 hover:bg-green-50 font-semibold h-12 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/community/${userCommunity.slug || userCommunity.name?.toLowerCase().replace(/\s+/g, '-')}/${userCommunity.publicKey || userCommunity.uuid}/settings`}>
+                            <Settings className="h-5 w-5 mr-2" />
+                            Manage Community
+                          </Link>
+                        </Button>
+                      )}
+                      {!userCommunity && (
+                        <div className="text-center py-4">
+                          <p className="text-xs text-gray-600">Use the main create community card to get started</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
               </div>
             </div>
@@ -1333,12 +1611,22 @@ export default function CommunityPage() {
               <div className="p-6 border-b">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search communities..."
-                    value={searchQuery}
-                    onChange={handleSearchInput}
-                    className="pl-10"
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search communities..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        handleSearchInput(e)
+                        setSearchCharCount(e.target.value.length)
+                      }}
+                      maxLength={100}
+                      className="pl-10 pr-16"
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-500">
+                      {searchCharCount}/100
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1395,7 +1683,7 @@ export default function CommunityPage() {
                               variant="outline"
                               asChild
                             >
-                              <Link href={`/community/${community.uuid}`}>
+                              <Link href={`/community/${community.slug || community.name?.toLowerCase().replace(/\s+/g, '-')}/${community.publicKey || community.uuid}`}>
                                 View
                               </Link>
                             </Button>

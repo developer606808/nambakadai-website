@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
+import { motion } from "framer-motion"
 import { 
   Plus, 
   Search, 
@@ -88,83 +89,152 @@ export default function SellerVehicles() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rental Vehicles</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your vehicle rental listings
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <Link href="/seller/rent-vehicles/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Vehicle
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+        >
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Truck className="h-6 w-6 text-white" />
+              </div>
+              Rental Vehicles
+            </h1>
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+              Manage your vehicle rental listings and track performance
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 px-4 py-2 text-sm font-medium shadow-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              {displayVehicles.filter(v => v.status === 'available').length} Available
+            </Badge>
+            <Link href="/seller/rent-vehicles/new">
+              <Button className="h-12 px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <Plus className="w-5 h-5 mr-2" />
+                <span className="hidden sm:inline">Add Vehicle</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Vehicles</p>
-                <p className="text-2xl font-bold">{displayVehicles.length}</p>
-              </div>
-              <Truck className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Rentals</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {displayVehicles.filter(v => v.status === 'available').length}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {displayVehicles.reduce((sum, vehicle) => sum + (vehicle.bookings || 0), 0)}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg. Rating</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {displayVehicles.length > 0 
-                    ? (displayVehicles.reduce((sum, vehicle) => sum + (vehicle.rating || 0), 0) / displayVehicles.length).toFixed(1)
-                    : "0.0"}
-                </p>
-              </div>
-              <span className="text-yellow-500 text-2xl">★</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+        >
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-blue-800">Total Vehicles</p>
+                    <p className="text-3xl font-bold text-blue-700">{displayVehicles.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-blue-600">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">Fleet size</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-green-800">Active Rentals</p>
+                    <p className="text-3xl font-bold text-green-700">
+                      {displayVehicles.filter(v => v.status === 'available').length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">Ready to rent</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-purple-800">Total Bookings</p>
+                    <p className="text-3xl font-bold text-purple-700">
+                      {displayVehicles.reduce((sum, vehicle) => sum + (vehicle.bookings || 0), 0)}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <Users className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-purple-600">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">Customer bookings</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-bl-3xl"></div>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-yellow-800">Avg. Rating</p>
+                    <p className="text-3xl font-bold text-yellow-700">
+                      {displayVehicles.length > 0
+                        ? (displayVehicles.reduce((sum, vehicle) => sum + (vehicle.rating || 0), 0) / displayVehicles.length).toFixed(1)
+                        : "0.0"}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                    <span className="text-yellow-600 text-xl font-bold">★</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-yellow-600">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">Customer satisfaction</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
       {/* Filters and Search */}
       <Card>
@@ -365,6 +435,7 @@ export default function SellerVehicles() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

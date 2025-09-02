@@ -28,10 +28,12 @@ import {
   Package
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { motion } from "framer-motion"
 
 export default function SellerSettings() {
   const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
 
   // Initialize with current store data from session
   const [storeData, setStoreData] = useState({
@@ -44,6 +46,11 @@ export default function SellerSettings() {
     website: session?.user?.currentStore?.website || "https://freshfarm.com",
     logo: session?.user?.currentStore?.logo || "/api/placeholder/100/100",
     banner: session?.user?.currentStore?.banner || "/api/placeholder/400/200"
+  })
+
+  const [profileData, setProfileData] = useState({
+    name: session?.user?.name || "",
+    email: session?.user?.email || ""
   })
 
   const [notifications, setNotifications] = useState({
@@ -70,6 +77,12 @@ export default function SellerSettings() {
     setIsEditing(false)
   }
 
+  const handleSaveProfile = () => {
+    // In real app, save to API
+    console.log("Saving profile data:", profileData)
+    setIsEditingProfile(false)
+  }
+
   const handleNotificationChange = (key: string, value: boolean) => {
     setNotifications(prev => ({ ...prev, [key]: value }))
   }
@@ -92,46 +105,75 @@ export default function SellerSettings() {
     }
   }, [session])
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your store settings and preferences
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <Badge variant="outline" className="text-green-700 border-green-200">
-            Store Status: Active
-          </Badge>
-        </div>
-      </div>
+  // Update profile data when session loads
+  useEffect(() => {
+    if (session?.user) {
+      setProfileData({
+        name: session.user.name || "",
+        email: session.user.email || ""
+      })
+    }
+  }, [session])
 
-      <Tabs defaultValue="store" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="store" className="flex items-center gap-2">
-            <Store className="w-4 h-4" />
-            Store
-          </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="business" className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Business
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Security
-          </TabsTrigger>
-        </TabsList>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+        >
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <SettingsIcon className="h-6 w-6 text-white" />
+              </div>
+              Settings
+            </h1>
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+              Manage your store settings and preferences with ease
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 px-4 py-2 text-sm font-medium shadow-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              Store Status: Active
+            </Badge>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Tabs defaultValue="store" className="space-y-6">
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-white p-1 shadow-lg border-2 border-gray-200 min-w-max">
+                <TabsTrigger value="store" className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md gap-2">
+                  <Store className="w-4 h-4" />
+                  <span className="hidden sm:inline">Store</span>
+                </TabsTrigger>
+                <TabsTrigger value="profile" className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md gap-2">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">Profile</span>
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md gap-2">
+                  <Bell className="w-4 h-4" />
+                  <span className="hidden sm:inline">Notifications</span>
+                </TabsTrigger>
+                <TabsTrigger value="business" className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="hidden sm:inline">Business</span>
+                </TabsTrigger>
+                <TabsTrigger value="security" className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md gap-2">
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Security</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
         {/* Store Settings */}
         <TabsContent value="store">
@@ -298,10 +340,30 @@ export default function SellerSettings() {
         <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>
-                Manage your personal account information
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Profile Settings</CardTitle>
+                  <CardDescription>
+                    Manage your personal account information
+                  </CardDescription>
+                </div>
+                <Button
+                  variant={isEditingProfile ? "default" : "outline"}
+                  onClick={() => isEditingProfile ? handleSaveProfile() : setIsEditingProfile(true)}
+                >
+                  {isEditingProfile ? (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center space-x-4">
@@ -326,26 +388,30 @@ export default function SellerSettings() {
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
                     id="fullName"
-                    value={session?.user?.name || ""}
+                    value={profileData.name}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Enter your full name"
+                    disabled={!isEditingProfile}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="userEmail">Email Address</Label>
                   <Input
                     id="userEmail"
                     type="email"
-                    value={session?.user?.email || ""}
+                    value={profileData.email}
                     disabled
                   />
                 </div>
               </div>
 
-              <Button>
-                <Save className="w-4 h-4 mr-2" />
-                Update Profile
-              </Button>
+              {isEditingProfile && (
+                <Button onClick={handleSaveProfile}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Update Profile
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -540,6 +606,8 @@ export default function SellerSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+      </motion.div>
+      </div>
     </div>
   )
 }

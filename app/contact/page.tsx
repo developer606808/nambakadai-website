@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HeadphonesIcon } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HeadphonesIcon, ArrowRight, CheckCircle, Users, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -72,30 +71,39 @@ export default function ContactPage() {
             </div>
           </section>
 
-          <section className="py-12">
-            <div className="container mx-auto px-4 max-w-6xl">
+          <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Contact Information */}
                 <div className="lg:col-span-1 space-y-6">
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h2>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                        <HeadphonesIcon className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">Get in Touch</h2>
+                    </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-start">
-                        <Mail className="h-6 w-6 text-green-600 mr-3 mt-1" />
+                    <div className="space-y-6">
+                      <div className="flex items-start p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                        <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                          <Mail className="h-5 w-5 text-green-600" />
+                        </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Email</h3>
-                          <p className="text-gray-600">support@nanbakadai.com</p>
-                          <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
+                          <h3 className="font-bold text-gray-900 mb-1">Email Support</h3>
+                          <p className="text-gray-700 font-medium">support@nanbakadai.com</p>
+                          <p className="text-sm text-green-600 font-medium">⚡ Responds within 24 hours</p>
                         </div>
                       </div>
 
-                      <div className="flex items-start">
-                        <Phone className="h-6 w-6 text-green-600 mr-3 mt-1" />
+                      <div className="flex items-start p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                          <Phone className="h-5 w-5 text-blue-600" />
+                        </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Phone</h3>
-                          <p className="text-gray-600">+1 (555) 123-4567</p>
-                          <p className="text-sm text-gray-500">Mon-Fri, 9 AM - 6 PM EST</p>
+                          <h3 className="font-bold text-gray-900 mb-1">Phone Support</h3>
+                          <p className="text-gray-700 font-medium">+1 (555) 123-4567</p>
+                          <p className="text-sm text-blue-600 font-medium">🕒 Mon-Fri, 9 AM - 6 PM EST</p>
                         </div>
                       </div>
 
@@ -128,22 +136,26 @@ export default function ContactPage() {
                   </div>
 
                   {/* Quick Help */}
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <HeadphonesIcon className="h-5 w-5 mr-2 text-green-600" />
-                      Quick Help
-                    </h3>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                        <HeadphonesIcon className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">Quick Help</h3>
+                    </div>
                     <div className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start" asChild>
-                        <a href="/faq">
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          View FAQ
+                      <Button variant="outline" className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 rounded-xl" asChild>
+                        <a href="/faq" className="flex items-center">
+                          <MessageSquare className="h-4 w-4 mr-3" />
+                          <span className="font-medium">View FAQ</span>
+                          <ArrowRight className="h-4 w-4 ml-auto" />
                         </a>
                       </Button>
-                      <Button variant="outline" className="w-full justify-start" asChild>
-                        <a href="/terms">
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Terms & Conditions
+                      <Button variant="outline" className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 rounded-xl" asChild>
+                        <a href="/terms" className="flex items-center">
+                          <MessageSquare className="h-4 w-4 mr-3" />
+                          <span className="font-medium">Terms & Conditions</span>
+                          <ArrowRight className="h-4 w-4 ml-auto" />
                         </a>
                       </Button>
                     </div>
@@ -152,8 +164,13 @@ export default function ContactPage() {
 
                 {/* Contact Form */}
                 <div className="lg:col-span-2">
-                  <div className="bg-white rounded-lg shadow-lg p-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 sm:p-8 hover:shadow-2xl transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                        <Send className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">Send us a Message</h2>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -234,17 +251,17 @@ export default function ContactPage() {
                       <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-green-600 hover:bg-green-700 transition-colors duration-200"
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                       >
                         {isSubmitting ? (
-                          <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Sending...
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                            <span className="font-medium">Sending Message...</span>
                           </div>
                         ) : (
-                          <div className="flex items-center">
-                            <Send className="h-4 w-4 mr-2" />
-                            Send Message
+                          <div className="flex items-center justify-center">
+                            <Send className="h-5 w-5 mr-3" />
+                            <span className="font-medium">Send Message</span>
                           </div>
                         )}
                       </Button>
@@ -255,22 +272,41 @@ export default function ContactPage() {
             </div>
           </section>
 
-          {/* Map Section */}
-          <section className="py-12 bg-white">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Visit Our Office</h2>
-                <p className="text-gray-600 max-w-2xl mx-auto">
-                  Located in the heart of Agriculture City, we're always happy to meet in person.
+          {/* Enhanced Map Section */}
+          <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mb-6 shadow-lg">
+                  <MapPin className="text-2xl text-white" />
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-4">
+                  Visit Our Office
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Located in the heart of Agriculture City, we're always happy to meet in person and discuss your farming needs.
                 </p>
               </div>
 
-              <div className="max-w-4xl mx-auto">
-                <div className="bg-gray-200 rounded-lg h-96 flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Interactive map would be displayed here</p>
-                    <p className="text-sm text-gray-400 mt-2">123 Farm Street, Agriculture City, AC 12345</p>
+              <div className="max-w-5xl mx-auto">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 hover:shadow-2xl transition-all duration-300">
+                  <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl h-80 flex items-center justify-center relative overflow-hidden">
+                    {/* Decorative elements */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-emerald-100/20"></div>
+                    <div className="absolute top-4 right-4 text-green-300/30 text-4xl">🌱</div>
+                    <div className="absolute bottom-4 left-4 text-emerald-300/30 text-3xl">🌾</div>
+
+                    <div className="text-center relative z-10">
+                      <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <MapPin className="h-8 w-8 text-green-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Our Location</h3>
+                      <p className="text-gray-600 mb-4">Interactive map integration coming soon</p>
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm">
+                        <p className="text-gray-800 font-medium">123 Farm Street</p>
+                        <p className="text-gray-800 font-medium">Agriculture City, AC 12345</p>
+                        <p className="text-gray-600 text-sm mt-1">United States</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

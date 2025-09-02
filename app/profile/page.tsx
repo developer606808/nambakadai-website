@@ -622,9 +622,23 @@ export default function ProfilePage() {
     console.log('status--->', status, 'loading----->', loading);
     return (
       <MainLayout>
-        <div className="container mx-auto py-8 px-4">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto py-8 px-4">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-green-500"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-500 animate-spin animation-delay-300"></div>
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">Loading your profile...</h3>
+                <p className="text-sm text-gray-600">Please wait while we fetch your information</p>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce animation-delay-100"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-200"></div>
+              </div>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -634,12 +648,27 @@ export default function ProfilePage() {
   if (status === "unauthenticated") {
     return (
       <MainLayout>
-        <div className="container mx-auto py-8 px-4">
-          <div className="text-center min-h-[400px] flex items-center justify-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
-              <p className="text-gray-600 mb-6">Please log in to access your profile.</p>
-              <Button onClick={() => router.push("/login")}>Go to Login</Button>
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto py-8 px-4">
+            <div className="max-w-md mx-auto">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+                <p className="text-gray-600 mb-8 leading-relaxed">Please log in to access your profile and manage your account settings.</p>
+                <Button
+                  onClick={() => router.push("/login")}
+                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  Go to Login
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -650,12 +679,39 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <MainLayout>
-        <div className="container mx-auto py-8 px-4">
-          <div className="text-center min-h-[400px] flex items-center justify-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
-              <p className="text-gray-600 mb-6">Unable to load your profile information.</p>
-              <Button onClick={() => router.push("/")}>Go Home</Button>
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto py-8 px-4">
+            <div className="max-w-md mx-auto">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
+                <p className="text-gray-600 mb-8 leading-relaxed">Unable to load your profile information. Please try again or contact support if the problem persists.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    className="flex-1 h-12 border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Try Again
+                  </Button>
+                  <Button
+                    onClick={() => router.push("/")}
+                    className="flex-1 h-12 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Go Home
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -665,53 +721,82 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto py-8 px-4">
-        <Breadcrumbs />
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto py-4 px-4 sm:py-8">
+          <div className="mb-4 sm:mb-6">
+            <Breadcrumbs />
+          </div>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          <ProfileSidebar
-            user={user}
-            store={store}
-            uploadingImage={uploadingImage}
-            onProfilePictureUpload={handleProfilePictureUpload}
-            fileInputRef={fileInputRef}
-          />
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            <ProfileSidebar
+              user={user}
+              store={store}
+              uploadingImage={uploadingImage}
+              onProfilePictureUpload={handleProfilePictureUpload}
+              fileInputRef={fileInputRef}
+            />
 
-          <div className="flex-1">
-            <Tabs defaultValue="profile">
-              <TabsList className="mb-6">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="saved">Saved Items</TabsTrigger>
-              </TabsList>
+            <div className="flex-1 min-w-0">
+              <Tabs defaultValue="profile" className="w-full">
+                <div className="mb-4 sm:mb-6 overflow-x-auto">
+                  <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-white p-1 text-muted-foreground shadow-sm min-w-max">
+                    <TabsTrigger
+                      value="profile"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                    >
+                      Profile
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="security"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                    >
+                      Security
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="saved"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                    >
+                      Saved Items
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-              <TabsContent value="profile" className="space-y-6">
-                <ProfileForm
-                  user={user}
-                  formData={profileForm}
-                  onFormChange={handleProfileFormChange}
-                  onSubmit={handleProfileUpdate}
-                  updating={updating}
-                  phoneError={phoneError}
-                />
-              </TabsContent>
+                <div className="space-y-4 sm:space-y-6">
+                  <TabsContent value="profile" className="mt-0">
+                    <div className="animate-in slide-in-from-bottom-2 duration-300">
+                      <ProfileForm
+                        user={user}
+                        formData={profileForm}
+                        onFormChange={handleProfileFormChange}
+                        onSubmit={handleProfileUpdate}
+                        updating={updating}
+                        phoneError={phoneError}
+                      />
+                    </div>
+                  </TabsContent>
 
-              <TabsContent value="security" className="space-y-6">
-                <PasswordChangeForm
-                  formData={passwordForm}
-                  onFormChange={handlePasswordFormChange}
-                  showPasswords={showPasswords}
-                  onTogglePasswordVisibility={handleTogglePasswordVisibility}
-                  passwordStrength={passwordStrength}
-                  onSubmit={handlePasswordChange}
-                  changing={changingPassword}
-                />
-              </TabsContent>
+                  <TabsContent value="security" className="mt-0">
+                    <div className="animate-in slide-in-from-bottom-2 duration-300">
+                      <PasswordChangeForm
+                        formData={passwordForm}
+                        onFormChange={handlePasswordFormChange}
+                        showPasswords={showPasswords}
+                        onTogglePasswordVisibility={handleTogglePasswordVisibility}
+                        passwordStrength={passwordStrength}
+                        onSubmit={handlePasswordChange}
+                        changing={changingPassword}
+                      />
+                    </div>
+                  </TabsContent>
 
-              <TabsContent value="saved">
-                <SavedItems user={user} />
-              </TabsContent>
-            </Tabs>
+                  <TabsContent value="saved" className="mt-0">
+                    <div className="animate-in slide-in-from-bottom-2 duration-300">
+                      <SavedItems user={user} />
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
           </div>
         </div>
       </div>

@@ -67,6 +67,7 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [showChatList, setShowChatList] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -78,6 +79,8 @@ export default function MessagesPage() {
   useEffect(() => {
     if (selectedChat) {
       fetchMessages(selectedChat)
+      // On mobile, hide chat list when a chat is selected
+      setShowChatList(false)
     }
   }, [selectedChat])
 
@@ -202,6 +205,11 @@ export default function MessagesPage() {
     }
   }
 
+  const handleBackToChatList = () => {
+    setSelectedChat(null)
+    setShowChatList(true)
+  }
+
   const filteredChats = chats.filter(chat => {
     // For now, just return all chats - you can add search functionality later
     return true
@@ -239,9 +247,9 @@ export default function MessagesPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
-          {/* Chats List */}
-          <Card className="lg:col-span-1">
+        <div className="flex flex-col lg:flex-row gap-6 min-h-[600px] lg:h-[600px]">
+          {/* Chats List - Hidden on mobile when chat is selected */}
+          <Card className={`lg:flex-1 transition-all duration-300 ease-in-out ${showChatList ? 'block' : 'hidden lg:block'}`}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Conversations</span>
@@ -276,9 +284,9 @@ export default function MessagesPage() {
                   filteredChats.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 border-l-4 ${
+                      className={`p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 border-l-4 transition-all duration-200 ${
                         selectedChat === chat.id
-                          ? 'border-l-blue-500 bg-blue-50'
+                          ? 'border-l-blue-500 bg-blue-50 shadow-sm'
                           : 'border-l-transparent'
                       }`}
                       onClick={() => setSelectedChat(chat.id)}
@@ -316,13 +324,22 @@ export default function MessagesPage() {
             </CardContent>
           </Card>
 
-          {/* Chat Interface */}
-          <Card className="lg:col-span-2">
+          {/* Chat Interface - Hidden on mobile when chat list is shown */}
+          <Card className={`flex-1 lg:flex-[2] transition-all duration-300 ease-in-out ${!showChatList || selectedChat ? 'block' : 'hidden lg:block'}`}>
             {selectedChat ? (
               <>
                 <CardHeader className="border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
+                      {/* Back button for mobile */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="lg:hidden mr-2"
+                        onClick={handleBackToChatList}
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </Button>
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={selectedChatData?.storeLogo} />
                         <AvatarFallback>
@@ -364,18 +381,19 @@ export default function MessagesPage() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-0">
-                  <div className="h-[400px] overflow-y-auto p-4 space-y-4">
-                    {messages.map((message) => (
+                <CardContent className="p-0 flex flex-col" style={{ height: 'calc(100vh - 300px)' }}>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((message, index) => (
                       <div
                         key={message.id}
-                        className={`flex ${message.senderId === session.user.id ? 'justify-end' : 'justify-start'}`}
+                        className={`flex animate-in slide-in-from-bottom-2 duration-300 ${message.senderId === session.user.id ? 'justify-end' : 'justify-start'}`}
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                          className={`max-w-[85vw] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${
                             message.senderId === session.user.id
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 text-gray-900'
+                              ? 'bg-blue-500 text-white rounded-br-sm'
+                              : 'bg-gray-100 text-gray-900 rounded-bl-sm'
                           }`}
                         >
                           <p className="text-sm">{message.content}</p>
@@ -390,22 +408,27 @@ export default function MessagesPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="border-t p-4">
-                    <div className="flex items-center space-x-2">
+                  <div className="border-t p-4 bg-white">
+                    <div className="flex items-end space-x-2">
                       <Input
                         placeholder="Type your message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        className="flex-1"
+                        className="flex-1 min-h-[40px] py-2"
                         disabled={sendingMessage}
                       />
                       <Button
                         onClick={sendMessage}
                         size="sm"
                         disabled={!newMessage.trim() || sendingMessage}
+                        className="h-10 w-10 p-0 transition-all duration-200 hover:scale-105"
                       >
-                        <Send className="w-4 h-4" />
+                        {sendingMessage ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

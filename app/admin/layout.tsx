@@ -25,9 +25,13 @@ export default function AdminLayout({
       const isAuthenticated = !!session?.user
       const isAdmin = session?.user?.role === "ADMIN"
 
+
       if (isLoading) {
         setIsAuthorized(null) // Still loading
-      } else if (isAuthenticated && isAdmin) {
+        return
+      }
+
+      if (isAuthenticated && isAdmin) {
         setIsAuthorized(true) // Authorized admin
       } else {
         setIsAuthorized(false) // Not authorized
@@ -41,7 +45,7 @@ export default function AdminLayout({
     }
 
     checkAdminAuth()
-  }, [session, status, pathname, router])
+  }, [session, status, pathname, router, isAuthorized])
 
   // Show loading state while checking auth
   if (isAuthorized === null) {
@@ -52,13 +56,45 @@ export default function AdminLayout({
     )
   }
 
-  // If not authorized, only show the children (login page) without sidebar
+  // Determine what to render based on authorization and current page
   const allowedPages = ["/admin/login", "/admin/forgot-password", "/admin/test"]
-  if (!isAuthorized && pathname && allowedPages.includes(pathname)) {
-    return <div className="h-screen bg-muted/20">{children}</div>
+  const isAllowedPage = pathname && allowedPages.includes(pathname)
+
+  // If loading, show loading state
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-muted/20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
-  // If authorized, show the full admin layout with sidebar
+  // If not authorized
+  if (!isAuthorized) {
+    // If on allowed page (like login), show children without sidebar
+    if (isAllowedPage) {
+      return (
+        <div className="min-h-screen bg-muted/20">
+          {children}
+        </div>
+      )
+    } else {
+      // If not on allowed page, redirect to login
+      return (
+        <div className="min-h-screen bg-muted/20 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Redirecting to login...</p>
+          </div>
+        </div>
+      )
+    }
+  }
+
+  // If authorized, show full admin layout
   return (
     <AdminProvider>
       <div className="flex h-screen bg-muted/20">

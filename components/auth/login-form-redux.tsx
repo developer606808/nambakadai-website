@@ -39,6 +39,8 @@ export function LoginFormRedux() {
 
   // Handle URL parameters for success/error messages
   useEffect(() => {
+    if (!searchParams) return
+
     const registered = searchParams.get('registered')
     const verified = searchParams.get('verified')
     const verificationError = searchParams.get('error')
@@ -148,11 +150,18 @@ export function LoginFormRedux() {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-white rounded-lg shadow-md border border-gray-100">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-gray-500">Enter your credentials to access your account</p>
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-4 right-4 text-white/20 text-4xl">🌾</div>
+        <div className="relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back</h1>
+          <p className="text-white/90 text-sm sm:text-base">Enter your credentials to access your account</p>
+        </div>
       </div>
+
+      <div className="p-6 sm:p-8 space-y-6">
 
       {error && (
         <Alert variant="destructive" className="animate-shake">
@@ -265,6 +274,7 @@ export function LoginFormRedux() {
             Sign up
           </Link>
         </p>
+      </div>
       </div>
     </div>
   )
