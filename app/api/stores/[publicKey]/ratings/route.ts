@@ -6,10 +6,10 @@ import { authOptions } from '@/lib/auth/auth';
 // GET /api/stores/[publicKey]/ratings - Get all ratings for a store
 export async function GET(
   request: Request,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
-    const { publicKey } = params;
+    const { publicKey } = await params;
     console.log('Fetching ratings for store:', publicKey);
 
     // Find store by publicKey
@@ -71,7 +71,7 @@ export async function GET(
 // POST /api/stores/[publicKey]/ratings - Create or update a rating
 export async function POST(
   request: Request,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     console.log('POST request to ratings API');
@@ -86,7 +86,7 @@ export async function POST(
       );
     }
 
-    const { publicKey } = params;
+    const { publicKey } = await params;
     const { value, comment } = await request.json();
     console.log('Request data:', { publicKey, value, comment });
 

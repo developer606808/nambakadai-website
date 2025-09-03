@@ -107,16 +107,17 @@ export async function GET(request: NextRequest) {
 }
 
 // GET /api/stores/:id - Get store details (for backward compatibility)
-export async function GET_BY_ID(
+async function GET_BY_ID(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Apply rate limiting
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
-    const storeId = parseInt(params.id);
+    const { id } = await params;
+    const storeId = parseInt(id);
     if (isNaN(storeId)) {
       return NextResponse.json(
         { error: 'Invalid store ID' },
@@ -291,7 +292,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/stores/:id - Update store
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Apply rate limiting
@@ -324,7 +325,8 @@ export async function PUT(
     }
 
     // Check if store exists and user has permission
-    const storeId = parseInt(params.id);
+    const { id } = await params;
+    const storeId = parseInt(id);
     if (isNaN(storeId)) {
       return NextResponse.json(
         { error: 'Invalid store ID' },
