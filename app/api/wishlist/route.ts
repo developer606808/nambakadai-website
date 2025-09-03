@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/wishlist/:id - Remove product from wishlist
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Apply rate limiting
@@ -169,7 +169,8 @@ export async function DELETE(
       );
     }
 
-    const itemId = parseInt(params.id);
+    const { id } = await params;
+    const itemId = parseInt(id);
     if (isNaN(itemId)) {
       return NextResponse.json(
         { error: 'Invalid wishlist item ID' },

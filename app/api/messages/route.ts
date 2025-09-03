@@ -213,6 +213,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (!conversation) {
+      return NextResponse.json(
+        { error: 'Failed to find or create conversation' },
+        { status: 500 }
+      )
+    }
+
     // Create message
     const message = await prisma.message.create({
       data: {

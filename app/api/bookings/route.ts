@@ -255,7 +255,7 @@ export async function PUT(request: NextRequest) {
         totalDays,
         totalAmount,
         customerName: customerName || session.user.name || '',
-        customerPhone: customerPhone || session.user.phone || '',
+        customerPhone: customerPhone || '',
         customerEmail: customerEmail || session.user.email || '',
         purpose,
         notes,

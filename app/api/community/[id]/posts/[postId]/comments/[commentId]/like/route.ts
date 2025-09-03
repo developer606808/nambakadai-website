@@ -12,7 +12,7 @@ export async function POST(
     const postIdNum = parseInt(postId);
     const commentIdNum = parseInt(commentId);
     
-    if (isNaN(communityId) || isNaN(postId) || isNaN(commentId)) {
+    if (isNaN(communityId) || isNaN(postIdNum) || isNaN(commentIdNum)) {
       return NextResponse.json(
         { error: 'Invalid community, post, or comment ID' },
         { status: 400 }
