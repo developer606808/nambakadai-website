@@ -65,11 +65,12 @@ export async function GET(
 // PUT /api/community/[id]/posts/[postId] - Update a post
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string; postId: string } }
+  { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    const postId = parseInt(params.postId);
+    const { id, postId: postIdParam } = await params;
+    const communityId = parseInt(id);
+    const postId = parseInt(postIdParam);
     
     if (isNaN(communityId) || isNaN(postId)) {
       return NextResponse.json(
@@ -126,11 +127,12 @@ export async function PUT(
 // DELETE /api/community/[id]/posts/[postId] - Delete a post
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; postId: string } }
+  { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    const postId = parseInt(params.postId);
+    const { id, postId: postIdParam } = await params;
+    const communityId = parseInt(id);
+    const postId = parseInt(postIdParam);
     
     if (isNaN(communityId) || isNaN(postId)) {
       return NextResponse.json(
