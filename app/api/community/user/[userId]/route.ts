@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 // GET /api/community/user/[userId] - Get communities a user belongs to
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const userId = parseInt(params.userId);
+    const { userId: userIdParam } = await params;
+    const userId = parseInt(userIdParam);
     
     if (isNaN(userId)) {
       return NextResponse.json(

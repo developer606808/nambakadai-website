@@ -7,14 +7,14 @@ import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
 // GET /api/vehicles/[publicKey] - Get a specific vehicle by publicKey
 export async function GET(
   request: NextRequest,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     // Apply rate limiting
     const rateLimitResponse = await rateLimitMiddleware(request);
     if (rateLimitResponse) return rateLimitResponse;
 
-    const { publicKey } = params;
+    const { publicKey } = await params;
 
     // Validate publicKey format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -59,7 +59,7 @@ export async function GET(
 // PUT /api/vehicles/[publicKey] - Update a vehicle by publicKey
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     // Apply rate limiting
@@ -75,7 +75,7 @@ export async function PUT(
       );
     }
 
-    const { publicKey } = params;
+    const { publicKey } = await params;
 
     // Validate publicKey format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -144,7 +144,7 @@ export async function PUT(
 // DELETE /api/vehicles/[publicKey] - Delete a vehicle by publicKey
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     // Apply rate limiting
@@ -160,7 +160,7 @@ export async function DELETE(
       );
     }
 
-    const { publicKey } = params;
+    const { publicKey } = await params;
 
     // Validate publicKey format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
