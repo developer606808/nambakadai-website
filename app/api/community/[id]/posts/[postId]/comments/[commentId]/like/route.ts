@@ -4,12 +4,13 @@ import { prisma } from '@/lib/prisma';
 // POST /api/community/[id]/posts/[postId]/comments/[commentId]/like - Like/unlike a comment
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; postId: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; postId: string; commentId: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    const postId = parseInt(params.postId);
-    const commentId = parseInt(params.commentId);
+    const { id, postId, commentId } = await params;
+    const communityId = parseInt(id);
+    const postIdNum = parseInt(postId);
+    const commentIdNum = parseInt(commentId);
     
     if (isNaN(communityId) || isNaN(postId) || isNaN(commentId)) {
       return NextResponse.json(
@@ -39,29 +40,25 @@ export async function POST(
     }
 
     // Check if user has already liked the comment
-    const existingLike = await prisma.communityLike.findUnique({
+    const existingLike = await prisma.communityLike.findFirst({
       where: {
-        userId_commentId: {
-          userId,
-          commentId,
-        },
+        userId,
+        commentId: commentIdNum,
       },
     });
 
     if (existingLike) {
       // Unlike the comment
-      await prisma.communityLike.delete({
+      await prisma.communityLike.deleteMany({
         where: {
-          userId_commentId: {
-            userId,
-            commentId,
-          },
+          userId,
+          commentId: commentIdNum,
         },
       });
 
       // Decrement like count
       await prisma.communityComment.update({
-        where: { id: commentId },
+        where: { id: commentIdNum },
         data: {
           likeCount: {
             decrement: 1,
@@ -75,13 +72,13 @@ export async function POST(
       await prisma.communityLike.create({
         data: {
           userId,
-          commentId,
+          commentId: commentIdNum,
         },
       });
 
       // Increment like count
       await prisma.communityComment.update({
-        where: { id: commentId },
+        where: { id: commentIdNum },
         data: {
           likeCount: {
             increment: 1,

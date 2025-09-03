@@ -4,13 +4,14 @@ import { prisma } from '@/lib/prisma';
 // POST /api/community/[id]/posts/[postId]/like - Like/unlike a post
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; postId: string } }
+  { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const communityId = parseInt(params.id);
-    const postId = parseInt(params.postId);
+    const { id, postId } = await params;
+    const communityId = parseInt(id);
+    const postIdNum = parseInt(postId);
     
-    if (isNaN(communityId) || isNaN(postId)) {
+    if (isNaN(communityId) || isNaN(postIdNum)) {
       return NextResponse.json(
         { error: 'Invalid community or post ID' },
         { status: 400 }
@@ -38,29 +39,25 @@ export async function POST(
     }
 
     // Check if user has already liked the post
-    const existingLike = await prisma.communityLike.findUnique({
+    const existingLike = await prisma.communityLike.findFirst({
       where: {
-        userId_postId: {
-          userId,
-          postId,
-        },
+        userId,
+        postId: postIdNum,
       },
     });
 
     if (existingLike) {
       // Unlike the post
-      await prisma.communityLike.delete({
+      await prisma.communityLike.deleteMany({
         where: {
-          userId_postId: {
-            userId,
-            postId,
-          },
+          userId,
+          postId: postIdNum,
         },
       });
 
       // Decrement like count
       await prisma.communityPost.update({
-        where: { id: postId },
+        where: { id: postIdNum },
         data: {
           likeCount: {
             decrement: 1,
@@ -74,13 +71,13 @@ export async function POST(
       await prisma.communityLike.create({
         data: {
           userId,
-          postId,
+          postId: postIdNum,
         },
       });
 
       // Increment like count
       await prisma.communityPost.update({
-        where: { id: postId },
+        where: { id: postIdNum },
         data: {
           likeCount: {
             increment: 1,
