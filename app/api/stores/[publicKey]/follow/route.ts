@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/stores/[publicKey]/follow - Check if user is following a store
 export async function GET(
   request: Request,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function GET(
     }
 
     const userId = parseInt(session.user.id);
-    const { publicKey } = params;
+    const { publicKey } = await params;
 
     // Find the store
     const store = await (prisma as any).store.findFirst({
@@ -58,7 +58,7 @@ export async function GET(
 // POST /api/stores/[publicKey]/follow - Follow or unfollow a store
 export async function POST(
   request: Request,
-  { params }: { params: { publicKey: string } }
+  { params }: { params: Promise<{ publicKey: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -70,7 +70,7 @@ export async function POST(
     }
 
     const userId = parseInt(session.user.id);
-    const { publicKey } = params;
+    const { publicKey } = await params;
 
     // Find the store
     const store = await (prisma as any).store.findFirst({
