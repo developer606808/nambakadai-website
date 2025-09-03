@@ -12,6 +12,7 @@ import { StoreCard } from "@/components/home/store-card"
 import { RentalCard } from "@/components/home/rental-card"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { ProductSkeleton, RentalSkeleton, StoreSkeleton } from "@/components/ui/skeletons"
+import { getTranslations } from 'next-intl/server'
 
 // Server-side data fetching functions
 async function getFeaturedProducts() {
@@ -195,6 +196,10 @@ function transformForProductCard(apiProduct: any): {
 
 // Server Component - Main Home Page
 export default async function Home() {
+  // Get translations
+  const t = await getTranslations('Home');
+  const tCommon = await getTranslations('Common');
+
   // Fetch data with better error handling and caching
   let featuredProducts = [];
   let featuredRentals = [];
@@ -278,15 +283,15 @@ export default async function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
                 <Package className="h-4 w-4" />
-                Fresh Products
+                {t('featuredProducts')}
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                Featured Products
+                {t('featuredProducts')}
               </h2>
-              <p className="text-gray-600 mt-2 text-sm sm:text-base">Discover the finest agricultural products from local farmers</p>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('featuredProductsDesc')}</p>
             </div>
             <Link href="/products" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              View All Products
+              {t('viewAllProducts')}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -317,15 +322,15 @@ export default async function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-blue-100/80 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
                 <Truck className="h-4 w-4" />
-                Equipment Rental
+                {t('equipmentRental')}
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
-                Featured Rentals
+                {t('equipmentRental')}
               </h2>
-              <p className="text-gray-600 mt-2 text-sm sm:text-base">Rent farming equipment and tools from trusted providers</p>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('equipmentRentalDesc')}</p>
             </div>
             <Link href="/rentals" className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              View All Rentals
+              {t('viewAllRentals')}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -361,26 +366,26 @@ export default async function Home() {
               <div className="lg:w-2/3 text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium mb-4">
                   <StoreIcon className="h-4 w-4" />
-                  Join Our Community
+                  {t('joinCommunity')}
                 </div>
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">
-                  Start Selling on Nambakadai
+                  {t('joinCommunity')}
                 </h2>
                 <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed max-w-2xl">
-                  Join thousands of farmers and vendors who have found success in our marketplace. Start selling today and connect with local customers.
+                  {t('joinCommunityDesc')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                   <Link href="/seller/register">
                     <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 px-6 py-2.5 text-sm font-semibold">
                       <StoreIcon className="h-4 w-4 mr-2" />
-                      Create Store
+                      {t('createStore')}
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>
                   <Link href="/products">
                     <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 px-6 py-2.5 text-sm font-semibold">
                       <Eye className="h-4 w-4 mr-2" />
-                      Browse Products
+                      {t('browseProducts')}
                     </Button>
                   </Link>
                 </div>
@@ -404,15 +409,15 @@ export default async function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-purple-100/80 text-purple-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
                 <StoreIcon className="h-4 w-4" />
-                Trusted Sellers
+                {t('trustedSellers')}
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-700 via-pink-600 to-rose-600 bg-clip-text text-transparent">
-                Popular Stores
+                {t('trustedSellers')}
               </h2>
-              <p className="text-gray-600 mt-2 text-sm sm:text-base">Discover amazing stores from verified farmers and vendors</p>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('trustedSellersDesc')}</p>
             </div>
             <Link href="/stores" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              View All Stores
+              {t('viewAllStores')}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -456,14 +461,13 @@ export default async function Home() {
           <div className="text-center mb-12 relative z-10">
             <div className="inline-flex items-center gap-2 bg-green-100/80 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <Star className="h-4 w-4 fill-current" />
-              Customer Stories
+              {t('customerStories')}
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              What Our Users Say
+              {t('whatUsersSay')}
             </h2>
             <p className="text-gray-600 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed">
-              Join thousands of satisfied customers who buy, sell, and rent on our platform.
-              Real stories from real people building their agricultural dreams.
+              {t('whatUsersSay')}
             </p>
           </div>
 
@@ -494,17 +498,17 @@ export default async function Home() {
           {/* Call to action */}
           <div className="text-center mt-12 relative z-10">
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border border-green-100 shadow-lg">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Ready to Join Our Community?</h3>
-              <p className="text-gray-600 mb-6">Start your journey with Nambakadai today</p>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">{t('readyToJoin')}</h3>
+              <p className="text-gray-600 mb-6">{t('joinToday')}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/signup">
                   <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3">
-                    Get Started
+                    {t('getStarted')}
                   </Button>
                 </Link>
                 <Link href="/stores">
                   <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 px-8 py-3">
-                    Explore Stores
+                    {t('exploreStores')}
                   </Button>
                 </Link>
               </div>

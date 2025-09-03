@@ -12,8 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import enMessages from '../messages/en.json';
-import taMessages from '../messages/ta.json';
+import { useTranslations } from 'next-intl';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,12 +21,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const { wishlistCount } = useWishlist();
   const { unreadCount: messageCount } = useUnreadMessages();
 
-  // Get current locale from cookie (client-side)
-  const [currentLocale, setCurrentLocale] = useState('en');
-
-  // Get messages based on current locale
-  const messages = currentLocale === 'ta' ? taMessages : enMessages;
-  const t = (key: string) => (messages.Navigation as any)[key] || key;
+  // Get translations using next-intl hook
+  const t = useTranslations('Navigation');
+  const tFooter = useTranslations('Footer');
+  const tCommon = useTranslations('Common');
 
   // Simplified navigation items
   const navItems = [
@@ -42,17 +39,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     navItems.push({ href: '/community', label: t('community'), icon: Users });
   }
 
-  // Get locale from cookie on client side
-  useEffect(() => {
-    const locale = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('NEXT_LOCALE='))
-      ?.split('=')[1] || 'en';
-
-    if (locale === 'en' || locale === 'ta') {
-      setCurrentLocale(locale);
-    }
-  }, []);
+  // next-intl handles locale automatically
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -287,15 +274,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                    Nambakadai
+                    {tFooter('brandName')}
                   </h3>
-                  <p className="text-sm text-green-600 font-medium">Fresh • Local • Direct</p>
+                  <p className="text-sm text-green-600 font-medium">{tFooter('tagline')}</p>
                 </div>
               </div>
 
               <p className="text-gray-600 leading-relaxed text-sm">
-                Your trusted marketplace connecting farmers directly with consumers.
-                Fresh produce, authentic quality, and sustainable agriculture.
+                {tFooter('description')}
               </p>
 
               {/* Contact Info */}
@@ -323,7 +309,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <div className="space-y-6">
               <div>
                 <h4 className="text-lg font-bold text-gray-900 mb-4 relative">
-                  Quick Links
+                  {tFooter('quickLinks')}
                   <div className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500"></div>
                 </h4>
                 <ul className="space-y-3">
@@ -419,9 +405,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <h5 className="font-semibold text-gray-900 text-sm">Stay Updated</h5>
+                    <h5 className="font-semibold text-gray-900 text-sm">{tFooter('stayUpdated')}</h5>
                   </div>
-                  <p className="text-xs text-gray-600 mb-3">Get fresh deals and farming tips</p>
+                  <p className="text-xs text-gray-600 mb-3">{tFooter('getFreshDeals')}</p>
                   <div className="flex gap-2">
                     <input
                       type="email"
@@ -468,7 +454,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
-                <span>for farmers</span>
+                <span>{tFooter('madeWithLove')}</span>
               </div>
             </div>
           </div>
