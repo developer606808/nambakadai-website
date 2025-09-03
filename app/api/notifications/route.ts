@@ -232,7 +232,7 @@ export async function DELETE(request: NextRequest) {
 }
 
 // Utility function to create notifications (can be called from other APIs)
-export async function createNotification({
+async function createNotification({
   userId,
   title,
   message,
@@ -244,7 +244,7 @@ export async function createNotification({
   userId: number
   title: string
   message: string
-  type: string
+  type: any
   relatedId?: number
   relatedType?: string
   actionUrl?: string
