@@ -6,7 +6,6 @@ import { ReduxProvider } from "@/components/providers/redux-provider"
 import { NextAuthProvider } from "@/components/providers/session-provider"
 import { I18nProvider } from "@/lib/i18n-context"
 import { Suspense } from "react"
-import { cookies } from 'next/headers'
 import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ["latin"] })
@@ -17,23 +16,13 @@ export const metadata = {
     "Connect directly with local farmers and vendors through classified ads. Buy and sell fresh farm products, organic produce, and agricultural equipment.",
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Get locale from cookie for HTML lang attribute
-  const cookieStore = await cookies();
-  let locale = cookieStore.get('APP_LOCALE')?.value || 'en';
-
-  // Validate that the locale is valid
-  const supportedLocales = ['en', 'ta'];
-  if (!supportedLocales.includes(locale)) {
-    locale = 'en';
-  }
-
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Favicon for all devices and screen sizes */}
         <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />

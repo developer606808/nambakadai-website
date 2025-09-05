@@ -14,11 +14,11 @@
     "dev:test-db": "node scripts/test-db.js",
     "dev:gen-secrets": "node scripts/generate-secrets.js",
     "dev:update-env": "node scripts/update-env.js",
-    "migrate": "npx prisma migrate dev",
-    "generate": "npx prisma generate",
-    "seed": "npx tsx prisma/seed.ts",
-    "reset-db": "npx prisma migrate reset",
-    "studio": "npx prisma studio"
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "seed": "tsx prisma/seed.ts",
+    "reset-db": "prisma migrate reset",
+    "studio": "prisma studio"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -75,7 +75,6 @@
     "mongoose": "^8.18.0",
     "next": "15.2.4",
     "next-auth": "^4.24.7",
-    "next-intl": "^3.19.1",
     "next-themes": "^0.4.4",
     "nodemailer": "^6.10.1",
     "qrcode": "^1.5.4",
