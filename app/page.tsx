@@ -239,7 +239,7 @@ export default function Home() {
 
               {/* Main Heading */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                {t('home.title').split(' ')[0]} <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">{t('home.title').split(' ').slice(1).join(' ')}</span>
+                {t('home.title')} <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">Nambakadai</span>
                 <br className="hidden sm:block" />
                 <span className="text-2xl sm:text-3xl lg:text-4xl font-normal text-green-100">{t('home.subtitle')}</span>
               </h1>
@@ -254,13 +254,13 @@ export default function Home() {
                 <Button className="bg-white text-green-700 hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-lg" size="lg" asChild>
                   <Link href="/products" className="flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5" />
-                    {t('common.search')}
+                    {t('home.browseProducts')}
                   </Link>
                 </Button>
                 <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 hover:scale-105 transition-all duration-300 backdrop-blur-sm" size="lg" asChild>
                   <Link href="/seller/register" className="flex items-center gap-2">
                     <StoreIcon className="h-5 w-5" />
-                    {t('nav.products')}
+                    {t('home.becomeSeller')}
                   </Link>
                 </Button>
               </div>
@@ -305,7 +305,7 @@ export default function Home() {
         {/* Dynamic Category Carousel */}
         <CategoryCarousel
           categories={storeCategories}
-          title="Browse Categories"
+          title={t('home.browseCategories')}
           showViewAll={true}
         />
 
@@ -423,27 +423,27 @@ export default function Home() {
               <div>
                 <div className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
                   <Users className="h-4 w-4" />
-                  {t('home.joinCommunity')}
+                  Join Our Community
                 </div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-6">
-                  {t('home.joinCommunity')}
+                  Join Our Community
                 </h2>
                 <p className="text-green-100 text-lg mb-8 leading-relaxed">
-                  {t('home.joinCommunityDesc')}
+                  Connect with farmers, vendors, and customers in your local area.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/seller/register">
                     <Button className="group bg-white text-green-600 hover:bg-green-50 px-8 py-4 text-lg font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                       <StoreIcon className="h-5 w-5 mr-3" />
-                      {t('home.createStore')}
+                      Create Your Store
                       <ArrowRight className="h-5 w-5 ml-3 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                   <Link href="/products">
                     <Button variant="outline" className="group border-2 border-white text-green-700 bg-white hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-2xl backdrop-blur-sm">
                       <Eye className="h-5 w-5 mr-3" />
-                      {t('home.browseProducts')}
+                      Browse Products
                     </Button>
                   </Link>
                 </div>
@@ -478,13 +478,13 @@ export default function Home() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-6 py-3 rounded-full text-sm font-semibold mb-6 shadow-lg">
               <Award className="h-5 w-5" />
-              {t('trustedSellers')}
+              {t('home.trustedSellers')}
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-6 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              {t('trustedSellers')}
+              {t('home.trustedSellers')}
             </h2>
             <p className="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
-              {t('trustedSellersDesc')}
+              {t('home.trustedSellersDesc')}
             </p>
           </div>
 
@@ -544,7 +544,7 @@ export default function Home() {
           <div className="text-center mb-16 relative z-10">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-6 py-3 rounded-full text-sm font-semibold mb-6 shadow-lg">
               <Star className="h-5 w-5 fill-current" />
-              {t('customerStories')}
+              Customer Stories
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-6 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
               What Our Community Says
@@ -591,20 +591,20 @@ export default function Home() {
               </div>
 
               <div className="relative z-10">
-                <h3 className="text-2xl sm:text-3xl font-black text-gray-800 mb-4">{t('home.readyToJoin')}</h3>
-                <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">{t('home.joinToday')}</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-gray-800 mb-4">Ready to Get Started?</h3>
+                <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">Join thousands of farmers and customers already using Nambakadai</p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center">
                   <Link href="/signup">
                     <Button className="group bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-10 py-4 text-lg font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1">
                       <Zap className="h-5 w-5 mr-3 group-hover:animate-pulse" />
-                      {t('home.getStarted')}
+                      Get Started
                       <ArrowRight className="h-5 w-5 ml-3 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                   <Link href="/stores">
                     <Button variant="outline" className="group border-2 border-green-300 text-green-700 hover:bg-green-50 px-10 py-4 text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1">
                       <Eye className="h-5 w-5 mr-3" />
-                      {t('home.exploreStores')}
+                      Explore Stores
                     </Button>
                   </Link>
                 </div>

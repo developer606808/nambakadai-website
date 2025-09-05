@@ -6,13 +6,12 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, Home, Grid3X3, Package, Store, Users, Heart, MessageCircle } from 'lucide-react';
-import LanguageSwitcher from '@/components/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { useI18n } from '@/lib/i18n-context';
+import LanguageSwitcher from '@/components/language-switcher';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,14 +20,11 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const { wishlistCount } = useWishlist();
   const { unreadCount: messageCount } = useUnreadMessages();
 
-  // Get translations using our custom i18n hook
-  const { t } = useI18n();
-
   // Simplified navigation items
   const navItems = [
-    { href: '/', label: t('nav.home'), icon: Home },
-    { href: '/products', label: t('nav.products'), icon: Package },
-    { href: '/stores', label: t('nav.stores'), icon: Store },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/products', label: 'Products', icon: Package },
+    { href: '/stores', label: 'Stores', icon: Store },
     { href: '/categories', label: 'Categories', icon: Grid3X3 },
   ];
 
@@ -36,8 +32,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   if (session?.user) {
     navItems.push({ href: '/community', label: 'Community', icon: Users });
   }
-
-  // next-intl handles locale automatically
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -98,6 +92,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
             {/* Desktop Right Section */}
             <div className="hidden md:flex items-center space-x-4">
+              {/* Language Switcher */}
               <LanguageSwitcher />
 
               {session?.user && (
@@ -179,7 +174,8 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                     })}
 
                     <div className="border-t pt-4 mt-4">
-                      <div className="px-4 mb-4">
+                      {/* Language Switcher for Mobile */}
+                      <div className="mb-4">
                         <LanguageSwitcher />
                       </div>
 
