@@ -38,7 +38,7 @@ export async function uploadBannerImageServer(file: File): Promise<{ success: bo
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = new Uint8Array(bytes);
 
     // Write file to disk
     await writeFile(filePath, buffer);
@@ -77,7 +77,7 @@ export async function deleteBannerImageServer(imageUrl: string): Promise<boolean
 }
 
 // Convert base64 to file (for migration)
-export async function base64ToFileServer(base64Data: string, originalFileName: string): Promise<string> {
+export async function base64ToFileServer(base64Data: string): Promise<string> {
   try {
     // Extract the actual base64 data (remove data:image/...;base64, prefix)
     const matches = base64Data.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
@@ -94,7 +94,7 @@ export async function base64ToFileServer(base64Data: string, originalFileName: s
     const newFileName = `migrated_${timestamp}_${randomId}.${imageType}`;
     
     // Convert base64 to buffer
-    const buffer = Buffer.from(base64Content, 'base64');
+    const buffer = new Uint8Array(Buffer.from(base64Content, 'base64'));
     
     // Ensure upload directory exists
     const uploadDir = await ensureUploadDir();

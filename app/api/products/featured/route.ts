@@ -13,6 +13,8 @@ export async function GET() {
           select: {
             id: true,
             name: true,
+            slug: true,
+            publicKey: true
           },
         },
         city: {
@@ -40,13 +42,21 @@ export async function GET() {
       id: product.id,
       image: product.images[0] || "/placeholder.svg",
       title: product.title,
+      slug: product.slug,
+      publicKey: product.publicKey,
       price: product.price,
-      unit: product.unit.symbol,
+      unit: {
+        symbol: product.unit.symbol,
+      },
       rating: 4.5, // Default rating, could be calculated from reviews
       reviews: product._count.wishlist, // Using wishlist count as proxy for popularity
       location: product.city.name_en,
-      seller: product.store.name,
-      sellerId: product.store.id.toString(),
+      store: {
+        id: product.store.id,
+        name: product.store.name,
+        slug: product.store.slug,
+        publicKey: product.store.publicKey,
+      },
       isOrganic: product.title.toLowerCase().includes('organic'),
       isBestSeller: product._count.wishlist > 10, // Consider products with many wishlists as best sellers
     }));

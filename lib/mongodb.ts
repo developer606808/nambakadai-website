@@ -1,5 +1,12 @@
 import mongoose from 'mongoose'
 
+declare global {
+  var mongooseGlobal: {
+    conn: typeof mongoose | null
+    promise: Promise<typeof mongoose> | null
+  }
+}
+
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nambakadai-chat'
 
 if (!MONGODB_URI) {
@@ -11,11 +18,11 @@ if (!MONGODB_URI) {
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached = (global as any).mongoose
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null }
+if (!global.mongooseGlobal) {
+  global.mongooseGlobal = { conn: null, promise: null }
 }
+
+let cached = global.mongooseGlobal
 
 async function connectToDatabase() {
   if (cached.conn) {

@@ -3,7 +3,7 @@
 import { use, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Search, Filter, Heart, ChevronLeft, ChevronRight, QrCode, Share2, Star, Package, MapPin, Store, Truck, Eye, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Search, Filter, Heart, ChevronLeft, ChevronRight, QrCode, Share2, Star, Package, MapPin, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -606,7 +606,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <div className="text-2xl font-bold text-green-600">
-                            ${product.price.toFixed(2)}
+                            ₹{product.price.toFixed(2)}
                           </div>
                           <div className="text-xs text-gray-500">
                             per {product.unit.symbol}

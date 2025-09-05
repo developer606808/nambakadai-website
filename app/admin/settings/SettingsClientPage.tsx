@@ -39,7 +39,7 @@ function SettingsTabs() {
     toast({
       title: "Settings saved",
       description: "Your system settings have been updated successfully.",
-      variant: "success",
+      variant: "default",
     })
   }
 

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -12,7 +13,7 @@ interface ImageCropDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   selectedImage: string | null
-  onCropComplete: (croppedArea: any, croppedAreaPixels: any) => void
+  onCropComplete: (croppedArea: { x: number; y: number; width: number; height: number }, croppedAreaPixels: { x: number; y: number; width: number; height: number }) => void
   onUpload: () => void
   uploading: boolean
   crop: { x: number; y: number }
@@ -23,7 +24,7 @@ interface ImageCropDialogProps {
   setRotation: React.Dispatch<React.SetStateAction<number>>
   croppedPreview: string | null
   onGeneratePreview: () => void
-  croppedAreaPixels: any
+  croppedAreaPixels: { x: number; y: number; width: number; height: number } | null
 }
 
 export function ImageCropDialog({
@@ -144,10 +145,11 @@ export function ImageCropDialog({
                 {/* Circular Preview */}
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
                   {croppedPreview ? (
-                    <img
+                    <Image
                       src={croppedPreview}
                       alt="Cropped preview"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center">

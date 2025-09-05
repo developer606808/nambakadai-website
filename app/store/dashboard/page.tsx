@@ -17,7 +17,7 @@ const stats = [
   },
   {
     title: "Total Sales",
-    value: "$12,450",
+    value: "₹12,450",
     change: "+15% from last month",
     icon: DollarSign,
     color: "text-green-600",
@@ -42,7 +42,7 @@ const recentProducts = [
   {
     id: 1,
     name: "Organic Tomatoes",
-    price: "$4.99/kg",
+    price: "₹4.99/kg",
     stock: 45,
     image: "/placeholder.svg?height=60&width=60",
     status: "Active",
@@ -50,7 +50,7 @@ const recentProducts = [
   {
     id: 2,
     name: "Fresh Carrots",
-    price: "$2.99/kg",
+    price: "₹2.99/kg",
     stock: 23,
     image: "/placeholder.svg?height=60&width=60",
     status: "Active",
@@ -58,7 +58,7 @@ const recentProducts = [
   {
     id: 3,
     name: "Green Lettuce",
-    price: "$1.99/head",
+    price: "₹1.99/head",
     stock: 8,
     image: "/placeholder.svg?height=60&width=60",
     status: "Low Stock",
@@ -69,21 +69,21 @@ const recentOrders = [
   {
     id: "#ORD-001",
     customer: "Sarah Johnson",
-    amount: "$24.99",
+    amount: "₹24.99",
     status: "Pending",
     date: "2024-01-15",
   },
   {
     id: "#ORD-002",
     customer: "Mike Chen",
-    amount: "$18.50",
+    amount: "₹18.50",
     status: "Completed",
     date: "2024-01-14",
   },
   {
     id: "#ORD-003",
     customer: "Emma Davis",
-    amount: "$32.75",
+    amount: "₹32.75",
     status: "Processing",
     date: "2024-01-14",
   },

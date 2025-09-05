@@ -58,6 +58,7 @@ model User {
   wishlist                Wishlist[]
   productComments         ProductComment[]
   productCommentLikes     ProductCommentLike[]
+  orders                  Order[]
 }
 
 model Store {
@@ -123,6 +124,7 @@ model Product {
   reports     Report[]   @relation("ProductReports")
   wishlist    Wishlist[]
   comments    ProductComment[]
+  orderItems  OrderItem[]
 
   @@index([slug])
 }
@@ -467,12 +469,14 @@ model Vehicle {
   minimumHours     Int?
   operatorIncluded Boolean          @default(false)
   workingWidth     Float?
+  slug             String           @unique
   publicKey        String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   adId             String           @unique
   user             User             @relation(fields: [userId], references: [id])
   bookings         VehicleBooking[]
 
   @@index([category])
+  @@index([slug])
 }
 
 model VehicleBooking {
@@ -742,10 +746,42 @@ enum OfferReason {
   URGENT_SALE
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
 enum Role {
   BUYER
   SELLER
   ADMIN
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  status    OrderStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     OrderItem[]
+  user      User        @relation(fields: [userId], references: [id])
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int     @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model AdminRole {

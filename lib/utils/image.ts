@@ -25,7 +25,7 @@ export function getImageUrl(
   return `/images/${publicId}_${width}x${height}.${format}`;
 }
 
-export function optimizeImage(imageUrl: string, maxWidth: number = 800): string {
+export function optimizeImage(imageUrl: string): string {
   // In a real implementation, you would use Next.js Image component or a service
   // For now, we'll just return the original URL
   

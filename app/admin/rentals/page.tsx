@@ -752,7 +752,7 @@ export default function RentalsPage() {
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium leading-none">{currentVehicle?.name}</p>
               <p className="text-sm text-muted-foreground">
-                ₹{currentVehicle?.pricePerDay?.toLocaleString() || 'N/A'} per day • {currentVehicle?.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                ₹{currentVehicle?.pricePerDay?.toLocaleString() || 'N/A'} per day • {currentVehicle?.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}
               </p>
             </div>
           </div>

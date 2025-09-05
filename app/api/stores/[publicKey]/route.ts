@@ -10,7 +10,7 @@ export async function GET(
     const { publicKey } = await params;
 
     // Fetch store details using publicKey
-    const store = await (prisma as any).store.findFirst({
+    const store = await prisma.store.findFirst({
       where: { publicKey },
       include: {
         user: {

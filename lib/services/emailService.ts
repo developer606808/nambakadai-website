@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 
 // Email transporter configuration - only create if nodemailer is available and configured
-let transporter: any = null
+let transporter: import('nodemailer').Transporter | null = null
 
 async function getTransporter() {
   if (transporter) return transporter

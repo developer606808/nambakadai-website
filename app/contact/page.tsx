@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HeadphonesIcon, ArrowRight, CheckCircle, Users, Star } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HeadphonesIcon, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -138,20 +138,20 @@ export default function ContactPage() {
                   {/* Quick Help */}
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
-                        <HeadphonesIcon className="h-5 w-5 text-purple-600" />
+                      <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                        <HeadphonesIcon className="h-5 w-5 text-green-600" />
                       </div>
-                      <h3 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">Quick Help</h3>
+                      <h3 className="text-lg font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">Quick Help</h3>
                     </div>
                     <div className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 rounded-xl" asChild>
+                      <Button variant="outline" className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 rounded-xl" asChild>
                         <a href="/faq" className="flex items-center">
                           <MessageSquare className="h-4 w-4 mr-3" />
                           <span className="font-medium">View FAQ</span>
                           <ArrowRight className="h-4 w-4 ml-auto" />
                         </a>
                       </Button>
-                      <Button variant="outline" className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 rounded-xl" asChild>
+                      <Button variant="outline" className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 rounded-xl" asChild>
                         <a href="/terms" className="flex items-center">
                           <MessageSquare className="h-4 w-4 mr-3" />
                           <span className="font-medium">Terms & Conditions</span>

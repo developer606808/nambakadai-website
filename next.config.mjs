@@ -1,7 +1,3 @@
-import createNextIntlPlugin from 'next-intl/plugin';
- 
-const withNextIntl = createNextIntlPlugin('./i18n.ts');
- 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -25,6 +21,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '*.vercel.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.onrender.com',
         pathname: '/**',
       },
     ],
@@ -61,4 +62,4 @@ const nextConfig = {
   // },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

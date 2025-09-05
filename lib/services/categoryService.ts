@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export interface CategoryWithCounts {
   id: number
   name_en: string
   name_ta: string
-  name_hi?: string
+  name_hi: string | null
   slug: string
-  image?: string
+  image: string | null
   type: 'STORE' | 'RENTAL'
   _count?: {
     products: number
@@ -15,7 +16,7 @@ export interface CategoryWithCounts {
 
 export async function getActiveCategories(type?: 'STORE' | 'RENTAL', limit: number = 12): Promise<CategoryWithCounts[]> {
   try {
-    const where: any = {
+    const where: Prisma.CategoryWhereInput = {
       parentId: null, // Only get root categories for the carousel
     }
 

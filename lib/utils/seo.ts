@@ -1,12 +1,14 @@
 import { Metadata } from 'next';
 
+import type { OpenGraphType } from 'next/dist/lib/metadata/types/opengraph-types';
+
 export type SeoMetadata = {
   title: string;
   description: string;
   keywords?: string[];
   image?: string;
   url?: string;
-  type?: string;
+  type?: OpenGraphType;
 };
 
 export function generateSeoMetadata(seo: SeoMetadata): Metadata {
@@ -43,11 +45,7 @@ export function generateProductSeoMetadata(
       title: productName,
       description: description,
       images: images.map(url => ({ url })),
-      type: 'product',
-      price: {
-        amount: price.toString(),
-        currency: 'INR'
-      }
+      type: 'website'
     },
     twitter: {
       card: 'summary_large_image',
@@ -70,7 +68,7 @@ export function generateStoreSeoMetadata(
       title: storeName,
       description: description,
       images: logo ? [{ url: logo }] : undefined,
-      type: 'business'
+      type: 'website'
     },
     twitter: {
       card: 'summary',

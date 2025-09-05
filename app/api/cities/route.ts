@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // GET /api/cities - List cities (public access)
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     const stateId = searchParams.get('stateId');
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.CityWhereInput = {};
 
     if (search) {
       where.OR = [

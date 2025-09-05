@@ -121,7 +121,7 @@ async function testRatings() {
     // Calculate average rating
     const totalRatings = updatedRatings.length;
     const averageRating = totalRatings > 0
-      ? updatedRatings.reduce((sum, rating) => sum + rating.value, 0) / totalRatings
+      ? updatedRatings.reduce((sum: number, rating: any) => sum + rating.value, 0) / totalRatings
       : 0;
 
     console.log(`Average rating: ${averageRating.toFixed(1)} (${totalRatings} reviews)`);

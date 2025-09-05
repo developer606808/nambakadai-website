@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // GET - Fetch vehicle bookings for seller
 export async function GET(request: NextRequest) {
@@ -30,14 +31,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
 
     // Build where clause for seller's vehicles
-    const where: any = {
+    const where: Prisma.VehicleBookingWhereInput = {
       vehicle: {
         userId: userId
       }
     }
 
     if (status) {
-      where.status = status
+      where.status = status as any
     }
 
     // Fetch bookings with pagination

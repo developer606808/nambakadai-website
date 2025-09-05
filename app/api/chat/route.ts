@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         // Get latest message
         const latestMessage = await Message.findOne({ chatId: chat._id })
           .sort({ createdAt: -1 })
-          .lean() as any
+          .lean()
 
         // Get unread count for this chat
         const unreadCount = await Message.countDocuments({
@@ -59,11 +59,11 @@ export async function GET(request: NextRequest) {
           customerId: chat.customerId,
           storeOwnerId: chat.storeOwnerId,
           participants: chat.participants,
-          lastMessage: latestMessage ? {
-            content: latestMessage.content,
-            senderId: latestMessage.senderId,
-            timestamp: latestMessage.createdAt,
-            messageType: latestMessage.messageType
+          lastMessage: latestMessage && typeof latestMessage === 'object' && !Array.isArray(latestMessage) ? {
+            content: (latestMessage as any).content,
+            senderId: (latestMessage as any).senderId,
+            timestamp: (latestMessage as any).createdAt,
+            messageType: (latestMessage as any).messageType
           } : null,
           unreadCount,
           updatedAt: chat.updatedAt

@@ -21,7 +21,7 @@ export async function GET(
     const { publicKey } = await params;
 
     // Find the store
-    const store = await (prisma as any).store.findFirst({
+    const store = await prisma.store.findFirst({
       where: { publicKey },
       select: { id: true }
     });
@@ -73,7 +73,7 @@ export async function POST(
     const { publicKey } = await params;
 
     // Find the store
-    const store = await (prisma as any).store.findFirst({
+    const store = await prisma.store.findFirst({
       where: { publicKey },
       select: { id: true, followersCount: true }
     });

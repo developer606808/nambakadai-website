@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -111,7 +112,7 @@ export default function CategoriesPage() {
   const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null)
 
   // Fetch categories
-  const fetchCategories = async (resetPage = false) => {
+  const fetchCategories = useCallback(async (resetPage = false) => {
     try {
       setLoading(true)
       const currentPage = resetPage ? 1 : pagination.page
@@ -151,7 +152,7 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, searchTerm, typeFilter, parentFilter])
 
   // Form validation
   const validateForm = () => {
@@ -162,6 +163,9 @@ export default function CategoriesPage() {
     }
     if (!formData.name_ta.trim()) {
       errors.push('Tamil name is required')
+    }
+    if (!formData.slug.trim()) {
+      errors.push('Slug is required')
     }
     if (!formData.type) {
       errors.push('Type is required')
@@ -175,8 +179,23 @@ export default function CategoriesPage() {
     if (formData.name_hi && formData.name_hi.length > 100) {
       errors.push('Hindi name must be less than 100 characters')
     }
+    if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
+      errors.push('Slug can only contain lowercase letters, numbers, and hyphens')
+    }
 
     return errors
+  }
+
+  // Check if form is valid for enabling submit button
+  const isFormValid = () => {
+    return formData.name_en.trim() &&
+           formData.name_ta.trim() &&
+           formData.slug.trim() &&
+           formData.type &&
+           formData.name_en.length <= 100 &&
+           formData.name_ta.length <= 100 &&
+           (!formData.name_hi || formData.name_hi.length <= 100) &&
+           (!formData.slug || /^[a-z0-9-]+$/.test(formData.slug))
   }
 
   // Create category
@@ -213,7 +232,7 @@ export default function CategoriesPage() {
         }
       }
 
-      console.log('Creating category with data:', {
+      const requestData = {
         ...formData,
         name_en: formData.name_en.trim(),
         name_ta: formData.name_ta.trim(),
@@ -221,20 +240,12 @@ export default function CategoriesPage() {
         icon: formData.icon?.trim() || '',
         image: imageUrl,
         parentId: formData.parentId ? parseInt(formData.parentId) : null,
-      })
+      };
 
       const response = await fetch('/api/admin/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          name_en: formData.name_en.trim(),
-          name_ta: formData.name_ta.trim(),
-          name_hi: formData.name_hi?.trim() || '',
-          icon: formData.icon?.trim() || '',
-          image: imageUrl,
-          parentId: formData.parentId ? parseInt(formData.parentId) : null,
-        }),
+        body: JSON.stringify(requestData),
       })
 
       const data = await response.json()
@@ -756,9 +767,11 @@ export default function CategoriesPage() {
                 <TableRow key={category.id}>
                   <TableCell>
                     {category.image ? (
-                      <img
+                      <Image
                         src={category.image}
                         alt={category.name_en}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 object-cover rounded border"
                       />
                     ) : (
@@ -884,7 +897,10 @@ export default function CategoriesPage() {
             {/* Name fields - responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name_en" className="text-sm font-medium">Name (English) *</Label>
+                <Label htmlFor="name_en" className="text-sm font-medium flex items-center gap-1">
+                  Name (English) *
+                  {formData.name_en.trim() && <span className="text-green-500 text-xs">✓</span>}
+                </Label>
                 <Input
                   id="name_en"
                   value={formData.name_en}
@@ -892,11 +908,19 @@ export default function CategoriesPage() {
                   placeholder="Enter English name"
                   required
                   maxLength={100}
-                  className="h-10"
+                  className={`h-10 ${!formData.name_en.trim() ? 'border-red-300 focus:border-red-500' : 'border-green-300 focus:border-green-500'}`}
                 />
+                {formData.name_en && formData.name_en.length > 90 && (
+                  <p className="text-xs text-orange-600">
+                    {100 - formData.name_en.length} characters remaining
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name_ta" className="text-sm font-medium">Name (Tamil) *</Label>
+                <Label htmlFor="name_ta" className="text-sm font-medium flex items-center gap-1">
+                  Name (Tamil) *
+                  {formData.name_ta.trim() && <span className="text-green-500 text-xs">✓</span>}
+                </Label>
                 <Input
                   id="name_ta"
                   value={formData.name_ta}
@@ -904,8 +928,13 @@ export default function CategoriesPage() {
                   placeholder="Enter Tamil name"
                   required
                   maxLength={100}
-                  className="h-10"
+                  className={`h-10 ${!formData.name_ta.trim() ? 'border-red-300 focus:border-red-500' : 'border-green-300 focus:border-green-500'}`}
                 />
+                {formData.name_ta && formData.name_ta.length > 90 && (
+                  <p className="text-xs text-orange-600">
+                    {100 - formData.name_ta.length} characters remaining
+                  </p>
+                )}
               </div>
             </div>
 
@@ -923,23 +952,34 @@ export default function CategoriesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug" className="text-sm font-medium">Slug *</Label>
+                <Label htmlFor="slug" className="text-sm font-medium flex items-center gap-1">
+                  Slug *
+                  {formData.slug.trim() && /^[a-z0-9-]+$/.test(formData.slug) && <span className="text-green-500 text-xs">✓</span>}
+                </Label>
                 <Input
                   id="slug"
                   value={formData.slug}
                   onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                   placeholder="category-slug"
-                  className="h-10"
+                  className={`h-10 ${!formData.slug.trim() || !/^[a-z0-9-]+$/.test(formData.slug) ? 'border-red-300 focus:border-red-500' : 'border-green-300 focus:border-green-500'}`}
                 />
+                {formData.slug && !/^[a-z0-9-]+$/.test(formData.slug) && (
+                  <p className="text-xs text-red-600">
+                    Slug can only contain lowercase letters, numbers, and hyphens
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Type and Parent Category */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type" className="text-sm font-medium">Type *</Label>
+                <Label htmlFor="type" className="text-sm font-medium flex items-center gap-1">
+                  Type *
+                  {formData.type && <span className="text-green-500 text-xs">✓</span>}
+                </Label>
                 <Select value={formData.type} onValueChange={(value: "STORE" | "RENTAL") => setFormData(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className={`h-10 ${!formData.type ? 'border-red-300 focus:border-red-500' : 'border-green-300 focus:border-green-500'}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -983,9 +1023,11 @@ export default function CategoriesPage() {
               <div className="space-y-3">
                 {imagePreview && (
                   <div className="relative inline-block">
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Category preview"
+                      width={128}
+                      height={128}
                       className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded border shadow-sm"
                     />
                     <div className="absolute -top-2 -right-2 flex gap-1">
@@ -1054,7 +1096,7 @@ export default function CategoriesPage() {
             </Button>
             <Button
               onClick={isAddDialogOpen ? handleCreate : handleUpdate}
-              disabled={loading}
+              disabled={loading || !isFormValid()}
               className="w-full sm:w-auto"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1083,10 +1125,12 @@ export default function CategoriesPage() {
                   aspect={1}
                   className="max-w-full max-h-96"
                 >
-                  <img
+                  <Image
                     ref={setImageRef}
                     src={imagePreview}
                     alt="Crop preview"
+                    width={400}
+                    height={384}
                     className="max-w-full max-h-96 object-contain"
                   />
                 </ReactCrop>

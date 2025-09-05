@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ReduxProvider } from "@/components/providers/redux-provider"
 import { NextAuthProvider } from "@/components/providers/session-provider"
+import { I18nProvider } from "@/lib/i18n-context"
 import { Suspense } from "react"
 import { cookies } from 'next/headers'
 import { Toaster } from '@/components/ui/toaster'
@@ -23,7 +24,7 @@ export default async function RootLayout({
 }>) {
   // Get locale from cookie for HTML lang attribute
   const cookieStore = await cookies();
-  let locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
+  let locale = cookieStore.get('APP_LOCALE')?.value || 'en';
 
   // Validate that the locale is valid
   const supportedLocales = ['en', 'ta'];
@@ -50,17 +51,19 @@ export default async function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <NextAuthProvider>
           <ReduxProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem={false}
-              disableTransitionOnChange
-              storageKey="nambakadai-theme"
-            >
-              <Suspense>
-                <main>{children}</main>
-              </Suspense>
-            </ThemeProvider>
+            <I18nProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem={false}
+                disableTransitionOnChange
+                storageKey="nambakadai-theme"
+              >
+                <Suspense>
+                  <main>{children}</main>
+                </Suspense>
+              </ThemeProvider>
+            </I18nProvider>
           </ReduxProvider>
         </NextAuthProvider>
         <Toaster />

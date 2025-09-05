@@ -18,7 +18,7 @@ export function validateFile(file: File): { isValid: boolean; error?: string } {
   }
 
   // Check file type
-  if (!UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.type)) {
+  if (!UPLOAD_CONFIG.ALLOWED_TYPES.includes(file.type as typeof UPLOAD_CONFIG.ALLOWED_TYPES[number])) {
     return {
       isValid: false,
       error: `File type must be one of: ${UPLOAD_CONFIG.ALLOWED_TYPES.join(', ')}`,
@@ -37,7 +37,7 @@ export function getFileInfo(imageUrl: string): { fileName: string; isUploaded: b
 }
 
 // Optimize image URL for different sizes (future enhancement)
-export function getOptimizedImageUrl(imageUrl: string, width?: number, height?: number): string {
+export function getOptimizedImageUrl(imageUrl: string): string {
   // For now, return original URL
   // In the future, you can implement image resizing here
   return imageUrl;

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user's FCM token
-    await (prisma as any).user.update({
+    await prisma.user.update({
       where: { id: parseInt(session.user.id) },
       data: { fcmToken }
     })

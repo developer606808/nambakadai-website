@@ -42,8 +42,10 @@ export function ProductCard({
   const { toggleWishlist, wishlistStatus } = useWishlist()
   const { toast } = useToast()
 
-  const productUrl = `/products/${slug || `product-${id}`}/${publicKey || id}`
-  const storeUrl = `/stores/${store?.slug || `store-${store?.id}`}/${store?.publicKey || store?.id}`
+  console.log('slug',slug,'publicKey',publicKey)
+
+  const productUrl = `/products/${slug}/${publicKey}`
+  const storeUrl = `/stores/${store?.slug}/${store?.publicKey}`
 
   // Early return if critical data is missing
   if (!title || !id) {
@@ -156,7 +158,7 @@ export function ProductCard({
         {/* Price */}
         <div className="flex items-baseline mb-3">
           <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-            ${typeof price === 'number' ? price.toFixed(2) : '0.00'}
+            ₹{typeof price === 'number' ? price.toFixed(2) : '0.00'}
           </span>
           <span className="text-xs text-gray-500 ml-1 font-medium">/{unit?.symbol || 'unit'}</span>
         </div>

@@ -56,7 +56,7 @@ export const requestPermissionAndGetToken = async (): Promise<string | null> => 
         return null
       }
 
-      const token = await getToken(messaging as any, {
+      const token = await getToken(messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
         serviceWorkerRegistration: await navigator.serviceWorker.ready
       })
@@ -73,7 +73,7 @@ export const requestPermissionAndGetToken = async (): Promise<string | null> => 
     // If service worker registration fails, try without it
     try {
       const permission = await Notification.requestPermission()
-      if (permission === 'granted') {
+      if (permission === 'granted' && messaging) {
         const token = await getToken(messaging, {
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
         })
@@ -85,7 +85,7 @@ export const requestPermissionAndGetToken = async (): Promise<string | null> => 
       // Final fallback - try without service worker
       try {
         if (messaging) {
-          const token = await getToken(messaging as any, {
+          const token = await getToken(messaging, {
             vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
           })
           return token

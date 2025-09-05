@@ -7,6 +7,7 @@ import { productSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 import { generateProductAdId } from '@/lib/utils/ad-id';
+import { Prisma } from '@prisma/client';
 
 // GET /api/products - Get all products with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'newest';
     const sellerOnly = searchParams.get('sellerOnly') === 'true';
 
-    const where: any = {
+    const where: Prisma.ProductWhereInput = {
       // Only show approved products
     };
 
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
-    let orderBy: any = { createdAt: 'desc' }; // Default: newest first
+    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' }; // Default: newest first
 
     switch (sortBy) {
       case 'price_asc':

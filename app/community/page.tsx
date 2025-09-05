@@ -30,6 +30,8 @@ interface Community {
   location: string
   createdAt: string
   trending: boolean
+  slug?: string
+  publicKey?: string
 }
 
 interface Post {

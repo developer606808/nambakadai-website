@@ -4,3 +4,5 @@
 .env.example
 .env.local
 /public/uploads
+pnpm-lock.yaml
+package-lock.json

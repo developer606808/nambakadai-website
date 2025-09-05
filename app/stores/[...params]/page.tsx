@@ -761,7 +761,7 @@ export default function StoreDetailsPage({
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col">
                             <div className="text-2xl font-bold text-green-600">
-                              ${product.price.toFixed(2)}
+                              ₹{product.price.toFixed(2)}
                             </div>
                             <div className="text-xs text-gray-500">
                               per {product.unit.symbol}

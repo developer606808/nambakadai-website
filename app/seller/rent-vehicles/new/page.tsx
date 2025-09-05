@@ -18,21 +18,20 @@ import { z } from "zod"
 
 const vehicleSchema = z.object({
   name: z.string()
-    .min(2, 'Equipment name must be at least 2 characters')
-    .max(100, 'Equipment name must be less than 100 characters'),
+    .min(2, 'Vehicle name must be at least 2 characters')
+    .max(100, 'Vehicle name must be less than 100 characters'),
 
   description: z.string()
     .min(10, 'Description must be at least 10 characters')
     .max(1000, 'Description must be less than 1000 characters'),
 
-  type: z.string()
-    .min(1, 'Please select equipment type'),
+  type: z.enum(['TRACTOR', 'TRUCK', 'LORRY', 'VAN', 'HARVESTING_MACHINE', 'PLANTING_MACHINE', 'THRESHING_MACHINE', 'CULTIVATOR', 'PLOUGH', 'SPRAYER', 'TRAILER', 'OTHER_EQUIPMENT']),
 
   category: z.string()
-    .min(1, 'Please select a category'),
+    .min(1, 'Category is required'),
 
   pricePerDay: z.number()
-    .min(0, 'Daily price cannot be negative')
+    .min(1, 'Daily price must be greater than 0')
     .max(50000, 'Daily price must be less than ₹50,000')
     .optional(),
 
@@ -41,41 +40,39 @@ const vehicleSchema = z.object({
     .max(5000, 'Hourly price must be less than ₹5,000'),
 
   capacity: z.string()
-    .min(1, 'Please specify capacity/specifications'),
+    .min(1, 'Capacity is required'),
 
-  fuelType: z.string()
-    .min(1, 'Please select fuel type'),
+  fuelType: z.enum(['PETROL', 'DIESEL', 'ELECTRIC', 'CNG', 'HYBRID']),
 
   location: z.string()
     .min(5, 'Location must be at least 5 characters')
     .max(200, 'Location must be less than 200 characters'),
 
+  features: z.array(z.string())
+    .min(1, 'At least one feature is required'),
+
+  images: z.array(z.string())
+    .min(1, 'At least one image is required')
+    .max(5, 'Maximum 5 images allowed'),
+
   horsepower: z.number()
-    .min(0, 'Horsepower cannot be negative')
-    .max(1000, 'Horsepower must be less than 1000 HP')
+    .min(1, 'Horsepower must be greater than 0')
+    .max(500, 'Horsepower must be less than 500')
     .optional(),
 
   workingWidth: z.number()
-    .min(0, 'Working width cannot be negative')
+    .min(1, 'Working width must be greater than 0')
     .max(50, 'Working width must be less than 50 feet')
     .optional(),
 
+  attachments: z.array(z.string()).optional(),
+
+  operatorIncluded: z.boolean(),
+
   minimumHours: z.number()
     .min(1, 'Minimum hours must be at least 1')
-    .max(168, 'Minimum hours cannot exceed 168 (1 week)')
+    .max(24, 'Minimum hours must be less than 24')
     .optional(),
-
-  operatorIncluded: z.boolean().default(false),
-
-  features: z.array(z.string())
-    .min(1, 'Please add at least one feature'),
-
-  attachments: z.array(z.string())
-    .optional(),
-
-  images: z.array(z.string())
-    .min(1, 'At least one equipment image is required')
-    .max(5, 'Maximum 5 images allowed')
 })
 
 type VehicleFormData = z.infer<typeof vehicleSchema>
@@ -139,10 +136,9 @@ export default function NewVehiclePage() {
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
       operatorIncluded: false,
-      pricePerDay: undefined,
-      horsepower: undefined,
-      workingWidth: undefined,
-      minimumHours: undefined
+      features: [],
+      images: [],
+      attachments: []
     }
   })
 
@@ -151,9 +147,10 @@ export default function NewVehiclePage() {
     if (selectedType) {
       const fetchCategories = async () => {
         try {
-          const response = await fetch(`/api/categories?type=RENTAL&search=${selectedType}`)
+          const searchTerm = getSearchTerm(selectedType)
+          const response = await fetch(`/api/categories?type=RENTAL&search=${searchTerm}`)
           const data = await response.json()
-          setCategories(data.data || [])
+          setCategories(data.categories || data || [])
         } catch (error) {
           console.error('Error fetching categories:', error)
         }
@@ -219,8 +216,30 @@ export default function NewVehiclePage() {
 
   const handleTypeChange = (type: string) => {
     setSelectedType(type)
-    setValue('type', type)
+    setValue('type', type as any)
     setValue('category', '') // Reset category when type changes
+  }
+
+  // Map vehicle types to appropriate search terms
+  const getSearchTerm = (vehicleType: string) => {
+    switch (vehicleType) {
+      case 'TRACTOR':
+      case 'HARVESTING_MACHINE':
+      case 'PLANTING_MACHINE':
+      case 'THRESHING_MACHINE':
+      case 'CULTIVATOR':
+      case 'PLOUGH':
+      case 'SPRAYER':
+        return 'Farming'
+      case 'TRUCK':
+      case 'LORRY':
+      case 'VAN':
+        return 'Transportation'
+      case 'OTHER_EQUIPMENT':
+        return 'Services'
+      default:
+        return vehicleType
+    }
   }
 
   const handleFeatureToggle = (feature: string) => {
@@ -330,35 +349,60 @@ export default function NewVehiclePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
           <Link href="/seller/rent-vehicles">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="shrink-0">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Vehicles
+              <span className="hidden sm:inline">Back to Vehicles</span>
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Add New Vehicle</h1>
-            <p className="text-gray-600">List your vehicle for rent</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Add New Vehicle</h1>
+            <p className="text-sm sm:text-base text-gray-600">List your vehicle for rent</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="hidden md:inline">Step 1 of 5:</span>
+          <span className="font-medium">Vehicle Details</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Progress Indicator */}
+        <Card className="shadow-sm border-0 bg-gradient-to-r from-blue-50 to-purple-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Form Completion</span>
+              <span className="text-sm text-gray-600">4/4 sections</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500" style={{width: '100%'}}></div>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <span>✓ Basic Info</span>
+              <span>✓ Attachments</span>
+              <span>✓ Images</span>
+              <span>✓ Complete</span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="w-5 h-5" />
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Truck className="w-5 h-5 text-blue-600" />
+              </div>
               Vehicle Information
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm sm:text-base">
               Enter the basic details about your vehicle
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Vehicle Name *</Label>
                 <Input
@@ -377,10 +421,10 @@ export default function NewVehiclePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="type">Vehicle Type *</Label>
-                <Select 
+                <Select
                   onValueChange={(value) => {
                     setSelectedType(value)
-                    setValue('type', value)
+                    setValue('type', value as any)
                     // Clear category when type changes
                     setValue('category', '')
                   }}
@@ -433,7 +477,7 @@ export default function NewVehiclePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="fuelType">Fuel Type *</Label>
-                <Select onValueChange={(value) => setValue('fuelType', value)}>
+                <Select onValueChange={(value) => setValue('fuelType', value as any)}>
                   <SelectTrigger className={errors.fuelType ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select fuel type" />
                   </SelectTrigger>
@@ -498,9 +542,9 @@ export default function NewVehiclePage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="pricePerDay">Price per Day (₹) *</Label>
+                <Label htmlFor="pricePerDay">Price per Day (₹)</Label>
                 <Input
                   id="pricePerDay"
                   type="number"
@@ -517,7 +561,7 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pricePerHour">Price per {getUnitLabel()} (₹) *</Label>
+                <Label htmlFor="pricePerHour">Price per Hour (₹) *</Label>
                 <Input
                   id="pricePerHour"
                   type="number"
@@ -534,20 +578,22 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity *</Label>
+                <Label htmlFor="minimumHours">Minimum Hours</Label>
                 <Input
-                  id="capacity"
-                  placeholder={`e.g., 1 ${getUnitLabel()}`}
-                  {...register('capacity')}
-                  className={errors.capacity ? 'border-red-500' : ''}
+                  id="minimumHours"
+                  type="number"
+                  placeholder="4"
+                  {...register('minimumHours', { valueAsNumber: true })}
+                  className={errors.minimumHours ? 'border-red-500' : ''}
                 />
-                {errors.capacity && (
+                {errors.minimumHours && (
                   <p className="text-sm text-red-600 flex items-center gap-1">
                     <XCircle className="w-3 h-3" />
-                    {errors.capacity.message}
+                    {errors.minimumHours.message}
                   </p>
                 )}
               </div>
+
             </div>
 
             <div className="space-y-2">
@@ -568,81 +614,149 @@ export default function NewVehiclePage() {
           </CardContent>
         </Card>
 
-        {/* Vehicle Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Vehicle Images
+
+        {/* Attachments */}
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-orange-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <span className="text-lg">🔧</span>
+              </div>
+              Attachments & Implements
             </CardTitle>
-            <CardDescription>
-              Upload clear images of your vehicle (1-5 images)
+            <CardDescription className="text-sm sm:text-base">
+              Select available attachments and implements for enhanced functionality
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {tractorAttachments.map((attachment) => (
+                <div
+                  key={attachment}
+                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    selectedAttachments.includes(attachment)
+                      ? 'border-orange-500 bg-orange-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-orange-300'
+                  }`}
+                  onClick={() => handleAttachmentToggle(attachment)}
+                >
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id={attachment}
+                      checked={selectedAttachments.includes(attachment)}
+                      onChange={() => handleAttachmentToggle(attachment)}
+                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                    />
+                    <Label htmlFor={attachment} className="text-sm font-medium cursor-pointer flex-1">
+                      {attachment}
+                    </Label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+
+        {/* Vehicle Images */}
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Upload className="w-5 h-5 text-blue-600" />
+              </div>
+              Vehicle Images
+            </CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Upload high-quality images of your vehicle to attract more customers ({vehicleImages.length}/5)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             {vehicleImages.length < 5 && (
-              <ImageUpload
-                onImageChange={handleImageChange}
-                aspectRatio={16/9}
-                cropShape="rect"
-                maxSize={5}
-                placeholder="Upload vehicle image"
-                required={vehicleImages.length === 0}
-              />
+              <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                <ImageUpload
+                  onImageChange={handleImageChange}
+                  aspectRatio={16/9}
+                  cropShape="rect"
+                  maxSize={5}
+                  placeholder="Click to upload vehicle image"
+                  required={vehicleImages.length === 0}
+                />
+              </div>
             )}
 
             {vehicleImages.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {vehicleImages.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={image}
-                      alt={`Vehicle ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleImageRemove(index)}
-                    >
-                      <XCircle className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {vehicleImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                        <img
+                          src={image}
+                          alt={`Vehicle ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                        onClick={() => handleImageRemove(index)}
+                      >
+                        <XCircle className="w-3 h-3" />
+                      </Button>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 text-center">
+                  Click on any image to remove it. Upload up to {5 - vehicleImages.length} more images.
+                </p>
               </div>
             )}
 
             {errors.images && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.images.message}
-              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 flex items-center gap-2">
+                  <XCircle className="w-4 h-4" />
+                  {errors.images.message}
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Submit Button */}
-        <div className="flex justify-end space-x-4">
-          <Link href="/seller/rent-vehicles">
-            <Button variant="outline" type="button">
-              Cancel
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4 sm:-mx-6">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 max-w-4xl mx-auto">
+            <Link href="/seller/rent-vehicles" className="w-full sm:w-auto">
+              <Button variant="outline" type="button" className="w-full sm:w-auto">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </Link>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Creating Vehicle Listing...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  List My Vehicle
+                </>
+              )}
             </Button>
-          </Link>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                List Vehicle
-              </>
-            )}
-          </Button>
+          </div>
         </div>
       </form>
     </div>

@@ -281,12 +281,12 @@ export default function CategoriesPage() {
               </div>
 
               <div className="bg-white rounded-xl p-4 lg:p-6 text-center shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <div className="text-2xl lg:text-3xl font-bold text-purple-600 mb-1">
+                <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-1">
                   {categories.filter(cat => cat._count.products > 0).length}
                 </div>
                 <div className="text-sm font-medium text-gray-600">Active Categories</div>

@@ -40,7 +40,7 @@ export async function rateLimitMiddleware(
     return null;
   }
 
-  const identifier = options.identifier || request.ip || 'anonymous';
+  const identifier = options.identifier || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'anonymous';
   let ratelimit: Ratelimit;
 
   switch (options.limit) {

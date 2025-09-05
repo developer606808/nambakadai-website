@@ -6,6 +6,7 @@ import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
 import { storeSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { sendStoreCreationEmail } from '@/lib/services/emailService';
+import { Prisma } from '@prisma/client';
 
 // GET /api/stores - Get all stores with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const cityId = searchParams.get('cityId');
     const categoryId = searchParams.get('categoryId');
 
-    const where: any = {
+    const where: Prisma.StoreWhereInput = {
       isApproved: true,
       isBlocked: false,
     };
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch stores with pagination
     const [stores, total] = await Promise.all([
-      (prisma as any).store.findMany({
+      prisma.store.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
@@ -225,7 +226,7 @@ export async function POST(request: NextRequest) {
     let counter = 1;
 
     // Check if slug already exists
-    while (await (prisma as any).store.findFirst({ where: { slug } })) {
+    while (await prisma.store.findFirst({ where: { slug } })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -233,7 +234,7 @@ export async function POST(request: NextRequest) {
     // Create store
     const store = await prisma.store.create({
       data: {
-        ...(validatedData as any),
+        ...validatedData,
         slug: slug,
         userId: userId
       }

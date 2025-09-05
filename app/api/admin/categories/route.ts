@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createApiResponse, createApiError } from '@/lib/utils/api';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/categories - List categories with pagination
 export async function GET(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.CategoryWhereInput = {};
     
     if (search) {
       where.OR = [
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (type) {
-      where.type = type;
+      where.type = type as any;
     }
 
     if (parentId !== null) {
@@ -78,7 +79,24 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/categories - Create category
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Check if request has a body
+    const contentLength = request.headers.get('content-length');
+    if (!contentLength || parseInt(contentLength) === 0) {
+      return createApiError('Request body is empty', 400);
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      return createApiError('Invalid JSON in request body', 400);
+    }
+
+    if (!body || typeof body !== 'object') {
+      return createApiError('Request body must be a valid object', 400);
+    }
+
     const { name_en, name_ta, name_hi, slug, image, icon, parentId, type } = body;
 
     // Validate required fields

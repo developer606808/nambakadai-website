@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createApiResponse, createApiError } from '@/lib/utils/api';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/units/[id] - Get single unit
 export async function GET(
@@ -34,7 +35,7 @@ export async function GET(
             }
           }
         }
-      } as any
+      }
     });
 
     if (!unit) {
@@ -44,7 +45,7 @@ export async function GET(
     // Transform the response to flatten categories
     const transformedUnit = {
       ...unit,
-      categories: unit.categories?.map((uc: any) => uc.category) || []
+      categories: unit.categories?.map((uc) => uc.category) || []
     };
 
     return createApiResponse(transformedUnit);
@@ -113,7 +114,7 @@ export async function PUT(
         } : {
           deleteMany: {}
         }
-      } as any,
+      },
       include: {
         _count: {
           select: { products: true }
@@ -131,7 +132,7 @@ export async function PUT(
             }
           }
         }
-      } as any
+      }
     });
 
     // Transform the response to flatten categories
@@ -181,7 +182,7 @@ export async function DELETE(
             }
           }
         }
-      } as any
+      }
     });
 
     if (!unit) {
@@ -189,7 +190,7 @@ export async function DELETE(
     }
 
     // Check if unit has products
-    if ((unit as any)._count.products > 0) {
+    if (unit._count.products > 0) {
       return createApiError('Cannot delete unit with associated products', 400);
     }
 

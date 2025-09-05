@@ -3,27 +3,10 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryWithCounts, getCategoryIcon, getCategoryBgColor } from '@/lib/services/categoryService'
-
-// Hook to get current language
-function useLanguage() {
-  const [currentLocale, setCurrentLocale] = useState('en')
-
-  useEffect(() => {
-    const locale = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('NEXT_LOCALE='))
-      ?.split('=')[1] || 'en'
-
-    if (locale === 'en' || locale === 'ta') {
-      setCurrentLocale(locale)
-    }
-  }, [])
-
-  return currentLocale
-}
+import { useI18n } from '@/lib/i18n-context'
 
 interface CategoryCarouselProps {
   categories: CategoryWithCounts[]
@@ -36,227 +19,232 @@ export function CategoryCarousel({
   title = "Browse Categories",
   showViewAll = true
 }: CategoryCarouselProps) {
-  const currentLocale = useLanguage()
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(true)
+  const { t } = useI18n()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
 
-  // Calculate how many items are visible at once (matching CSS breakpoints)
-  const getVisibleItems = () => {
-    if (typeof window === 'undefined') return 6 // Default for SSR
-    if (window.innerWidth < 640) return 2  // sm
-    if (window.innerWidth < 768) return 3  // md
-    if (window.innerWidth < 1024) return 4 // lg
-    if (window.innerWidth < 1280) return 5 // xl
-    if (window.innerWidth < 1536) return 6 // 2xl
-    return 7
+  // Check scroll position to update button states
+  const checkScrollPosition = () => {
+    if (!scrollContainerRef.current) return
+
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
+    setCanScrollLeft(scrollLeft > 0)
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
   }
-
-  const [visibleItems, setVisibleItems] = useState(6) // Default value for SSR
-  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    // Set client-side flag and initial visible items
-    setIsClient(true)
-    setVisibleItems(getVisibleItems())
-
-    const handleResize = () => {
-      setVisibleItems(getVisibleItems())
+    checkScrollPosition()
+    const container = scrollContainerRef.current
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition)
+      return () => container.removeEventListener('scroll', checkScrollPosition)
     }
+  }, [categories])
 
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollContainerRef.current || isScrolling) return
 
-  useEffect(() => {
-    updateScrollButtons()
-  }, [currentIndex, Array.isArray(categories) ? categories.length : 0, visibleItems])
+    setIsScrolling(true)
+    const container = scrollContainerRef.current
+    const scrollAmount = container.clientWidth * 0.8
 
-  const updateScrollButtons = () => {
-    const categoriesLength = Array.isArray(categories) ? categories.length : 0
-    setCanScrollLeft(currentIndex > 0)
-    setCanScrollRight(currentIndex < categoriesLength - visibleItems)
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    })
+
+    setTimeout(() => setIsScrolling(false), 300)
   }
-
-  const scrollLeft = () => {
-    if (canScrollLeft) {
-      setCurrentIndex(Math.max(0, currentIndex - 1))
-    }
-  }
-
-  const scrollRight = () => {
-    if (canScrollRight) {
-      setCurrentIndex(Math.min(categories.length - visibleItems, currentIndex + 1))
-    }
-  }
-
-  const visibleCategories = Array.isArray(categories) ? categories.slice(currentIndex, currentIndex + visibleItems) : []
 
   if (categories.length === 0) {
     return (
-      <section className="py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">{title}</h2>
-        </div>
-        <div className="text-center py-8 text-gray-500">
-          <div className="text-4xl mb-2">📦</div>
-          <p className="text-sm sm:text-base">No categories available</p>
+      <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">📦</span>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">No Categories Available</h3>
+          <p className="text-gray-600">Check back later for new categories!</p>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="py-6 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Enhanced Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+    <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Enhanced Header with Animation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 animate-fade-in-up">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white text-sm font-bold">📂</span>
+          <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            {title}
-          </h2>
+          <div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              {title}
+            </h2>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Discover amazing products by category</p>
+          </div>
         </div>
         {showViewAll && (
-          <Link href="/categories" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-sm">
-            View All <ChevronRight className="h-4 w-4" />
+          <Link href="/categories">
+            <Button className="group bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1">
+              View All Categories
+              <ChevronRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </Link>
         )}
       </div>
 
-      <div className="relative">
-          {/* Enhanced Navigation Arrows - Mobile Optimized */}
-          {isClient && categories.length > visibleItems && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`absolute left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 rounded-full w-10 h-10 sm:w-12 sm:h-12 p-0 shadow-lg border-2 border-white bg-white/90 backdrop-blur-sm hover:bg-white hover:shadow-xl transition-all duration-300 ${
-                  !canScrollLeft ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'
-                }`}
-                onClick={scrollLeft}
-                disabled={!canScrollLeft}
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`absolute right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 rounded-full w-10 h-10 sm:w-12 sm:h-12 p-0 shadow-lg border-2 border-white bg-white/90 backdrop-blur-sm hover:bg-white hover:shadow-xl transition-all duration-300 ${
-                  !canScrollRight ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'
-                }`}
-                onClick={scrollRight}
-                disabled={!canScrollRight}
-              >
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700" />
-              </Button>
-            </>
-          )}
+      {/* Horizontal Scrollable Container */}
+      <div className="relative group">
+        {/* Navigation Buttons - Only show on hover or touch devices */}
+        <button
+          onClick={() => scroll('left')}
+          disabled={!canScrollLeft}
+          className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/90 backdrop-blur-sm border-2 border-white rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group-hover:opacity-100 opacity-80 md:opacity-0 ${
+            canScrollLeft ? 'hover:shadow-2xl hover:bg-white' : ''
+          }`}
+        >
+          <ChevronRight className="h-6 w-6 text-gray-700 rotate-180 mx-auto" />
+        </button>
 
-        {/* Enhanced Categories Grid - Mobile First */}
-        <div className="relative bg-gradient-to-r from-green-50/50 to-emerald-50/50 rounded-2xl p-4 sm:p-6 border border-green-100/50 shadow-sm">
-          <div
-            ref={scrollContainerRef}
-            className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4"
-          >
-            {visibleCategories.map((category) => (
-              <CategoryItem
-                key={category.id}
-                category={category}
-                currentLocale={currentLocale}
-              />
-            ))}
+        <button
+          onClick={() => scroll('right')}
+          disabled={!canScrollRight}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/90 backdrop-blur-sm border-2 border-white rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group-hover:opacity-100 opacity-80 md:opacity-0 ${
+            canScrollRight ? 'hover:shadow-2xl hover:bg-white' : ''
+          }`}
+        >
+          <ChevronRight className="h-6 w-6 text-gray-700 mx-auto" />
+        </button>
 
-            {/* Enhanced View All Button */}
-            {showViewAll && currentIndex + visibleItems >= categories.length && (
-              <Link href="/categories">
-                <div className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 border-dashed border-green-300 hover:border-green-400 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-white/50 hover:bg-white h-full min-h-[100px] sm:min-h-[120px]">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 flex items-center justify-center mb-2 shadow-sm">
-                    <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                  </div>
-                  <span className="text-xs sm:text-sm text-green-700 font-medium text-center">View All</span>
+        {/* Scrollable Categories Container */}
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 px-2"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {categories.map((category, index) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              index={index}
+            />
+          ))}
+
+          {/* View All Card */}
+          {showViewAll && (
+            <Link href="/categories">
+              <div className="flex-shrink-0 w-48 sm:w-56 h-48 sm:h-56 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-dashed border-green-300 hover:border-green-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:-translate-y-2 group">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                  <Plus className="h-8 w-8 text-green-600" />
                 </div>
-              </Link>
-            )}
-          </div>
+                <span className="text-sm sm:text-base font-semibold text-green-700 group-hover:text-green-800 transition-colors">
+                  View All
+                </span>
+                <span className="text-xs text-green-600 mt-1 opacity-75">
+                  {categories.length}+ categories
+                </span>
+              </div>
+            </Link>
+          )}
         </div>
 
-          {/* Enhanced Dots Indicator - Mobile Optimized */}
-          {categories.length > visibleItems && (
-            <div className="flex justify-center mt-6 space-x-3">
-              {Array.from({ length: Math.ceil(categories.length / visibleItems) }, (_, i) => (
-                <button
-                  key={i}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 transform hover:scale-125 ${
-                    Math.floor(currentIndex / visibleItems) === i
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg scale-110'
-                      : 'bg-gray-300 hover:bg-gray-400 hover:shadow-md'
-                  }`}
-                  onClick={() => setCurrentIndex(i * visibleItems)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Scroll Progress Indicator */}
+        <div className="flex justify-center mt-6 space-x-2">
+          {Array.from({ length: Math.min(categories.length, 5) }, (_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 bg-gray-300 rounded-full transition-all duration-300 hover:bg-green-400"
+            />
+          ))}
+        </div>
       </div>
     </section>
   )
 }
 
-// Individual Category Item Component
-function CategoryItem({ category, currentLocale }: { category: CategoryWithCounts; currentLocale: string }) {
+// Enhanced Category Card Component
+function CategoryCard({ category, index }: { category: CategoryWithCounts; index: number }) {
+  const { t, locale } = useI18n()
   const icon = category.image ? null : getCategoryIcon(category.name_en)
   const bgColor = getCategoryBgColor(category.name_en, category.type)
 
-  // Get display name based on current locale
-  const displayName = currentLocale === 'ta' ? category.name_ta : category.name_en
-  const secondaryName = currentLocale === 'ta' ? category.name_en : category.name_ta
+  // Get display names based on current locale from i18n context
+  const primaryName = locale === 'ta' ? category.name_ta : category.name_en
+  const secondaryName = locale === 'ta' ? category.name_en : category.name_ta
 
   return (
     <Link href={`/categories/${category.slug}`}>
-      <div className="group flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white border border-gray-100 hover:border-green-200 min-h-[100px] sm:min-h-[120px] relative overflow-hidden">
-        {/* Background gradient on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 to-emerald-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div
+        className="flex-shrink-0 w-48 sm:w-56 group cursor-pointer animate-fade-in-up"
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-3 border border-gray-100 hover:border-green-200 overflow-hidden h-48 sm:h-56">
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 via-transparent to-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-        {/* Icon/Icon Container */}
-        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${bgColor} flex items-center justify-center mb-3 relative overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-110`}>
-          {category.image && category.image.startsWith('http') ? (
-            <Image
-              src={category.image}
-              alt={displayName}
-              width={56}
-              height={56}
-              className="w-full h-full object-cover rounded-xl"
-            />
-          ) : (
-            <span className="text-xl sm:text-2xl">{icon}</span>
-          )}
-        </div>
+          {/* Top section with icon/image */}
+          <div className="relative p-6 pb-4">
+            <div className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${bgColor} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 mx-auto`}>
+              {category.image && category.image.startsWith('http') ? (
+                <Image
+                  src={category.image}
+                  alt={primaryName}
+                  width={72}
+                  height={72}
+                  className="w-full h-full object-cover rounded-2xl"
+                />
+              ) : (
+                <span className="text-2xl sm:text-3xl filter drop-shadow-sm">{icon}</span>
+              )}
+            </div>
 
-        {/* Category Name - Primary */}
-        <span className="text-xs sm:text-sm text-center font-semibold text-gray-800 mb-1 group-hover:text-green-700 transition-colors line-clamp-2 leading-tight">
-          {displayName}
-        </span>
-
-        {/* Category Name - Secondary (only show if different from primary) */}
-        {secondaryName && secondaryName !== displayName && (
-          <span className="text-xs text-center text-gray-400 group-hover:text-gray-500 transition-colors line-clamp-1">
-            {secondaryName}
-          </span>
-        )}
-
-        {/* Product Count Badge */}
-        {category._count && category._count.products > 0 && (
-          <div className="mt-2 px-2 py-1 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full">
-            <span className="text-xs text-green-700 font-medium">
-              {category._count.products} items
-            </span>
+            {/* Floating badge for product count */}
+            {category._count && category._count.products > 0 && (
+              <div className="absolute top-4 right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                {category._count.products}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Hover effect overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+          {/* Bottom section with text */}
+          <div className="relative px-6 pb-6">
+            {/* Primary name */}
+            <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-1 group-hover:text-green-700 transition-colors duration-300 text-center line-clamp-2 leading-tight">
+              {primaryName}
+            </h3>
+
+            {/* Secondary name (if different) */}
+            {secondaryName && secondaryName !== primaryName && (
+              <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300 text-center line-clamp-1">
+                {secondaryName}
+              </p>
+            )}
+
+            {/* Category type indicator */}
+            <div className="mt-3 flex justify-center">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                category.type === 'STORE'
+                  ? 'bg-blue-100 text-blue-700 group-hover:bg-blue-200'
+                  : 'bg-green-100 text-green-700 group-hover:bg-green-200'
+              } transition-colors duration-300`}>
+                {category.type === 'STORE' ? 'Products' : 'Rentals'}
+              </span>
+            </div>
+          </div>
+
+          {/* Hover effect border */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-400 opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"></div>
+
+          {/* Shine effect */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"></div>
+        </div>
       </div>
     </Link>
   )

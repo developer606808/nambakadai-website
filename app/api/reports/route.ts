@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth/auth';
 import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
 import { reportSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 // POST /api/reports - Create a new report
 export async function POST(request: NextRequest) {
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
     // Create report
     const report = await prisma.report.create({
       data: {
-        ...validatedData,
+        reason: validatedData.reason,
+        description: validatedData.description,
+        ...(validatedData.productId && { productId: parseInt(validatedData.productId) }),
+        ...(validatedData.userId && { userId: parseInt(validatedData.userId) }),
         reporterId: reporterId
       }
     });
@@ -89,7 +93,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const resolved = searchParams.get('resolved');
 
-    const where: any = {};
+    const where: Prisma.ReportWhereInput = {};
     
     if (resolved === 'true') {
       where.resolved = true;
