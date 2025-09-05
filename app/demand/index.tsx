@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 const DemandListPage = () => {
   // TODO: Fetch and display all demand posts
@@ -7,8 +8,8 @@ const DemandListPage = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Demand Board</h1>
         <div className="space-x-2">
-          <a href="/demand/new" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Post New Demand</a>
-          <a href="/offers" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">View Offers</a>
+          <Link href="/demand/new" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Post New Demand</Link>
+          <Link href="/offers" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">View Offers</Link>
         </div>
       </div>
       {/* Demand list will go here */}

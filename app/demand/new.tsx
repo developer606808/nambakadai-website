@@ -8,7 +8,7 @@ export default function NewDemandPage() {
       <Header />
       <main className="container mx-auto p-4 flex-grow">
         <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-8 text-center">Post Your Demand</h1>
-        <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">Fill out the form below to post a demand for products or services. Whether it's a bulk order, a recurring need, or a custom request, let the community know what you're looking for!</p>
+        <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">Fill out the form below to post a demand for products or services. Whether it&apos;s a bulk order, a recurring need, or a custom request, let the community know what you&apos;re looking for!</p>
 
         <form className="bg-white shadow-xl rounded-lg px-8 pt-6 pb-8 mb-4 max-w-3xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

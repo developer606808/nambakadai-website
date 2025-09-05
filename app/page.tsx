@@ -3,10 +3,9 @@
 import React, { Suspense, useState, useEffect } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Star, Heart, QrCode, Share2, MapPin, Store as StoreIcon, Package, Truck, Eye, ShoppingCart, Loader2, Sparkles, TrendingUp, Users, Award, ArrowRight, Play, Zap } from "lucide-react"
+import { Star, Store as StoreIcon, Package, Truck, Eye, ShoppingCart, Sparkles, Users, Award, ArrowRight, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MainLayout } from "@/components/main-layout"
-import { BannerSection } from "@/components/home/banner-section"
 import { CategoryCarousel } from "@/components/home/category-carousel"
 import { CreateStoreBanner } from "@/components/home/create-store-banner"
 import { ProductCard } from "@/components/home/product-card"
@@ -17,78 +16,6 @@ import { ProductSkeleton, RentalSkeleton, StoreSkeleton } from "@/components/ui/
 import { useI18n } from "@/lib/i18n-context"
 
 
-// Server-side data fetching functions
-async function getFeaturedProducts() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/products/featured`, {
-      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured products');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured products:', error);
-    return [];
-  }
-}
-
-async function getFeaturedRentals() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/rentals/featured`, {
-      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured rentals');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured rentals:', error);
-    return [];
-  }
-}
-
-async function getFeaturedStores() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/stores/featured`, {
-      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch featured stores');
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching featured stores:', error);
-    return [];
-  }
-}
-
-async function getStoreCategories() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/categories?type=STORE&limit=12`, {
-      next: { revalidate: 3600 }, // ISR: revalidate every hour for categories
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch categories');
-      return { categories: [] };
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return { categories: [] };
-  }
-}
 
 // Define types for our data
 interface Product {
@@ -111,18 +38,6 @@ interface Product {
   createdAt?: string
 }
 
-interface Rental {
-  id: number
-  image: string
-  title: string
-  price: number
-  unit: string
-  rating: number
-  reviews: number
-  location: string
-  availability: number
-  category: string
-}
 
 // Removed unused Category interface - using dynamic categories now
 
@@ -130,31 +45,56 @@ interface Rental {
 
 // Remove the old getCategories function - we'll use the dynamic one
 
-// Transform API data to match component expectations
-function transformProductData(apiProduct: any): Product {
-  return {
-    id: apiProduct.id,
-    title: apiProduct.title,
-    slug: apiProduct.slug || `product-${apiProduct.id}`,
-    publicKey: apiProduct.publicKey || `key-${apiProduct.id}`,
-    images: apiProduct.image ? [apiProduct.image] : ["/placeholder.svg"],
-    price: apiProduct.price,
-    unit: typeof apiProduct.unit === 'string'
-      ? { symbol: apiProduct.unit }
-      : apiProduct.unit || { symbol: 'unit' },
-    location: apiProduct.location,
-    store: apiProduct.seller && apiProduct.sellerId
-      ? {
-          id: parseInt(apiProduct.sellerId),
-          name: apiProduct.seller
-        }
-      : undefined,
-    isFeatured: apiProduct.isBestSeller || false,
-  };
+
+// API Product interface
+interface ApiProduct {
+  id: number;
+  title: string;
+  slug?: string;
+  publicKey?: string;
+  image?: string;
+  price: number;
+  unit?: string | { symbol: string };
+  location: string;
+  seller?: string;
+  sellerId?: string;
+  sellerSlug?: string;
+  sellerPublicKey?: string;
+  isBestSeller?: boolean;
+}
+
+interface Rental {
+  id: number;
+  image: string;
+  title: string;
+  price: number;
+  unit: string;
+  rating: number;
+  reviews: number;
+  location: string;
+  availability: number;
+  category: string;
+}
+
+interface Store {
+  id: number;
+  name: string;
+  slug?: string;
+  publicKey?: string;
+  image?: string;
+  category?: string;
+  rating?: number;
+  reviews?: number;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug?: string;
 }
 
 // Transform for ProductCard component specifically
-function transformForProductCard(apiProduct: any): {
+function transformForProductCard(apiProduct: ApiProduct): {
   id: number;
   title: string;
   slug?: string;
@@ -199,20 +139,18 @@ function transformForProductCard(apiProduct: any): {
 
 // Client Component - Main Home Page
 export default function Home() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   // State for dynamic data
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
-  const [featuredRentals, setFeaturedRentals] = useState<any[]>([]);
-  const [featuredStores, setFeaturedStores] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<ApiProduct[]>([]);
+  const [featuredRentals, setFeaturedRentals] = useState<Rental[]>([]);
+  const [featuredStores, setFeaturedStores] = useState<Store[]>([]);
   const [storeCategories, setStoreCategories] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch data on client side
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
         const [productsRes, rentalsRes, storesRes, categoriesRes] = await Promise.allSettled([
           fetch('/api/products/featured'),
           fetch('/api/rentals/featured'),
@@ -241,8 +179,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error fetching home page data:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -394,7 +330,7 @@ export default function Home() {
                 {transformedProducts.length > 0 ? (
                   transformedProducts.map((product, index) => (
                     <div key={product.id} className="animate-fade-in-up" style={{animationDelay: `${index * 100}ms`}}>
-                      <ProductCard {...(product as any)} />
+                      <ProductCard {...product} />
                     </div>
                   ))
                 ) : (
@@ -442,7 +378,7 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 justify-items-center">
               <Suspense fallback={<RentalSkeleton />}>
                 {featuredRentals.length > 0 ? (
-                  featuredRentals.map((rental: any, index: number) => (
+                  featuredRentals.map((rental, index: number) => (
                     <div key={rental.id} className="animate-fade-in-up w-full max-w-sm" style={{animationDelay: `${index * 150}ms`}}>
                       <RentalCard {...rental} />
                     </div>
@@ -555,7 +491,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
             <Suspense fallback={<StoreSkeleton />}>
               {featuredStores.length > 0 ? (
-                featuredStores.map((store: any, index: number) => (
+                featuredStores.map((store, index: number) => (
                   <div key={store.id} className="animate-fade-in-up" style={{animationDelay: `${index * 200}ms`}}>
                     <StoreCard
                       id={store.id}

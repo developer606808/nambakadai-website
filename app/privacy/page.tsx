@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
                     </h2>
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 mb-6">
                       <p className="text-gray-700 leading-relaxed mb-4">
-                        At Nanbakadai ("we," "our," or "us"), we respect your privacy and are committed to protecting your
+                        At Nanbakadai (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), we respect your privacy and are committed to protecting your
                         personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your
                         information when you visit our website or use our services.
                       </p>
@@ -306,7 +306,7 @@ export default function PrivacyPolicyPage() {
                     </div>
                   </div>
                   <p className="text-gray-700 mt-4">
-                    To exercise these rights, please contact us using the information provided in the "Contact Us"
+                    To exercise these rights, please contact us using the information provided in the &quot;Contact Us&quot;
                     section below. We will respond to your request within a reasonable timeframe.
                   </p>
                 </div>
@@ -328,7 +328,7 @@ export default function PrivacyPolicyPage() {
                   <p className="text-gray-700">
                     We may update this Privacy Policy from time to time to reflect changes in our practices or for other
                     operational, legal, or regulatory reasons. We will notify you of any material changes by posting the
-                    new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this
+                    new Privacy Policy on this page and updating the &quot;Last Updated&quot; date. You are advised to review this
                     Privacy Policy periodically for any changes.
                   </p>
                 </div>

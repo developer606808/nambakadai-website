@@ -69,7 +69,7 @@ export default function OffersPage() {
       <main className="container mx-auto p-4 flex-grow">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Today's Offers & Seasonal Picks</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Discover amazing deals on fresh produce and products directly from farmers and retailers. Don't miss out on seasonal specials!</p>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Discover amazing deals on fresh produce and products directly from farmers and retailers. Don&apos;t miss out on seasonal specials!</p>
         </div>
 
         {/* Filter Section */}

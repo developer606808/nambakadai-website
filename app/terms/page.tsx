@@ -63,7 +63,7 @@ export default function TermsPage() {
                     </h2>
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 mb-6">
                       <p className="text-gray-700 leading-relaxed mb-4">
-                        Welcome to Nanbakadai ("we," "our," or "us"). These Terms and Conditions ("Terms") govern your use
+                        Welcome to Nanbakadai (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). These Terms and Conditions (&quot;Terms&quot;) govern your use
                         of our classified ads marketplace platform and services. By accessing or using Nanbakadai, you agree
                         to be bound by these Terms.
                       </p>

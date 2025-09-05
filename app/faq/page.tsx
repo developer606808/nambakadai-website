@@ -266,7 +266,7 @@ export default function FAQPage() {
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-bold mb-4">Still have questions?</h2>
                 <p className="text-white/90 mb-8 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Can't find the answer you're looking for? Our support team is here to help you with any questions about Nanbakadai.
+                  Can&apos;t find the answer you&apos;re looking for? Our support team is here to help you with any questions about Nanbakadai.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" asChild>

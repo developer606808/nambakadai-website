@@ -20,6 +20,22 @@ import type { z } from "zod"
 
 type StoreFormData = z.infer<typeof storeFormSchema>
 
+interface State {
+  id: number
+  name_en: string
+  name_ta: string
+  name_hi: string
+  stateCode: string
+}
+
+interface City {
+  id: number
+  name_en: string
+  name_ta: string
+  name_hi: string
+  stateId: number
+}
+
 export default function CreateStorePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -29,8 +45,8 @@ export default function CreateStorePage() {
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
   const [bannerPreview, setBannerPreview] = useState<string>('')
-  const [states, setStates] = useState<any[]>([])
-  const [cities, setCities] = useState<any[]>([])
+  const [states, setStates] = useState<State[]>([])
+  const [cities, setCities] = useState<City[]>([])
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null)
 
   // Character count states
@@ -75,7 +91,7 @@ export default function CreateStorePage() {
     if (session?.user?.hasStore) {
       router.push("/seller/dashboard");
     }
-  }, [session]);
+  }, [session, router]);
 
   // Fetch states on component mount
   useEffect(() => {
@@ -219,7 +235,7 @@ export default function CreateStorePage() {
       }
 
       // Prepare store data (exclude acceptTerms from API call)
-      const { acceptTerms, ...storeFields } = data
+      const { acceptTerms: _, ...storeFields } = data
       const storeData = {
         ...storeFields,
         logo: logoUrl,
