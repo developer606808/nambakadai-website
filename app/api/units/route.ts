@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createApiResponse, createApiError } from '@/lib/utils/api';
+import { Prisma } from '@prisma/client';
 
 // GET /api/units - List units
 export async function GET(request: NextRequest) {
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
 
-    const where: any = {};
+    const where: Prisma.UnitWhereInput = {};
     
     if (search) {
       where.OR = [

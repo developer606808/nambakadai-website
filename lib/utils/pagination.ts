@@ -15,11 +15,11 @@ export type PaginationResult<T> = {
     };
   };
   
-  export function calculatePagination(
+  export function calculatePagination<T>(
     total: number,
     page: number = 1,
     limit: number = 10
-  ): PaginationResult<any>['pagination'] {
+  ): PaginationResult<T>['pagination'] {
     const pages = Math.ceil(total / limit);
     
     return {

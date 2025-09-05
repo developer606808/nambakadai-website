@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from "next/image";
 import Link from "next/link";
-import { Search, MapPin, Star, ChevronLeft, ChevronRight, QrCode, Store, Package, Users, Heart, Share2, Filter, Grid, List } from "lucide-react";
+import { Search, MapPin, Star, ChevronLeft, ChevronRight, QrCode, Store, Package, Users, Share2, Filter, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

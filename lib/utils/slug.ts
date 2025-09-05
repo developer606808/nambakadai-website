@@ -9,7 +9,7 @@ import { prisma } from "@/lib/data/prisma";
 export async function generateUniqueSlug(title: string, storeId?: number): Promise<string> {
   // Create base slug from title
   let slug = createSlug(title);
-  
+
   try {
     // If storeId is provided, check for uniqueness within the store
     // Otherwise, allow duplicates across stores
@@ -21,7 +21,7 @@ export async function generateUniqueSlug(title: string, storeId?: number): Promi
           storeId: storeId
         }
       });
-      
+
       // If slug exists, append a number and check again
       let counter = 1;
       while (existingProduct) {
@@ -32,12 +32,12 @@ export async function generateUniqueSlug(title: string, storeId?: number): Promi
             storeId: storeId
           }
         });
-        
+
         if (!existingProduct) {
           slug = newSlug;
           break;
         }
-        
+
         counter++;
       }
     }
@@ -47,7 +47,52 @@ export async function generateUniqueSlug(title: string, storeId?: number): Promi
     console.error("Error generating unique slug:", error);
     // If there's an error with the slug generation, just return the base slug
   }
-  
+
+  return slug;
+}
+
+/**
+ * Generate a unique slug for a vehicle
+ * @param name The vehicle name
+ * @param userId The user ID to check for uniqueness
+ * @returns A unique slug string
+ */
+export async function generateUniqueVehicleSlug(name: string, userId: number): Promise<string> {
+  // Create base slug from name
+  let slug = createSlug(name);
+
+  try {
+    // Check if slug already exists for this user
+    let existingVehicle = await prisma.vehicle.findFirst({
+      where: {
+        slug: slug,
+        userId: userId
+      }
+    });
+
+    // If slug exists, append a number and check again
+    let counter = 1;
+    while (existingVehicle) {
+      const newSlug = `${slug}-${counter}`;
+      existingVehicle = await prisma.vehicle.findFirst({
+        where: {
+          slug: newSlug,
+          userId: userId
+        }
+      });
+
+      if (!existingVehicle) {
+        slug = newSlug;
+        break;
+      }
+
+      counter++;
+    }
+  } catch (error) {
+    console.error("Error generating unique vehicle slug:", error);
+    // If there's an error with the slug generation, just return the base slug
+  }
+
   return slug;
 }
 

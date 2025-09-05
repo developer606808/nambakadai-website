@@ -36,7 +36,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
   console.log(`Notification ${notificationId} marked as read`);
 }
 
-export async function getUnreadNotificationsCount(userId: string): Promise<number> {
+export async function getUnreadNotificationsCount(): Promise<number> {
   // In a real implementation, you would query the database
   // For now, we'll return a placeholder value
   return 0;

@@ -1,15 +1,17 @@
+import { Prisma } from '@prisma/client';
+
 export type FilterOptions = {
-  category?: string;
+  category?: number;
   minPrice?: number;
   maxPrice?: number;
-  state?: string;
-  city?: string;
+  state?: number;
+  city?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 };
 
-export function buildFilterWhereClause(filters: FilterOptions): any {
-  const where: any = {};
+export function buildFilterWhereClause(filters: FilterOptions): Prisma.ProductWhereInput {
+  const where: Prisma.ProductWhereInput = {};
   
   if (filters.category) {
     where.categoryId = filters.category;
@@ -36,13 +38,13 @@ export function buildFilterWhereClause(filters: FilterOptions): any {
   return where;
 }
 
-export function buildOrderByClause(sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc'): any {
+export function buildOrderByClause(sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc'): Prisma.ProductOrderByWithRelationInput {
   if (!sortBy) {
     return { createdAt: sortOrder };
   }
-  
-  const orderBy: any = {};
-  orderBy[sortBy] = sortOrder;
+
+  const orderBy: Prisma.ProductOrderByWithRelationInput = {};
+  (orderBy as Record<string, 'asc' | 'desc'>)[sortBy] = sortOrder;
   return orderBy;
 }
 

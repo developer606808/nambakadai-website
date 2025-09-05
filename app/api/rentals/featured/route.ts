@@ -27,14 +27,16 @@ export async function GET() {
     // Transform data for frontend
     const featuredRentals = vehicles.map(vehicle => ({
       id: vehicle.id,
+      slug: vehicle.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      publicKey: vehicle.publicKey,
       image: vehicle.images[0] || "/placeholder.svg",
       title: vehicle.name,
       price: vehicle.pricePerDay || vehicle.pricePerHour || 0,
       unit: vehicle.pricePerDay ? "per day" : "per hour",
-      rating: 4.5, // Default rating, could be calculated from reviews
-      reviews: vehicle._count.bookings, // Using booking count as proxy for reviews
+      rating: vehicle.rating || 4.5,
+      reviews: vehicle.totalBookings || vehicle._count.bookings,
       location: vehicle.location,
-      availability: 10, // Default availability, could be calculated
+      availability: vehicle.status === 'AVAILABLE' ? 1 : 0,
       category: vehicle.category,
     }));
 

@@ -102,7 +102,7 @@ interface Vehicle {
 export default function EditVehiclePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const publicKey = searchParams.get('id')
+  const publicKey = searchParams?.get('id')
   const { data: session } = useSession()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
@@ -114,6 +114,10 @@ export default function EditVehiclePage() {
   const [selectedAttachments, setSelectedAttachments] = useState<string[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [units, setUnits] = useState<any[]>([])
+  const [featureInput, setFeatureInput] = useState("")
+  const [attachmentInput, setAttachmentInput] = useState("")
+  const [vehicleId, setVehicleId] = useState<string>("")
+  const [fetching, setFetching] = useState(false)
 
   const {
     register,
@@ -133,12 +137,16 @@ export default function EditVehiclePage() {
 
     const fetchVehicle = async () => {
       try {
+        setFetching(true)
         const response = await fetch(`/api/vehicles/${publicKey}`)
         const data = await response.json()
 
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch vehicle')
         }
+
+        // Set vehicle ID
+        setVehicleId(data.id)
 
         // Set form values
         Object.keys(data).forEach(key => {
@@ -165,6 +173,8 @@ export default function EditVehiclePage() {
           variant: "destructive"
         })
         router.push('/seller/rent-vehicles')
+      } finally {
+        setFetching(false)
       }
     }
 
@@ -176,9 +186,10 @@ export default function EditVehiclePage() {
     if (selectedType) {
       const fetchCategories = async () => {
         try {
-          const response = await fetch(`/api/categories?type=RENTAL&search=${selectedType}`)
+          const searchTerm = getSearchTerm(selectedType)
+          const response = await fetch(`/api/categories?type=RENTAL&search=${searchTerm}`)
           const data = await response.json()
-          setCategories(data.data || [])
+          setCategories(data.categories || data || [])
         } catch (error) {
           console.error('Error fetching categories:', error)
         }
@@ -228,6 +239,28 @@ export default function EditVehiclePage() {
     setVehicleImages(newImages)
     setImageFiles(newFiles)
     setValue('images', newImages)
+  }
+
+  // Map vehicle types to appropriate search terms
+  const getSearchTerm = (vehicleType: string) => {
+    switch (vehicleType) {
+      case 'TRACTOR':
+      case 'HARVESTING_MACHINE':
+      case 'PLANTING_MACHINE':
+      case 'THRESHING_MACHINE':
+      case 'CULTIVATOR':
+      case 'PLOUGH':
+      case 'SPRAYER':
+        return 'Farming'
+      case 'TRUCK':
+      case 'LORRY':
+      case 'VAN':
+        return 'Transportation'
+      case 'OTHER_EQUIPMENT':
+        return 'Services'
+      default:
+        return vehicleType
+    }
   }
 
   const addFeature = () => {
@@ -282,8 +315,8 @@ export default function EditVehiclePage() {
 
   const onSubmit = async (data: VehicleFormData) => {
     if (!vehicleId) return;
-    
-    setIsLoading(true)
+
+    setIsSubmitting(true)
     clearErrors()
 
     try {
@@ -340,11 +373,11 @@ export default function EditVehiclePage() {
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  if (status === 'loading' || fetching) {
+  if (fetching) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-theme(spacing.16))] flex-col">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -371,35 +404,41 @@ export default function EditVehiclePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
           <Link href="/seller/rent-vehicles">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="shrink-0">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Vehicles
+              <span className="hidden sm:inline">Back to Vehicles</span>
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit Vehicle</h1>
-            <p className="text-gray-600">Update your vehicle listing</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Edit Vehicle</h1>
+            <p className="text-sm sm:text-base text-gray-600">Update your vehicle listing details</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="hidden md:inline">Editing:</span>
+          <span className="font-medium">Vehicle Details</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="w-5 h-5" />
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Truck className="w-5 h-5 text-blue-600" />
+              </div>
               Vehicle Information
             </CardTitle>
-            <CardDescription>
-              Update the details about your vehicle
+            <CardDescription className="text-sm sm:text-base">
+              Update the basic details about your vehicle
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Vehicle Name *</Label>
                 <Input
@@ -479,21 +518,6 @@ export default function EditVehiclePage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity *</Label>
-                <Input
-                  id="capacity"
-                  placeholder="e.g., 5 tons, 2000 liters"
-                  {...register('capacity')}
-                  className={errors.capacity ? 'border-red-500' : ''}
-                />
-                {errors.capacity && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.capacity.message}
-                  </p>
-                )}
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="fuelType">Fuel Type *</Label>
@@ -565,7 +589,7 @@ export default function EditVehiclePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pricePerHour">Price per Hour (₹) *</Label>
                 <Input
@@ -632,204 +656,149 @@ export default function EditVehiclePage() {
           </CardContent>
         </Card>
 
-        {/* Specifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Specifications</CardTitle>
-            <CardDescription>
-              Add technical specifications for your vehicle
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="horsepower">Horsepower (Optional)</Label>
-                <Input
-                  id="horsepower"
-                  type="number"
-                  placeholder="0"
-                  {...register('horsepower', { valueAsNumber: true })}
-                  className={errors.horsepower ? 'border-red-500' : ''}
-                />
-                {errors.horsepower && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.horsepower.message}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="workingWidth">Working Width (ft) (Optional)</Label>
-                <Input
-                  id="workingWidth"
-                  type="number"
-                  step="0.1"
-                  placeholder="0.0"
-                  {...register('workingWidth', { valueAsNumber: true })}
-                  className={errors.workingWidth ? 'border-red-500' : ''}
-                />
-                {errors.workingWidth && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    {errors.workingWidth.message}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Features */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-            <CardDescription>
-              Add features of your vehicle (up to 10)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={featureInput}
-                onChange={(e) => setFeatureInput(e.target.value)}
-                placeholder="Enter a feature"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
-              />
-              <Button type="button" onClick={addFeature}>Add</Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {watch('features').map((feature, index) => (
-                <div key={index} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                  <span className="text-sm">{feature}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(index)}
-                    className="ml-2 text-gray-500 hover:text-red-500"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {errors.features && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.features.message}
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Attachments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attachments</CardTitle>
-            <CardDescription>
-              Add available attachments/implements (optional, up to 10)
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-orange-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <span className="text-lg">🔧</span>
+              </div>
+              Attachments & Implements
+            </CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Add available attachments and implements for enhanced functionality
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={attachmentInput}
                 onChange={(e) => setAttachmentInput(e.target.value)}
-                placeholder="Enter an attachment"
+                placeholder="Enter an attachment or implement"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAttachment())}
+                className="flex-1"
               />
-              <Button type="button" onClick={addAttachment}>Add</Button>
+              <Button type="button" onClick={addAttachment} className="shrink-0">Add Attachment</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {(watch('attachments') || []).map((attachment, index) => (
-                <div key={index} className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-                  <span className="text-sm">{attachment}</span>
+                <div key={index} className="flex items-center bg-orange-100 hover:bg-orange-200 rounded-full px-3 py-2 transition-colors">
+                  <span className="text-sm font-medium">{attachment}</span>
                   <button
                     type="button"
                     onClick={() => removeAttachment(index)}
-                    className="ml-2 text-gray-500 hover:text-red-500"
+                    className="ml-2 text-orange-600 hover:text-red-500 transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
+            {(!watch('attachments') || watch('attachments')?.length === 0) && (
+              <p className="text-sm text-gray-500 text-center py-4">No attachments added yet. Add attachments to increase rental value!</p>
+            )}
           </CardContent>
         </Card>
 
         {/* Vehicle Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Upload className="w-5 h-5 text-blue-600" />
+              </div>
               Vehicle Images
             </CardTitle>
-            <CardDescription>
-              Upload high-quality images of your vehicle (1-5 images)
+            <CardDescription className="text-sm sm:text-base">
+              Update your vehicle images to showcase your equipment ({vehicleImages.length}/5)
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {vehicleImages.length < 5 && (
-              <ImageUpload
-                onImageChange={handleImageChange}
-                aspectRatio={16/9}
-                cropShape="rect"
-                maxSize={5}
-                placeholder="Upload vehicle image"
-              />
+              <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                <ImageUpload
+                  onImageChange={handleImageChange}
+                  aspectRatio={16/9}
+                  cropShape="rect"
+                  maxSize={5}
+                  placeholder="Click to add more images"
+                />
+              </div>
             )}
 
             {vehicleImages.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {vehicleImages.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={image}
-                      alt={`Vehicle ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleImageRemove(index)}
-                    >
-                      <XCircle className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {vehicleImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                        <img
+                          src={image}
+                          alt={`Vehicle ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                        onClick={() => handleImageRemove(index)}
+                      >
+                        <XCircle className="w-3 h-3" />
+                      </Button>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 text-center">
+                  Hover over images to remove them. You can add up to {5 - vehicleImages.length} more images.
+                </p>
               </div>
             )}
 
             {errors.images && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.images.message}
-              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 flex items-center gap-2">
+                  <XCircle className="w-4 h-4" />
+                  {errors.images.message}
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Submit Button */}
-        <div className="flex justify-end space-x-4">
-          <Link href="/seller/rent-vehicles">
-            <Button variant="outline" type="button">
-              Cancel
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4 sm:-mx-6">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 max-w-4xl mx-auto">
+            <Link href="/seller/rent-vehicles" className="w-full sm:w-auto">
+              <Button variant="outline" type="button" className="w-full sm:w-auto">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </Link>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Updating Vehicle...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Update Vehicle
+                </>
+              )}
             </Button>
-          </Link>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Updating...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Update Vehicle
-              </>
-            )}
-          </Button>
+          </div>
         </div>
       </form>
     </div>

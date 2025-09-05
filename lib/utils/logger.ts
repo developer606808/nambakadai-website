@@ -7,14 +7,14 @@ export type ErrorLog = {
   timestamp: Date;
   userId?: string;
   url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 };
 
 export async function logError(
   level: ErrorLevel,
   message: string,
   error?: Error,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   // In a real implementation, you would send to a logging service
   // For now, we'll just log to console
@@ -43,18 +43,18 @@ export async function logError(
   }
 }
 
-export async function logInfo(message: string, metadata?: Record<string, any>): Promise<void> {
+export async function logInfo(message: string, metadata?: Record<string, unknown>): Promise<void> {
   await logError('info', message, undefined, metadata);
 }
 
-export async function logWarning(message: string, error?: Error, metadata?: Record<string, any>): Promise<void> {
+export async function logWarning(message: string, error?: Error, metadata?: Record<string, unknown>): Promise<void> {
   await logError('warn', message, error, metadata);
 }
 
-export async function logErrorEvent(message: string, error?: Error, metadata?: Record<string, any>): Promise<void> {
+export async function logErrorEvent(message: string, error?: Error, metadata?: Record<string, unknown>): Promise<void> {
   await logError('error', message, error, metadata);
 }
 
-export async function logFatal(message: string, error?: Error, metadata?: Record<string, any>): Promise<void> {
+export async function logFatal(message: string, error?: Error, metadata?: Record<string, unknown>): Promise<void> {
   await logError('fatal', message, error, metadata);
 }

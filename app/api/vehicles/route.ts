@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { generateVehicleAdId } from '@/lib/utils/ad-id'
+import { generateUniqueVehicleSlug } from '@/lib/utils/slug'
+import { Prisma } from '@prisma/client'
 
 // Vehicle validation schema
 const vehicleSchema = z.object({
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.VehicleWhereInput = {
       userId: userId
     }
 
@@ -87,11 +89,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (type) {
-      where.type = type
+      where.type = type as any
     }
 
     if (status) {
-      where.status = status
+      where.status = status as any
     }
 
     // Fetch vehicles with pagination
@@ -205,6 +207,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate slug
+    const slug = await generateUniqueVehicleSlug(validatedData.name, userId);
+
     // Generate adId
     const adId = generateVehicleAdId(userWithStore.currentStore.name);
 
@@ -212,6 +217,7 @@ export async function POST(request: NextRequest) {
     const vehicle = await prisma.vehicle.create({
       data: {
         ...validatedData,
+        slug: slug,
         userId: userId,
         status: 'AVAILABLE',
         rating: 0,

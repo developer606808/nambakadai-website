@@ -6,11 +6,9 @@ import {
   Users,
   Award,
   Leaf,
-  Truck,
   Shield,
   Star,
   ArrowRight,
-  CheckCircle,
   Globe,
   TrendingUp
 } from "lucide-react"

@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Home, Grid3X3, Package, Store, Users, Heart, MessageCircle, Bell, Languages } from 'lucide-react';
-import { LanguageSwitcher } from '@/components/language-switcher';
+import { Menu, Home, Grid3X3, Package, Store, Users, Heart, MessageCircle } from 'lucide-react';
+import LanguageSwitcher from '@/components/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { useTranslations } from 'next-intl';
+import { useI18n } from '@/lib/i18n-context';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,22 +21,20 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const { wishlistCount } = useWishlist();
   const { unreadCount: messageCount } = useUnreadMessages();
 
-  // Get translations using next-intl hook
-  const t = useTranslations('Navigation');
-  const tFooter = useTranslations('Footer');
-  const tCommon = useTranslations('Common');
+  // Get translations using our custom i18n hook
+  const { t } = useI18n();
 
   // Simplified navigation items
   const navItems = [
-    { href: '/', label: t('home'), icon: Home },
-    { href: '/products', label: t('products'), icon: Package },
-    { href: '/stores', label: t('stores'), icon: Store },
-    { href: '/categories', label: t('categories'), icon: Grid3X3 },
+    { href: '/', label: t('nav.home'), icon: Home },
+    { href: '/products', label: t('nav.products'), icon: Package },
+    { href: '/stores', label: t('nav.stores'), icon: Store },
+    { href: '/categories', label: 'Categories', icon: Grid3X3 },
   ];
 
   // Add community only if user is logged in
   if (session?.user) {
-    navItems.push({ href: '/community', label: t('community'), icon: Users });
+    navItems.push({ href: '/community', label: 'Community', icon: Users });
   }
 
   // next-intl handles locale automatically
@@ -274,14 +272,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                    {tFooter('brandName')}
+                    Nambakadai
                   </h3>
-                  <p className="text-sm text-green-600 font-medium">{tFooter('tagline')}</p>
+                  <p className="text-sm text-green-600 font-medium">Fresh • Local • Direct</p>
                 </div>
               </div>
 
               <p className="text-gray-600 leading-relaxed text-sm">
-                {tFooter('description')}
+                Connecting farmers and customers directly for fresh, local produce and services.
               </p>
 
               {/* Contact Info */}
@@ -309,7 +307,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <div className="space-y-6">
               <div>
                 <h4 className="text-lg font-bold text-gray-900 mb-4 relative">
-                  {tFooter('quickLinks')}
+                  Quick Links
                   <div className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500"></div>
                 </h4>
                 <ul className="space-y-3">
@@ -405,9 +403,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <h5 className="font-semibold text-gray-900 text-sm">{tFooter('stayUpdated')}</h5>
+                    <h5 className="font-semibold text-gray-900 text-sm">Stay Updated</h5>
                   </div>
-                  <p className="text-xs text-gray-600 mb-3">{tFooter('getFreshDeals')}</p>
+                  <p className="text-xs text-gray-600 mb-3">Get fresh deals and updates</p>
                   <div className="flex gap-2">
                     <input
                       type="email"
@@ -454,7 +452,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
-                <span>{tFooter('madeWithLove')}</span>
+                <span>Made with Love</span>
               </div>
             </div>
           </div>

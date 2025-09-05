@@ -2,8 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { base64ToFileServer } from './file-upload-server';
 
 // Use the server-side base64 to file conversion
-async function base64ToFile(base64Data: string, fileName: string): Promise<string> {
-  return await base64ToFileServer(base64Data, fileName);
+async function base64ToFile(base64Data: string): Promise<string> {
+  return await base64ToFileServer(base64Data);
 }
 
 // Migration function to convert all base64 images to files
@@ -27,7 +27,7 @@ export async function migrateBannerImages(): Promise<{ success: number; failed: 
         console.log(`Migrating banner ${banner.id}: ${banner.title}`);
         
         // Convert base64 to file
-        const newImageUrl = await base64ToFile(banner.image, `banner_${banner.id}`);
+        const newImageUrl = await base64ToFile(banner.image);
         
         // Update database with new file URL
         await prisma.banner.update({

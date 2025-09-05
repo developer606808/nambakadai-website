@@ -216,6 +216,52 @@ async function main() {
         type: CategoryType.STORE,
         icon: '🌱'
       }
+    }),
+    // RENTAL Categories
+    prisma.category.create({
+      data: {
+        name_en: 'Tractor',
+        name_ta: 'டிராக்டர்',
+        slug: 'tractor-rental',
+        type: CategoryType.RENTAL,
+        icon: '🚜'
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name_en: 'Mini Truck',
+        name_ta: 'மினி டிரக்',
+        slug: 'mini-truck-rental',
+        type: CategoryType.RENTAL,
+        icon: '🚛'
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name_en: 'Harvesting Machine',
+        name_ta: 'அறுவடை இயந்திரம்',
+        slug: 'harvesting-machine-rental',
+        type: CategoryType.RENTAL,
+        icon: '🚜'
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name_en: 'Sprayer',
+        name_ta: 'தெளிப்பான்',
+        slug: 'sprayer-rental',
+        type: CategoryType.RENTAL,
+        icon: '💧'
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name_en: 'Cultivator',
+        name_ta: 'கல்வி இயந்திரம்',
+        slug: 'cultivator-rental',
+        type: CategoryType.RENTAL,
+        icon: '🌾'
+      }
     })
   ]);
 
@@ -445,6 +491,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         name: 'Mahindra 575 DI Tractor',
+        slug: 'mahindra-575-di-tractor',
         description: 'Powerful 47 HP tractor perfect for small to medium farms',
         type: VehicleType.TRACTOR,
         category: 'Tractor',
@@ -465,6 +512,7 @@ async function main() {
     prisma.vehicle.create({
       data: {
         name: 'Tata Ace Mini Truck',
+        slug: 'tata-ace-mini-truck',
         description: 'Compact mini truck for transporting goods and agricultural produce',
         type: VehicleType.TRUCK,
         category: 'Mini Truck',

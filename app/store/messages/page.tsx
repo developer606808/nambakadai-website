@@ -73,7 +73,7 @@ const messages = [
   {
     id: 2,
     sender: "store",
-    message: "Hello! Yes, we have fresh organic tomatoes in stock. They're $4.99/kg.",
+    message: "Hello! Yes, we have fresh organic tomatoes in stock. They're ₹4.99/kg.",
     timestamp: "10:32 AM",
     avatar: "/placeholder.svg?height=32&width=32",
   },

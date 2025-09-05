@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/users/[id] - Get single user
 export async function GET(
@@ -118,7 +119,7 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Prisma.UserUpdateInput = {
       name,
       email,
       phone,

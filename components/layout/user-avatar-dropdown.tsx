@@ -13,11 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { 
-  User, 
-  Store, 
-  Settings, 
-  LogOut, 
+import {
+  User,
+  Store,
+  LogOut,
   Plus,
   ShoppingBag,
   BarChart3
@@ -62,8 +61,8 @@ export function UserAvatarDropdown() {
     : user.email?.[0]?.toUpperCase() || "U"
 
   // Construct avatar URL from stored filename
-  const avatarUrl = (user as any).avatar
-    ? `/uploads/profiles/${(user as any).avatar}`
+  const avatarUrl = (user as { avatar?: string }).avatar
+    ? `/uploads/profiles/${(user as { avatar?: string }).avatar}`
     : user.image || ""
 
   return (
@@ -84,14 +83,14 @@ export function UserAvatarDropdown() {
               {user.email}
             </p>
             <p className="text-xs leading-none text-muted-foreground capitalize">
-              {user.role.toLowerCase()}
+              {(user as { role?: string }).role?.toLowerCase() || 'user'}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
         {/* Store Management Section */}
-        {user.hasStore && user.currentStore ? (
+        {(user as { hasStore?: boolean; currentStore?: { name: string } }).hasStore && (user as { hasStore?: boolean; currentStore?: { name: string } }).currentStore ? (
           <>
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Current Store
@@ -99,7 +98,7 @@ export function UserAvatarDropdown() {
             <DropdownMenuItem asChild>
               <Link href="/seller/dashboard" className="flex items-center">
                 <Store className="mr-2 h-4 w-4" />
-                {user.currentStore.name}
+                {(user as { hasStore?: boolean; currentStore?: { name: string } }).currentStore?.name}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

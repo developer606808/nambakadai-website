@@ -32,9 +32,9 @@ export function parseUserAgent(userAgent: string) {
 }
 
 // Get client IP address
-export function getClientIP(request: Request): string {
-  const headersList = headers()
-  
+export async function getClientIP(): Promise<string> {
+  const headersList = await headers()
+
   // Check various headers for the real IP
   const xForwardedFor = headersList.get('x-forwarded-for')
   const xRealIP = headersList.get('x-real-ip')
@@ -67,9 +67,7 @@ export async function getLocationFromIP(ip: string): Promise<string> {
     // For now, returning a placeholder
     
     // Example with ipapi.co (free tier)
-    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
-      timeout: 5000
-    })
+    const response = await fetch(`https://ipapi.co/${ip}/json/`)
     
     if (response.ok) {
       const data = await response.json()
@@ -91,7 +89,7 @@ export async function logSuccessfulLogin(
 ) {
   try {
     const userAgent = request.headers.get('user-agent') || 'Unknown'
-    const ipAddress = getClientIP(request)
+    const ipAddress = await getClientIP()
     const deviceInfo = parseUserAgent(userAgent)
     const location = await getLocationFromIP(ipAddress)
 
@@ -134,7 +132,7 @@ export async function logFailedLogin(
 ) {
   try {
     const userAgent = request.headers.get('user-agent') || 'Unknown'
-    const ipAddress = getClientIP(request)
+    const ipAddress = await getClientIP()
     const deviceInfo = parseUserAgent(userAgent)
     const location = await getLocationFromIP(ipAddress)
 

@@ -13,7 +13,7 @@ export async function GET(
     console.log('Fetching ratings for store:', publicKey);
 
     // Find store by publicKey
-    const store = await (prisma as any).store.findFirst({
+    const store = await prisma.store.findFirst({
       where: { publicKey },
       select: { id: true }
     });
@@ -100,7 +100,7 @@ export async function POST(
     }
 
     // Find store by publicKey
-    const store = await (prisma as any).store.findFirst({
+    const store = await prisma.store.findFirst({
       where: { publicKey },
       select: { id: true, userId: true }
     });

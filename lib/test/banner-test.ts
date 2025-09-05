@@ -35,7 +35,7 @@ export async function testBannerFunctions() {
 }
 
 // Function to check data size
-export function checkDataSize(data: any): { size: number; isUnderLimit: boolean } {
+export function checkDataSize(data: unknown): { size: number; isUnderLimit: boolean } {
   const jsonString = JSON.stringify(data);
   const sizeInBytes = Buffer.byteLength(jsonString, 'utf8');
   const sizeInMB = sizeInBytes / (1024 * 1024);

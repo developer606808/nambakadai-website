@@ -20,6 +20,10 @@ interface RentalCardProps {
   location?: string
   availability?: number
   category?: string
+  storeId?: number
+  storeSlug?: string
+  storePublicKey?: string
+  storeName?: string
 }
 
 export function RentalCard({
@@ -35,12 +39,15 @@ export function RentalCard({
   location,
   availability,
   category,
+  storeId,
+  storeSlug,
+  storePublicKey,
+  storeName,
 }: RentalCardProps) {
   const { toggleWishlist, wishlistStatus } = useWishlist()
   const { toast } = useToast()
 
-  const rentalUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}` : `/rentals/${id}`
-  const rentalRequestUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}/request` : `/rentals/${id}/request`
+  const rentalUrl = slug && publicKey ? `/rentals/${slug}/${publicKey}` : `/rentals/${publicKey || slug || id}`
 
   // Early return if critical data is missing
   if (!title || !id) {
@@ -74,7 +81,7 @@ export function RentalCard({
     const qrUrl = `${window.location.origin}${rentalUrl}`
     toast({
       title: "QR Code",
-      description: "QR code functionality would be implemented here",
+      description: `QR code for ${qrUrl} would be generated here`,
     })
   }
 
@@ -189,20 +196,21 @@ export function RentalCard({
         {/* Action Buttons */}
         <div className="flex gap-2 mt-auto">
           <Link href={rentalUrl} className="flex-1">
-            <button className="w-full border border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-300 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg flex items-center gap-1.5">
-              <Eye className="h-3 w-3" />
-              <span className="hidden sm:inline">Details</span>
-              <span className="sm:hidden">View</span>
-            </button>
-          </Link>
-
-          <Link href={rentalRequestUrl} className="flex-1">
             <button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all duration-300 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg flex items-center gap-1.5">
-              <Truck className="h-3 w-3" />
-              <span className="hidden sm:inline">Rent Now</span>
-              <span className="sm:hidden">Rent</span>
+              <Eye className="h-3 w-3" />
+              <span className="hidden sm:inline">View Details</span>
+              <span className="sm:hidden">Details</span>
             </button>
           </Link>
+          {storeId && (storeSlug || storePublicKey) && (
+            <Link href={`/stores/${storeSlug || storePublicKey || storeId}`} className="flex-1">
+              <button className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md hover:shadow-lg transition-all duration-300 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg flex items-center gap-1.5">
+                <Package className="h-3 w-3" />
+                <span className="hidden sm:inline">Visit Store</span>
+                <span className="sm:hidden">Store</span>
+              </button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

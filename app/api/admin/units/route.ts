@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createApiResponse, createApiError } from '@/lib/utils/api';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/units - List units with pagination
 export async function GET(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.UnitWhereInput = {};
     
     if (search) {
       where.OR = [
@@ -46,16 +47,16 @@ export async function GET(request: NextRequest) {
             }
           }
         }
-      } as any,
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
     });
 
     // Transform the data to flatten categories
-    const transformedUnits = units.map((unit: any) => ({
+    const transformedUnits = units.map((unit) => ({
       ...unit,
-      categories: unit.categories?.map((uc: any) => uc.category) || []
+      categories: unit.categories?.map((uc) => uc.category) || []
     }));
 
     const totalPages = Math.ceil(total / limit);
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
             category: { connect: { id: categoryId } }
           }))
         } : undefined
-      } as any,
+      },
       include: {
         _count: {
           select: { products: true }
@@ -128,13 +129,13 @@ export async function POST(request: NextRequest) {
             }
           }
         }
-      } as any
+      }
     });
 
     // Transform the response to flatten categories
     const transformedUnit = {
       ...unit,
-      categories: unit.categories?.map((uc: any) => uc.category) || []
+      categories: unit.categories?.map((uc) => uc.category) || []
     };
 
     return createApiResponse(transformedUnit, 'Unit created successfully');

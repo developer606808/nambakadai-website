@@ -1,5 +1,5 @@
 export type CacheKey = string;
-export type CacheValue = any;
+export type CacheValue = unknown;
 export type CacheOptions = {
   ttl?: number; // Time to live in seconds
 };

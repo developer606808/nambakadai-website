@@ -509,10 +509,10 @@ export default function SellerSettings() {
                     </div>
                     <Switch
                       checked={!hours.closed}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         setBusinessHours(prev => ({
                           ...prev,
-                          [day]: { ...prev[day], closed: !checked }
+                          [day as keyof typeof prev]: { ...prev[day as keyof typeof prev], closed: !checked }
                         }))
                       }
                     />
@@ -522,10 +522,10 @@ export default function SellerSettings() {
                       <Input
                         type="time"
                         value={hours.open}
-                        onChange={(e) => 
+                        onChange={(e) =>
                           setBusinessHours(prev => ({
                             ...prev,
-                            [day]: { ...prev[day], open: e.target.value }
+                            [day as keyof typeof prev]: { ...prev[day as keyof typeof prev], open: e.target.value }
                           }))
                         }
                         className="w-24"
@@ -534,10 +534,10 @@ export default function SellerSettings() {
                       <Input
                         type="time"
                         value={hours.close}
-                        onChange={(e) => 
+                        onChange={(e) =>
                           setBusinessHours(prev => ({
                             ...prev,
-                            [day]: { ...prev[day], close: e.target.value }
+                            [day as keyof typeof prev]: { ...prev[day as keyof typeof prev], close: e.target.value }
                           }))
                         }
                         className="w-24"

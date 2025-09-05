@@ -23,7 +23,7 @@ async function testCommunityTables() {
     // Test creating a community member
     const member = await prisma.communityMember.create({
       data: {
-        userId: 'test-user-id',
+        userId: 1,
         communityId: community.id,
         role: 'ADMIN',
         isApproved: true,
@@ -38,7 +38,7 @@ async function testCommunityTables() {
       data: {
         content: 'This is a test post',
         type: 'TEXT',
-        userId: 'test-user-id',
+        userId: 1,
         communityId: community.id,
         likeCount: 0,
         commentCount: 0,
@@ -52,7 +52,7 @@ async function testCommunityTables() {
     const comment = await prisma.communityComment.create({
       data: {
         content: 'This is a test comment',
-        userId: 'test-user-id',
+        userId: 1,
         postId: post.id,
         likeCount: 0,
       },
@@ -63,7 +63,7 @@ async function testCommunityTables() {
     // Test liking a post
     const like = await prisma.communityLike.create({
       data: {
-        userId: 'test-user-id',
+        userId: 1,
         postId: post.id,
       },
     });

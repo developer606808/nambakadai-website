@@ -503,7 +503,7 @@ export default function ProductDetailsPage({
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-4xl lg:text-5xl font-bold text-green-600 mb-1">
-                        ${product.price}
+                        ₹{product.price}
                       </div>
                       <div className="text-sm text-gray-600">
                         per {product.unit.symbol}
@@ -665,7 +665,7 @@ export default function ProductDetailsPage({
                           <div className="flex items-center justify-between">
                             <div className="flex flex-col">
                               <div className="text-lg font-bold text-green-600">
-                                ${relatedProduct.price}
+                                ₹{relatedProduct.price}
                               </div>
                               <div className="text-xs text-gray-500">
                                 per {relatedProduct.unit.symbol}

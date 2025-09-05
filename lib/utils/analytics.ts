@@ -15,7 +15,7 @@ export type EventData = {
   storeId?: string;
   category?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 };
 
 export async function trackEvent(event: EventData): Promise<void> {

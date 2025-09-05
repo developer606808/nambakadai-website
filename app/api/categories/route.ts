@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // GET /api/categories - Get all categories
 export async function GET(request: NextRequest) {
@@ -8,10 +9,35 @@ export async function GET(request: NextRequest) {
     const includeSubcategories = searchParams.get('includeSubcategories') === 'true';
     const type = searchParams.get('type') || 'STORE'; // Default to STORE if not specified
     const limit = searchParams.get('limit');
+    const search = searchParams.get('search');
 
-    const where: any = {};
+    const where: Prisma.CategoryWhereInput = {};
     if (type) {
-      where.type = type;
+      where.type = type as any;
+    }
+
+    // Add search functionality
+    if (search) {
+      where.OR = [
+        {
+          name_en: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          name_ta: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          name_hi: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        }
+      ];
     }
 
     const categories = await prisma.category.findMany({

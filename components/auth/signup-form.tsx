@@ -127,6 +127,12 @@ export default function SignupForm() {
         body: formData,
       })
 
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Registration failed')
+      }
+
       toast({
         title: "Account created successfully!",
         description: result.emailSent

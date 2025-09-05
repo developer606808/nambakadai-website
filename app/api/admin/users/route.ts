@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/users - Get all users with pagination and filters
 export async function GET(request: NextRequest) {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       deletedAt: null, // Only get non-deleted users
     };
 
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform data for frontend
-    const transformedUsers = users.map((user: any) => ({
+    const transformedUsers = users.map((user) => ({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     // Validate role if provided
     let adminRoleId = null;
     if (role) {
-      const roleRecord = await (prisma as any).adminRole.findFirst({
+      const roleRecord = await prisma.adminRole.findFirst({
         where: {
           name: { equals: role, mode: 'insensitive' },
           deletedAt: null,

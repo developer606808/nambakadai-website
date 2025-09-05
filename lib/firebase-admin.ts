@@ -83,12 +83,12 @@ export const sendPushNotificationToMultipleTokens = async (
       data: notification.data
     }))
 
-    const response = await messaging.sendAll(messages)
+    const response = await messaging.sendEach(messages)
     console.log('Push notifications sent:', response.successCount, 'success,', response.failureCount, 'failed')
 
     return response.responses
-      .filter((resp, index) => resp.success)
-      .map((resp, index) => tokens[index])
+      .filter((resp: any, index: number) => resp.success)
+      .map((resp: any, index: number) => tokens[index])
   } catch (error) {
     console.error('Error sending push notifications:', error)
     return []

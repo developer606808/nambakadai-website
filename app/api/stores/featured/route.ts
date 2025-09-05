@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Fetch featured stores from database
-    const stores = await (prisma as any).store.findMany({
+    const stores = await prisma.store.findMany({
       where: {
         isApproved: true,
         isBlocked: false,
@@ -43,7 +43,7 @@ export async function GET() {
     });
 
     // Transform data for frontend
-    const featuredStores = stores.map((store: any) => ({
+    const featuredStores = stores.map((store) => ({
       id: store.id.toString(),
       slug: store.slug,
       publicKey: store.publicKey,

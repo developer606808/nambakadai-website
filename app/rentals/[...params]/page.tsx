@@ -164,13 +164,13 @@ export default async function RentalDetailsPage({
                       {vehicle.pricePerDay && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Per Day</span>
-                          <span className="text-2xl font-bold text-green-600">${vehicle.pricePerDay}</span>
+                          <span className="text-2xl font-bold text-green-600">₹{vehicle.pricePerDay}</span>
                         </div>
                       )}
                       {vehicle.pricePerHour && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Per Hour</span>
-                          <span className="text-2xl font-bold text-green-600">${vehicle.pricePerHour}</span>
+                          <span className="text-2xl font-bold text-green-600">₹{vehicle.pricePerHour}</span>
                         </div>
                       )}
                       {vehicle.minimumHours && (

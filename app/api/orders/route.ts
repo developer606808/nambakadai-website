@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Add status filter if provided
     if (status) {
-      where.status = status
+      where.status = status as any
     }
 
     // Fetch orders with pagination
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
               product: {
                 select: {
                   id: true,
-                  name: true,
+                  title: true,
                   price: true,
                   images: true
                 }
