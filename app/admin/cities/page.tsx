@@ -570,7 +570,7 @@ export default function CitiesPage() {
               <Input
                 id="edit-name-en"
                 value={currentCity?.name_en || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, name_en: e.target.value })}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_en: e.target.value } : null)}
                 maxLength={100}
               />
             </div>
@@ -579,7 +579,7 @@ export default function CitiesPage() {
               <Input
                 id="edit-name-ta"
                 value={currentCity?.name_ta || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, name_ta: e.target.value })}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_ta: e.target.value } : null)}
                 maxLength={100}
               />
             </div>
@@ -588,7 +588,7 @@ export default function CitiesPage() {
               <Input
                 id="edit-name-hi"
                 value={currentCity?.name_hi || ""}
-                onChange={(e) => setCurrentCity({ ...currentCity, name_hi: e.target.value })}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_hi: e.target.value } : null)}
                 maxLength={100}
               />
             </div>
@@ -596,7 +596,7 @@ export default function CitiesPage() {
               <Label htmlFor="edit-state">State *</Label>
               <Select
                 value={currentCity?.stateId?.toString() || ""}
-                onValueChange={(value) => setCurrentCity({ ...currentCity, stateId: value })}
+                onValueChange={(value) => setCurrentCity(currentCity ? { ...currentCity, stateId: parseInt(value) || currentCity.stateId } : null)}
               >
                 <SelectTrigger id="edit-state">
                   <SelectValue placeholder="Select state" />
