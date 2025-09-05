@@ -35,7 +35,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Tag, Loader2, Filter, Upload, X, Crop } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Tag, Loader2, Filter, X, Crop } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import ReactCrop, { Crop as CropType, PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
@@ -152,7 +152,7 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, searchTerm, typeFilter, parentFilter])
+  }, [pagination.page, pagination.limit, searchTerm, typeFilter, parentFilter, toast])
 
   // Form validation
   const validateForm = () => {
@@ -1154,7 +1154,7 @@ export default function CategoriesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{currentCategory?.name_en}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{currentCategory?.name_en}&quot;? This action cannot be undone.
               {currentCategory?._count?.products && currentCategory._count.products > 0 && (
                 <div className="mt-2 p-2 bg-destructive/10 rounded text-destructive text-sm">
                   Warning: This category has {currentCategory._count.products} associated products.

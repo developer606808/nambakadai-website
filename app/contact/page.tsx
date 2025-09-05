@@ -66,7 +66,7 @@ export default function ContactPage() {
               <MessageSquare className="h-16 w-16 mx-auto mb-6" />
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
               <p className="text-xl max-w-2xl mx-auto">
-                We're here to help! Reach out to us with any questions or concerns.
+                We&apos;re here to help! Reach out to us with any questions or concerns.
               </p>
             </div>
           </section>
@@ -283,7 +283,7 @@ export default function ContactPage() {
                   Visit Our Office
                 </h2>
                 <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                  Located in the heart of Agriculture City, we're always happy to meet in person and discuss your farming needs.
+                  Located in the heart of Agriculture City, we&apos;re always happy to meet in person and discuss your farming needs.
                 </p>
               </div>
 

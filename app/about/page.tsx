@@ -152,12 +152,12 @@ export default function AboutPage() {
                     traditional farmers and modern consumers, ensuring fair prices and direct connections.
                   </p>
                   <p>
-                    Founded in 2023, we've grown from a small local marketplace to a comprehensive platform
+                    Founded in 2023, we&apos;ve grown from a small local marketplace to a comprehensive platform
                     serving thousands of farmers and customers across the region. Our commitment to sustainable
                     agriculture and community support drives everything we do.
                   </p>
                   <p>
-                    We believe in the power of direct farmer-to-consumer relationships, which is why we've built
+                    We believe in the power of direct farmer-to-consumer relationships, which is why we&apos;ve built
                     a platform that prioritizes transparency, quality, and fair trade practices.
                   </p>
                 </div>

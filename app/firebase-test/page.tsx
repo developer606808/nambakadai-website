@@ -27,7 +27,7 @@ export default function FirebaseTestPage() {
           <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
             <h2 className="font-semibold mb-2">🔧 Troubleshooting:</h2>
             <ul className="text-sm space-y-1">
-              <li>• Make sure you're using HTTPS in production</li>
+              <li>• Make sure you&apos;re using HTTPS in production</li>
               <li>• Check browser console for detailed error messages</li>
               <li>• Verify Firebase configuration in .env file</li>
               <li>• Ensure service worker is accessible at /firebase-messaging-sw.js</li>

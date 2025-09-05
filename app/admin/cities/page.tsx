@@ -74,7 +74,7 @@ export default function CitiesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentCity, setCurrentCity] = useState<any>(null)
+  const [currentCity, setCurrentCity] = useState<City | null>(null)
   const [newCity, setNewCity] = useState({
     name_en: "",
     name_ta: "",
@@ -235,7 +235,7 @@ export default function CitiesPage() {
       setIsLoading(true)
       setError("")
 
-      const response = await fetch(`/api/admin/cities/${currentCity.id}`, {
+      const response = await fetch(`/api/admin/cities/${currentCity!.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ export default function CitiesPage() {
       setIsLoading(true)
       setError("")
 
-      const response = await fetch(`/api/admin/cities/${currentCity.id}`, {
+      const response = await fetch(`/api/admin/cities/${currentCity!.id}`, {
         method: 'DELETE',
       })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,6 @@ import {
   Search,
   Send,
   MessageSquare,
-  Clock,
   ArrowLeft,
   MoreHorizontal
 } from "lucide-react"
@@ -54,7 +53,7 @@ interface Message {
   isRead: boolean
   readAt?: string
   attachments?: string[]
-  metadata?: any
+  metadata?: Record<string, unknown>
   createdAt: string
 }
 
@@ -110,7 +109,7 @@ export default function MessagesPage() {
     return null
   }
 
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/chat')
@@ -142,7 +141,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const fetchMessages = async (chatId: string) => {
     try {
@@ -210,7 +209,7 @@ export default function MessagesPage() {
     setShowChatList(true)
   }
 
-  const filteredChats = chats.filter(chat => {
+  const filteredChats = chats.filter(() => {
     // For now, just return all chats - you can add search functionality later
     return true
   })

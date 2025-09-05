@@ -127,11 +127,11 @@ export default function ForgotPasswordPage() {
                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold text-gray-900">Reset Link Sent</h3>
                       <p className="text-gray-600 text-sm leading-relaxed">
-                        We've sent a password reset link to <strong className="text-green-700">{email}</strong>.
+                        We&apos;ve sent a password reset link to <strong className="text-green-700">{email}</strong>.
                         Please check your email and click the link to create a new password.
                       </p>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                        <h4 className="text-sm font-semibold text-blue-900 mb-2">Didn't receive the email?</h4>
+                        <h4 className="text-sm font-semibold text-blue-900 mb-2">Didn&apos;t receive the email?</h4>
                         <ul className="text-xs text-blue-800 space-y-1">
                           <li>• Check your spam/junk folder</li>
                           <li>• Make sure the email address is correct</li>
@@ -174,7 +174,7 @@ export default function ForgotPasswordPage() {
                         className="h-12 border-2 border-gray-200 focus:border-green-500 rounded-xl"
                       />
                       <p className="text-xs text-gray-500">
-                        We'll send a secure reset link to this email
+                        We&apos;ll send a secure reset link to this email
                       </p>
                     </div>
 

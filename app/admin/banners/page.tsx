@@ -16,7 +16,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+
 import {
   Pagination,
   PaginationContent,
@@ -305,7 +305,7 @@ export default function BannersPage() {
 
   const triggerFileInput = (isEdit = false) => {
     if (fileInputRef.current) {
-      fileInputRef.current.onchange = (e) => handleImageUpload(e as any, isEdit)
+      fileInputRef.current.onchange = (e) => handleImageUpload(e as unknown as React.ChangeEvent<HTMLInputElement>, isEdit)
       fileInputRef.current.click()
     }
   }
