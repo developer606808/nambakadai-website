@@ -1,83 +1,188 @@
-import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import * as z from "zod"
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/auth'
+import { prisma } from '@/lib/prisma'
 
-const createOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      quantity: z.number().min(1),
-    })
-  ),
-})
-
-export async function POST(request: Request) {
+// GET - Fetch orders for seller
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
     if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    const body = await request.json()
-    const { items } = createOrderSchema.parse(body)
+    // Convert user ID to integer
+    const userId = parseInt(session.user.id)
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      )
+    }
 
-    let total = 0
-    for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } })
-      if (!product) {
-        return new NextResponse(`Product with id ${item.productId} not found`, { status: 404 })
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const status = searchParams.get('status') || ''
+
+    // Build where clause for seller's products
+    const where: any = {
+      items: {
+        some: {
+          product: {
+            userId: userId
+          }
+        }
       }
-      total += product.price * item.quantity
     }
 
-    const order = await prisma.order.create({
-      data: {
-        userId: session.user.id,
+    // Add status filter if provided
+    if (status) {
+      where.status = status as any
+    }
+
+    // Fetch orders with pagination
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  title: true,
+                  price: true,
+                  images: true
+                }
+              }
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true
+            }
+          }
+        }
+      }),
+      prisma.order.count({ where })
+    ])
+
+    // Transform orders to include customer info
+    const transformedOrders = orders.map(order => ({
+      ...order,
+      customerName: order.user?.name || 'Unknown',
+      customerEmail: order.user?.email || '',
+      customerPhone: order.user?.phone || ''
+    }))
+
+    return NextResponse.json({
+      orders: transformedOrders,
+      total,
+      pagination: {
+        page,
+        limit,
         total,
-        items: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-        },
-      },
-      include: {
-        items: true,
-      },
+        pages: Math.ceil(total / limit)
+      }
     })
 
-    return NextResponse.json(order, { status: 201 })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return new NextResponse(JSON.stringify(error.issues), { status: 400 })
-    }
-
-    console.error(error)
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error('Orders GET error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch orders' },
+      { status: 500 }
+    )
   }
 }
 
-export async function GET() {
+// POST - Update order status (for sellers)
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 })
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    const orders = await prisma.order.findMany({
-      include: {
-        items: true,
-        user: true,
-      },
+    const userId = parseInt(session.user.id)
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID' },
+        { status: 400 }
+      )
+    }
+
+    const { orderId, status, notes } = await request.json()
+
+    if (!orderId || !status) {
+      return NextResponse.json(
+        { error: 'Order ID and status are required' },
+        { status: 400 }
+      )
+    }
+
+    // Verify the order belongs to seller's products
+    const order = await prisma.order.findFirst({
+      where: {
+        id: parseInt(orderId),
+        items: {
+          some: {
+            product: {
+              userId: userId
+            }
+          }
+        }
+      }
     })
 
-    return NextResponse.json(orders)
+    if (!order) {
+      return NextResponse.json(
+        { error: 'Order not found or access denied' },
+        { status: 404 }
+      )
+    }
+
+    // Update order status
+    const updatedOrder = await prisma.order.update({
+      where: { id: parseInt(orderId) },
+      data: {
+        status,
+        ...(notes && { notes })
+      },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        },
+        user: true
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      order: updatedOrder,
+      message: 'Order status updated successfully'
+    })
+
   } catch (error) {
-    console.error(error)
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error('Order update error:', error)
+    return NextResponse.json(
+      { error: 'Failed to update order' },
+      { status: 500 }
+    )
   }
 }

@@ -5,12 +5,13 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Store, Loader2 } from "lucide-react"
+import { Store, Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -19,6 +20,7 @@ export default function AdminLoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,22 +28,29 @@ export default function AdminLoginPage() {
     setIsLoading(true)
 
     try {
-      // This is a mock implementation - replace with your actual auth logic
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
 
-      // For demo purposes, accept any non-empty email/password
-      if (email && password) {
-        // Store admin token
-        localStorage.setItem("adminToken", "demo-admin-token")
-
-        // Redirect to dashboard
+      if (result?.error) {
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password")
+        } else if (result.error === "EMAIL_NOT_VERIFIED") {
+          setError("Please verify your email before logging in")
+        } else {
+          setError("Login failed. Please try again.")
+        }
+      } else if (result?.ok) {
+        // Successful login, redirect to dashboard
+        // The layout component will handle role checking
         router.push("/admin/dashboard")
-      } else {
-        setError("Please enter both email and password")
+        router.refresh() // Force a refresh to update the session
       }
     } catch (err) {
-      setError("Invalid email or password")
+      console.error("Login error:", err)
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -80,13 +89,23 @@ export default function AdminLoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox

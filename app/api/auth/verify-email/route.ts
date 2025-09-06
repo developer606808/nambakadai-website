@@ -1,60 +1,121 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/data/prisma'
+import { emailVerificationSchema } from '@/lib/validations/auth'
+import { z } from 'zod'
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const token = searchParams.get('token');
-
-  console.log('Verification API: Received token', token);
-
-  if (!token) {
-    console.log('Verification API: No token provided');
-    return NextResponse.json(
-      { message: 'No verification token found.' },
-      { status: 400 }
-    );
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const emailVerificationToken = await prisma.emailVerificationToken.findUnique({
-      where: { token },
-      include: { user: true },
-    });
-
-    console.log('Verification API: Found token in DB', emailVerificationToken);
-
-    if (!emailVerificationToken || emailVerificationToken.expires < new Date()) {
-      console.log('Verification API: Token invalid or expired');
+    const body = await request.json()
+    
+    // Validate input
+    const { token } = emailVerificationSchema.parse(body)
+    
+    // Find user with this verification token
+    const user = await prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpiry: {
+          gt: new Date() // Token not expired
+        }
+      }
+    })
+    
+    if (!user) {
       return NextResponse.json(
-        { message: 'Verification failed: Token expired or already used.' },
+        { error: 'Invalid or expired verification token' },
         { status: 400 }
-      );
+      )
     }
-
-    // Mark user as verified
+    
+    // Update user as verified and clear verification token
     const updatedUser = await prisma.user.update({
-      where: { id: emailVerificationToken.userId },
-      data: { isVerified: true },
-    });
-
-    console.log('Verification API: User updated', updatedUser);
-
-    // Delete the used token
-    await prisma.emailVerificationToken.delete({
-      where: { id: emailVerificationToken.id },
-    });
-
-    console.log('Verification API: Token deleted');
-
-    return NextResponse.json(
-      { message: 'Email successfully verified!' },
-      { status: 200 }
-    );
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isVerified: true,
+      }
+    })
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Email verified successfully! You can now log in.',
+      user: updatedUser
+    })
   } catch (error) {
-    console.error('Email verification error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid verification token format' },
+        { status: 400 }
+      )
+    }
+    
+    console.error('Email verification error:', error)
     return NextResponse.json(
-      { message: 'Verification failed: An unexpected error occurred.' },
+      { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
+  }
+}
+
+// GET method for email verification via URL
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const token = searchParams.get('token')
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Verification token is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Find user with this verification token
+    const user = await prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpiry: {
+          gt: new Date() // Token not expired
+        }
+      }
+    })
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid or expired verification token' },
+        { status: 400 }
+      )
+    }
+    
+    // Update user as verified and clear verification token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+      }
+    })
+    
+    // Redirect to login page with success message
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('verified', 'true')
+    
+    return NextResponse.redirect(redirectUrl)
+  } catch (error) {
+    console.error('Email verification error:', error)
+    
+    // Redirect to login page with error
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('error', 'verification_failed')
+    
+    return NextResponse.redirect(redirectUrl)
   }
 }

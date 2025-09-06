@@ -1,151 +1,229 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Upload, User, Mail, Lock } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Eye, EyeOff, Upload, Loader2, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, Lock, X as XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { ImageCropModal } from '@/components/ui/image-crop-modal';
-
-const formSchema = z.object({
-  firstName: z.string().min(1, { message: "First Name is required." }),
-  lastName: z.string().min(1, { message: "Last Name is required." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string()
-    .min(8, { message: "Password must be at least 8 characters." })
-    .regex(/[0-9]/, { message: "Password must contain at least one number." })
-    .regex(/[^a-zA-Z0-9]/, { message: "Password must contain at least one special character." }),
-  confirmPassword: z.string(),
-  terms: z.boolean().refine(val => val === true, { message: "You must accept the terms and conditions." }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match.",
-  path: ["confirmPassword"],
-});
-
-type FormData = z.infer<typeof formSchema>;
+import { signupSchema, getPasswordStrength, validateIndianPhone, type SignupInput } from "@/lib/validations/auth"
+import Cropper from 'react-easy-crop'
 
 export default function SignupForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null); // For displaying the cropped image
-  const [croppedImageFile, setCroppedImageFile] = useState<Blob | null>(null); // The actual Blob to upload
-  const router = useRouter();
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
+  const [cropperState, setCropperState] = useState({
+    isOpen: false,
+    imageSrc: null as string | null
+  })
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  const { toast } = useToast()
 
-  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
-  const [imageToCropSrc, setImageToCropSrc] = useState<string | null>(null);
+  // Character count states
+  const [charCounts, setCharCounts] = useState({
+    name: 0,
+    email: 0,
+    phone: 0,
+    password: 0,
+    confirmPassword: 0
+  })
 
-  const { register, handleSubmit, formState: { errors }, setError } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isValid },
+    setError,
+    clearErrors
+  } = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      terms: false,
-    },
-  });
+      acceptTerms: false
+    }
+  })
 
-  // Effect to revoke object URL when component unmounts or preview changes
-  useEffect(() => {
-    return () => {
-      if (profileImagePreview) {
-        URL.revokeObjectURL(profileImagePreview);
+  const watchedPassword = watch('password', '')
+  const watchedEmail = watch('email', '')
+
+  // Update password strength when password changes
+  React.useEffect(() => {
+    if (watchedPassword) {
+      const strength = getPasswordStrength(watchedPassword)
+      setPasswordStrength(strength)
+    } else {
+      setPasswordStrength({ score: 0, feedback: [] })
+    }
+  }, [watchedPassword])
+
+  const getCroppedImg = (imageSrc: string, pixelCrop: any): Promise<File> => {
+    return new Promise((resolve) => {
+      const image = new Image()
+      image.src = imageSrc
+      image.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          canvas.width = pixelCrop.width
+          canvas.height = pixelCrop.height
+          ctx.drawImage(
+            image,
+            pixelCrop.x,
+            pixelCrop.y,
+            pixelCrop.width,
+            pixelCrop.height,
+            0,
+            0,
+            pixelCrop.width,
+            pixelCrop.height
+          )
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], `profile-cropped.jpg`, { type: 'image/jpeg' })
+              resolve(file)
+            }
+          }, 'image/jpeg')
+        }
       }
-    };
-  }, [profileImagePreview]);
+    })
+  }
 
-  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        setImageToCropSrc(reader.result?.toString() || '');
-        setIsCropModalOpen(true);
-      });
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }
 
-  const handleCropComplete = (blob: Blob) => {
-    setCroppedImageFile(blob);
-    const previewUrl = URL.createObjectURL(blob);
-    setProfileImagePreview(previewUrl);
-    console.log('Profile Image Preview URL:', previewUrl); // Log the preview URL
-    setIsCropModalOpen(false);
-    setImageToCropSrc(null); // Clear the image to crop
-  };
-
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
-
-    const formData = new FormData();
-    formData.append("firstName", data.firstName);
-    formData.append("lastName", data.lastName);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    if (croppedImageFile) {
-      formData.append("image", croppedImageFile, "profile.png"); // Append the cropped image
-    }
+  const onSubmit = async (data: SignupInput) => {
+    setIsLoading(true)
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
+      // Create FormData to include the profile image if it exists
+      const formData = new FormData()
+      formData.append('name', data.name)
+      formData.append('email', data.email)
+      formData.append('password', data.password)
+      formData.append('confirmPassword', data.confirmPassword)
+      formData.append('acceptTerms', data.acceptTerms.toString())
+      if (data.phone) formData.append('phone', data.phone)
+      if (data.deviceToken) formData.append('deviceToken', data.deviceToken)
+      if (profileImageFile) formData.append('profileImage', profileImageFile)
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
         body: formData,
-      });
+      })
 
-      const result = await response.json();
+      const result = await response.json()
 
-      if (response.ok) {
-        toast({
-          title: "Account created!",
-          description: result.message || "You have successfully signed up.",
-        });
-        router.push("/login");
-      } else {
-        setError("email", { type: "manual", message: result.message });
-        toast({
-          title: "Signup Failed",
-          description: result.message || "An error occurred during signup.",
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        throw new Error(result.error || 'Registration failed')
       }
-    } catch (error) {
-      console.error("Signup error:", error);
+
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+        title: "Account created successfully!",
+        description: result.emailSent
+          ? "Please check your email to verify your account before logging in."
+          : "You can now log in with your credentials.",
+        duration: 6000,
+      })
+
+      router.push('/login?registered=true')
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('field'))) {
+        toast({
+          title: "Registration failed",
+          description: error instanceof Error ? error.message : "Please try again later",
+          variant: "destructive",
+        })
+      }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setCrop({ x: 0, y: 0 })
+        setZoom(1)
+        setCroppedAreaPixels(null)
+        setCropperState({
+          isOpen: true,
+          imageSrc: event.target?.result as string
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCropComplete = async () => {
+    if (croppedAreaPixels && cropperState.imageSrc) {
+      const croppedFile = await getCroppedImg(cropperState.imageSrc, croppedAreaPixels)
+      const croppedUrl = URL.createObjectURL(croppedFile)
+      setProfileImage(croppedUrl)
+      setProfileImageFile(croppedFile)
+    }
+    setCropperState({ isOpen: false, imageSrc: null })
+    setCroppedAreaPixels(null)
+  }
+
+  const handleCropCancel = () => {
+    setCropperState({ isOpen: false, imageSrc: null })
+    setCroppedAreaPixels(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Handle character count updates
+  const updateCharCount = (field: keyof typeof charCounts, value: string) => {
+    setCharCounts(prev => ({
+      ...prev,
+      [field]: value.length
+    }));
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg border shadow-sm">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">Create an Account</h1>
-        <p className="text-gray-500 mt-2">Join Nanbakadai Farm Marketplace</p>
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-4 right-4 text-white/20 text-4xl">🌱</div>
+        <div className="relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create an Account</h1>
+          <p className="text-white/90 text-sm sm:text-base">Join Nanbakadai Farm Marketplace</p>
+        </div>
       </div>
+
+      <div className="p-6 sm:p-8 space-y-6">
 
       {/* Profile Image Upload */}
       <div className="mb-6 flex flex-col items-center">
         <div className="relative w-24 h-24 mb-2">
           <div
             className={`w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 ${
-              !profileImagePreview ? "bg-gray-100 flex items-center justify-center" : ""
+              !profileImage ? "bg-gray-100 flex items-center justify-center" : ""
             }`}
           >
-            {profileImagePreview ? (
+            {profileImage ? (
               <img
-                src={profileImagePreview}
+                src={profileImage || "/placeholder.svg"}
                 alt="Profile preview"
                 className="w-full h-full object-cover"
               />
@@ -173,40 +251,122 @@ export default function SignupForm() {
             <Upload className="h-4 w-4" />
             <span className="sr-only">Upload profile image</span>
           </label>
-          <input type="file" id="profile-image" className="hidden" accept="image/*" onChange={onSelectFile} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            id="profile-image"
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
         </div>
         <p className="text-sm text-gray-500">Add profile picture (optional)</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" {...register("firstName")} />
-            {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Full Name
+          </Label>
+          <div className="relative">
+            <Input
+              id="name"
+              placeholder="John Doe"
+              maxLength={50}
+              {...register('name', {
+                onChange: (e) => updateCharCount('name', e.target.value)
+              })}
+              className={`pr-16 ${errors.name ? 'border-red-500' : ''}`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {charCounts.name}/50
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" {...register("lastName")} />
-            {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
-          </div>
+          {errors.name && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.name.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-          {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+          <Label htmlFor="email" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Email Address
+          </Label>
+          <div className="relative">
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              maxLength={254}
+              {...register('email', {
+                onChange: (e) => updateCharCount('email', e.target.value)
+              })}
+              className={`pr-20 ${errors.email ? 'border-red-500' : ''}`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {charCounts.email}/254
+            </div>
+          </div>
+          {errors.email && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="phone" className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Phone Number (Optional)
+          </Label>
+          <div className="relative">
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="9876543210 or +91 98765 43210"
+              maxLength={15}
+              {...register('phone', {
+                onChange: (e) => updateCharCount('phone', e.target.value)
+              })}
+              className={`pr-16 ${errors.phone ? 'border-red-500' : ''}`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {charCounts.phone}/15
+            </div>
+          </div>
+          {errors.phone && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.phone.message}
+            </p>
+          )}
+          {!errors.phone && (
+            <p className="text-xs text-gray-500">
+              Enter Indian mobile number (10 digits starting with 6-9) or with +91 country code
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Password
+          </Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              {...register("password")}
-              className="pr-10"
+              maxLength={128}
+              {...register('password', {
+                onChange: (e) => updateCharCount('password', e.target.value)
+              })}
+              className={`pr-20 ${errors.password ? 'border-red-500' : ''}`}
             />
             <button
               type="button"
@@ -215,41 +375,140 @@ export default function SignupForm() {
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {charCounts.password}/128
+            </div>
           </div>
-          {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
-          <p className="text-xs text-gray-500 mt-1">
-            Password must be at least 8 characters long and include a number and a special character.
-          </p>
+
+          {/* Password Strength Indicator */}
+          {watchedPassword && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600">Password strength:</span>
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      passwordStrength.score <= 2 ? 'bg-red-500' :
+                      passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${
+                  passwordStrength.score <= 2 ? 'text-red-600' :
+                  passwordStrength.score <= 4 ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {passwordStrength.score <= 2 ? 'Weak' :
+                   passwordStrength.score <= 4 ? 'Medium' : 'Strong'}
+                </span>
+              </div>
+              {passwordStrength.feedback.length > 0 && (
+                <ul className="text-xs text-gray-600 space-y-1">
+                  {passwordStrength.feedback.map((feedback, index) => (
+                    <li key={index} className="flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {feedback}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {errors.password && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input id="confirmPassword" type="password" placeholder="••••••••" {...register("confirmPassword")} />
-          {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword.message}</p>}
+          <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Confirm Password
+          </Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
+              maxLength={128}
+              {...register('confirmPassword', {
+                onChange: (e) => updateCharCount('confirmPassword', e.target.value)
+              })}
+              className={`pr-20 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              {charCounts.confirmPassword}/128
+            </div>
+          </div>
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="terms"
-            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            {...register("terms")}
-          />
-          <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
-            I agree to the{" "}
-            <Link href="/terms" className="text-green-600 hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-green-600 hover:underline">
-              Privacy Policy
-            </Link>
-          </label>
-        </div>
-        {errors.terms && <p className="text-red-500 text-sm">{errors.terms.message}</p>}
 
-        <Button type="submit" className="w-full bg-green-500 hover:bg-green-600" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
+
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="acceptTerms"
+              checked={watch('acceptTerms')}
+              onCheckedChange={(checked) => setValue('acceptTerms', checked as boolean)}
+              className={errors.acceptTerms ? 'border-red-500' : ''}
+            />
+            <label htmlFor="acceptTerms" className="text-sm text-gray-700 leading-5 cursor-pointer">
+              I agree to the{" "}
+              <Link href="/terms" className="text-green-600 hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-green-600 hover:underline">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+          {errors.acceptTerms && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="w-4 h-4" />
+              {errors.acceptTerms.message}
+            </p>
+          )}
+        </div>
+
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+            <p>Form Valid: {isValid ? 'Yes' : 'No'}</p>
+            <p>Errors: {Object.keys(errors).length > 0 ? Object.keys(errors).join(', ') : 'None'}</p>
+            <p>Accept Terms: {watch('acceptTerms') ? 'Yes' : 'No'}</p>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-500 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            "Create Account"
+          )}
         </Button>
 
         <div className="text-center mt-4">
@@ -262,16 +521,48 @@ export default function SignupForm() {
         </div>
       </form>
 
-      {imageToCropSrc && (
-        <ImageCropModal
-          isOpen={isCropModalOpen}
-          onClose={() => setIsCropModalOpen(false)}
-          imageSrc={imageToCropSrc}
-          onCropComplete={handleCropComplete}
-          aspectRatio={1} // 1:1 aspect ratio for profile picture
-          circularCrop={true}
-        />
+      {/* Image Cropper Modal */}
+      {cropperState.isOpen && cropperState.imageSrc && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Crop Profile Picture
+            </h3>
+            <div className="mb-4 relative" style={{ height: '400px' }}>
+              <Cropper
+                image={cropperState.imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Zoom</label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={handleCropCancel}>
+                Cancel
+              </Button>
+              <Button onClick={handleCropComplete}>
+                Use Image
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
+      </div>
     </div>
-  );
+  )
 }

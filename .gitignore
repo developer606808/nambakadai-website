@@ -1,5 +1,8 @@
-.next
-node_modules
-/lib/generated/prisma
+/.next
+/node_modules
 .env
+.env.example
+.env.local
 /public/uploads
+pnpm-lock.yaml
+package-lock.json

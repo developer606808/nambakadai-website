@@ -69,10 +69,7 @@ export default function AddProductPage() {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    toast({
-      title: "Product added successfully!",
-      description: "Your product has been added to the marketplace.",
-    });
+    toast("Product added successfully!");
 
     setIsSubmitting(false);
     router.push("/store/products");
@@ -96,10 +93,7 @@ export default function AddProductPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    toast({
-      title: "Product added successfully!",
-      description: "Your product has been added to the marketplace.",
-    });
+    toast("Product added successfully!");
     
     setIsSubmitting(false);
     // Reset form or redirect

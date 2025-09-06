@@ -1,131 +1,148 @@
 "use client"
 
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import MainLayout from '@/components/main-layout';
-import { CheckCircle, XCircle, Info, Loader2, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, CheckCircle, XCircle, Mail } from "lucide-react"
+import Link from "next/link"
 
 export default function VerifyEmailPage() {
-  const searchParams = useSearchParams();
-  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
-  const [token, setToken] = useState<string | null>(null);
-  const [isResending, setIsResending] = useState(false);
-  const [resendMessage, setResendMessage] = useState('');
+  const [isVerifying, setIsVerifying] = useState(true)
+  const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [message, setMessage] = useState('')
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
-    const tokenFromUrl = searchParams.get('token');
-    setToken(tokenFromUrl);
+    const token = searchParams?.get('token')
 
-    if (!tokenFromUrl) {
-      setVerificationStatus('error');
-      setMessage('No verification token found.');
-      return;
-    }
-
-    const verifyEmail = async () => {
-      try {
-        const response = await fetch(`/api/auth/verify-email?token=${tokenFromUrl}`);
-        const data = await response.json();
-
-        if (response.ok) {
-          setVerificationStatus('success');
-          setMessage('Your email has been successfully verified! You can now log in.');
-        } else {
-          setVerificationStatus('error');
-          setMessage(data.message || 'Verification failed. Please try again.');
-        }
-      } catch (err) {
-        setVerificationStatus('error');
-        setMessage('An unexpected error occurred during verification.');
-        console.error('Verification fetch error:', err);
-      }
-    };
-
-    verifyEmail();
-  }, [searchParams]);
-
-  const handleResendVerification = async () => {
     if (!token) {
-      setResendMessage('Cannot resend: No token available.');
-      return;
+      setVerificationStatus('error')
+      setMessage('No verification token provided')
+      setIsVerifying(false)
+      return
     }
 
-    setIsResending(true);
-    setResendMessage('');
+    verifyEmail(token)
+  }, [searchParams])
 
+  const verifyEmail = async (token: string) => {
     try {
-      const response = await fetch('/api/auth/resend-verification', {
+      const response = await fetch('/api/auth/verify-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }), // Send the token
-      });
+        body: JSON.stringify({ token }),
+      })
 
-      const data = await response.json();
+      const result = await response.json()
 
-      // Always display as an error message, regardless of response.ok
-      setResendMessage(data.message || 'Failed to resend verification email.');
+      if (response.ok) {
+        setVerificationStatus('success')
+        setMessage(result.message || 'Email verified successfully!')
+        
+        // Redirect to login page after 3 seconds
+        setTimeout(() => {
+          router.push('/login?verified=true')
+        }, 3000)
+      } else {
+        setVerificationStatus('error')
+        setMessage(result.error || 'Email verification failed')
+      }
     } catch (error) {
-      console.error('Resend verification error:', error);
-      setResendMessage('An unexpected error occurred while resending email.');
+      setVerificationStatus('error')
+      setMessage('An error occurred during verification')
     } finally {
-      setIsResending(false);
+      setIsVerifying(false)
     }
-  };
+  }
 
   return (
-    <MainLayout>
-      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-lg shadow-lg text-center">
-          <div>
-            {verificationStatus === 'loading' && (
-              <Loader2 className="mx-auto h-16 w-16 text-blue-500 animate-spin" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              {verificationStatus === 'loading' && <Loader2 className="w-6 h-6 text-green-600 animate-spin" />}
+              {verificationStatus === 'success' && <CheckCircle className="w-6 h-6 text-green-600" />}
+              {verificationStatus === 'error' && <XCircle className="w-6 h-6 text-red-600" />}
+            </div>
+            <CardTitle className="text-2xl">
+              {verificationStatus === 'loading' && 'Verifying Email...'}
+              {verificationStatus === 'success' && 'Email Verified!'}
+              {verificationStatus === 'error' && 'Verification Failed'}
+            </CardTitle>
+            <CardDescription>
+              {verificationStatus === 'loading' && 'Please wait while we verify your email address.'}
+              {verificationStatus === 'success' && 'Your email has been successfully verified.'}
+              {verificationStatus === 'error' && 'There was a problem verifying your email.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {message && (
+              <Alert variant={verificationStatus === 'error' ? 'destructive' : 'default'}>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
             )}
+
             {verificationStatus === 'success' && (
-              <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-            )}
-            {verificationStatus === 'error' && (
-              <XCircle className="mx-auto h-16 w-16 text-red-500" />
-            )}
-            {verificationStatus === 'idle' && (
-              <Info className="mx-auto h-16 w-16 text-gray-500" />
-            )}
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-              Email Verification
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              {message}
-            </p>
-          </div>
-          <div className="mt-8">
-            {verificationStatus === 'error' && token && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">If your link has expired or is invalid, you can request a new one:</p>
-                <Button onClick={handleResendVerification} disabled={isResending} className="w-full">
-                  {isResending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2" />
-                  )}
-                  {isResending ? 'Sending...' : 'Resend Verification Email'}
-                </Button>
-                {resendMessage && (
-                  <p className="text-sm mt-2" style={{ color: 'red' }}> {/* Always red now */}
-                    {resendMessage}
-                  </p>
-                )}
+                <div className="text-center text-sm text-gray-600">
+                  You will be redirected to the login page in a few seconds...
+                </div>
+                <Link href="/login?verified=true">
+                  <Button className="w-full bg-green-600 hover:bg-green-700">
+                    Continue to Login
+                  </Button>
+                </Link>
               </div>
             )}
-            <Link href="/login" className="font-medium text-green-600 hover:text-green-500 mt-4 block">
-              Go to Login Page
+
+            {verificationStatus === 'error' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-4">
+                    The verification link may be expired or invalid.
+                  </p>
+                  <div className="space-y-2">
+                    <Link href="/login">
+                      <Button variant="outline" className="w-full">
+                        Back to Login
+                      </Button>
+                    </Link>
+                    <Link href="/signup">
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        Create New Account
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {verificationStatus === 'loading' && (
+              <div className="text-center">
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-500">
+            Need help?{" "}
+            <Link href="/contact" className="text-green-600 hover:underline">
+              Contact Support
             </Link>
-          </div>
+          </p>
         </div>
       </div>
-    </MainLayout>
-  );
+    </div>
+  )
 }

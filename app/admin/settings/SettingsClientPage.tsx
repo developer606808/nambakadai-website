@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { AlertCircle, Check, Globe, Mail, CreditCard, Shield, Palette, FileText, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useState } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function SettingsClientPage() {
   return (
@@ -39,7 +39,7 @@ function SettingsTabs() {
     toast({
       title: "Settings saved",
       description: "Your system settings have been updated successfully.",
-      variant: "success",
+      variant: "default",
     })
   }
 

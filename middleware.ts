@@ -1,34 +1,37 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export default withAuth(
-  // `withAuth` augments your `Request` with the user's token.
-  function middleware(req) {
-    const { token } = req.nextauth;
-    const { pathname } = req.nextUrl;
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-    // If the user is not an admin and is trying to access an admin route, redirect them.
-    if (pathname.startsWith("/admin") && token?.role !== "ADMIN") {
-      return NextResponse.rewrite(new URL("/unauthorized", req.url));
-    }
-
-    // Add other role-based protection here if needed (e.g., for /seller)
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token, // A user is authorized if they have a token (are logged in).
-    },
-    pages: {
-        signIn: '/admin', // Redirect users to admin login if they are not authorized.
-    }
+  // Skip middleware for API routes, static files, etc.
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
   }
-);
 
-// This specifies what routes the middleware will run on.
-export const config = { 
-    matcher: [
-        "/admin/:path*", // Protect all admin sub-routes
-        "/profile/:path*", // Example of protecting other routes
-        "/seller/:path*",
-    ]
+  // Get locale from cookie, default to 'en'
+  const locale = request.cookies.get('APP_LOCALE')?.value || 'en';
+
+  // Set the locale in the request headers for our custom i18n
+  const response = NextResponse.next();
+  response.headers.set('x-locale', locale);
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

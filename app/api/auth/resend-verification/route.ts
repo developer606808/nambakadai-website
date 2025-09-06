@@ -1,76 +1,93 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/data/prisma'
+import { resendVerificationSchema } from '@/lib/validations/auth'
+import { sendVerificationEmail, generateVerificationToken } from '@/lib/services/emailService'
+import { z } from 'zod'
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SERVER_HOST,
-  port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-  secure: process.env.EMAIL_SERVER_PORT === '465',
-  auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
-  },
-});
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json();
-
-    if (!token) {
-      return NextResponse.json({ message: 'Token is required' }, { status: 400 });
+    const body = await request.json()
+    
+    // Validate input
+    const { email } = resendVerificationSchema.parse(body)
+    
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    })
+    
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return NextResponse.json({
+        success: true,
+        message: 'If an account with this email exists and is not verified, a verification email has been sent.'
+      })
     }
-
-    const emailVerificationToken = await prisma.emailVerificationToken.findUnique({
-      where: { token },
-      include: { user: true },
-    });
-
-    if (!emailVerificationToken || !emailVerificationToken.user) {
-      return NextResponse.json({ message: 'Invalid or expired token.' }, { status: 400 });
-    }
-
-    const user = emailVerificationToken.user;
-
+    
+    // Check if user is already verified
     if (user.isVerified) {
-      return NextResponse.json({ message: 'Email is already verified.' }, { status: 200 });
+      return NextResponse.json(
+        { error: 'This email is already verified' },
+        { status: 400 }
+      )
     }
-
-    await prisma.emailVerificationToken.delete({
-      where: { id: emailVerificationToken.id },
-    });
-
-    const newVerificationToken = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600 * 1000);
-
-    await prisma.emailVerificationToken.create({
+    
+    // Check rate limiting - don't allow resending too frequently
+    const now = new Date()
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
+    
+    if (user.emailVerificationExpiry && user.emailVerificationExpiry > fiveMinutesAgo) {
+      const timeLeft = Math.ceil((user.emailVerificationExpiry.getTime() - now.getTime()) / 1000 / 60)
+      return NextResponse.json(
+        { error: `Please wait ${timeLeft} minutes before requesting another verification email` },
+        { status: 429 }
+      )
+    }
+    
+    // Generate new verification token
+    const verificationToken = generateVerificationToken()
+    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    
+    // Update user with new verification token
+    await prisma.user.update({
+      where: { id: user.id },
       data: {
-        token: newVerificationToken,
-        userId: user.id,
-        expires,
-      },
-    });
-
-    const verificationLink = `${request.nextUrl.origin}/verify-email?token=${newVerificationToken}`;
-
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: user.email,
-        subject: 'Verify your email address',
-        html: `<p>Hello ${user.name},</p>
-               <p>Please verify your email address by clicking on the link below:</p>
-               <p><a href="${verificationLink}">Verify Email</a></p>
-               <p>This link will expire in 1 hour.</p>`,
-      });
-    } catch (emailError) {
-      console.error('Error sending verification email:', emailError);
-      return NextResponse.json({ message: 'Failed to send verification email.' }, { status: 500 });
+        emailVerificationToken: verificationToken,
+        emailVerificationExpiry: verificationExpiry,
+      }
+    })
+    
+    // Send verification email
+    const emailResult = await sendVerificationEmail(
+      email,
+      user.name,
+      verificationToken
+    )
+    
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error)
+      return NextResponse.json(
+        { error: 'Failed to send verification email. Please try again later.' },
+        { status: 500 }
+      )
     }
-
-    return NextResponse.json({ message: 'New verification email sent. Please check your inbox.' }, { status: 200 });
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Verification email sent successfully! Please check your inbox.'
+    })
   } catch (error) {
-    console.error('Resend verification error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid email address' },
+        { status: 400 }
+      )
+    }
+    
+    console.error('Resend verification error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

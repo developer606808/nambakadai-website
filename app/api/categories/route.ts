@@ -1,47 +1,89 @@
-
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-// Define the schema for query parameters for validation.
-const categoryQuerySchema = z.object({
-  sortBy: z.enum(['name_en', 'sort_order']).default('sort_order'),
-  order: z.enum(['asc', 'desc']).default('asc'),
-});
-
-export async function GET(request: Request) {
+// GET /api/categories - Get all categories
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = Object.fromEntries(searchParams.entries());
+    const includeSubcategories = searchParams.get('includeSubcategories') === 'true';
+    const type = searchParams.get('type') || 'STORE'; // Default to STORE if not specified
+    const limit = searchParams.get('limit');
+    const search = searchParams.get('search');
 
-    // Validate query parameters
-    const validation = categoryQuerySchema.safeParse(query);
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: validation.error.flatten() }, { status: 400 });
+    const where: Prisma.CategoryWhereInput = {};
+    if (type) {
+      where.type = type as any;
     }
 
-    const { sortBy, order } = validation.data;
+    // Add search functionality
+    if (search) {
+      where.OR = [
+        {
+          name_en: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          name_ta: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          name_hi: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        }
+      ];
+    }
 
-    // Fetch categories from the database using Prisma
     const categories = await prisma.category.findMany({
-      where: {
-        is_active: true, // Only fetch active categories
+      where,
+      take: limit ? parseInt(limit) : undefined,
+      include: includeSubcategories ? {
+        _count: {
+          select: {
+            products: true
+          }
+        },
+        children: {
+          include: {
+            _count: {
+              select: {
+                products: true
+              }
+            }
+          },
+          orderBy: { name_en: 'asc' }
+        }
+      } : {
+        _count: {
+          select: {
+            products: true
+          }
+        }
       },
-      orderBy: {
-        [sortBy]: order,
-      },
-      select: {
-        id: true,
-        name_en: true,
-        slug: true,
-        icon: true,
-        image_url: true,
-      }
+      orderBy: { name_en: 'asc' }
     });
 
-    return NextResponse.json(categories);
+    // If includeSubcategories is true, return the categories array directly
+    // Otherwise, return the object with categories and total
+    if (includeSubcategories) {
+      return NextResponse.json(categories);
+    }
+
+    return NextResponse.json({
+      categories,
+      total: categories.length
+    });
   } catch (error) {
-    console.error('Failed to fetch categories:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching categories:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch categories' },
+      { status: 500 }
+    );
   }
 }

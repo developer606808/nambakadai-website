@@ -1,54 +1,137 @@
-
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { z } from 'zod';
+import { authOptions } from '@/lib/auth/auth';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-const stateSchema = z.object({ name_en: z.string().min(2), name_ta: z.string().optional(), stateCode: z.string().min(2) });
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const skip = (page - 1) * limit;
-
+// GET /api/admin/states - List states with pagination
+export async function GET(request: NextRequest) {
   try {
-    const [states, totalStates] = await prisma.$transaction([
-      prisma.state.findMany({
-        skip,
-        take: limit,
-        orderBy: { name_en: 'asc' },
-      }),
-      prisma.state.count(),
-    ]);
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const totalPages = Math.ceil(totalStates / limit);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.StateWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { name_en: { contains: search, mode: 'insensitive' } },
+        { name_ta: { contains: search, mode: 'insensitive' } },
+        { name_hi: { contains: search, mode: 'insensitive' } },
+        { stateCode: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Get total count
+    const total = await prisma.state.count({ where });
+
+    // Get states with pagination
+    const states = await prisma.state.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            cities: true,
+            products: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json({
-      data: states,
+      states,
       pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: totalStates,
+        page,
         limit,
-      },
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      }
     });
+
   } catch (error) {
-    console.error("Failed to fetch states:", error);
-    return NextResponse.json({ error: "Failed to fetch states" }, { status: 500 });
+    console.error('Error fetching states:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch states' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// POST /api/admin/states - Create state
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const body = await request.json();
-  const validation = stateSchema.safeParse(body);
-  if (!validation.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    const body = await request.json();
+    const { name_en, name_ta, name_hi, stateCode } = body;
 
-  const newState = await prisma.state.create({ data: validation.data });
-  return NextResponse.json(newState, { status: 201 });
+    // Validate required fields
+    if (!name_en || !name_ta || !stateCode) {
+      return NextResponse.json(
+        { error: 'Name (English), Name (Tamil), and State Code are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if state code already exists
+    const existingState = await prisma.state.findFirst({
+      where: { stateCode }
+    });
+
+    if (existingState) {
+      return NextResponse.json(
+        { error: 'State code already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Create state
+    const state = await prisma.state.create({
+      data: {
+        name_en,
+        name_ta,
+        name_hi,
+        stateCode,
+      },
+      include: {
+        _count: {
+          select: {
+            cities: true,
+            products: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      message: 'State created successfully',
+      state
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error('Error creating state:', error);
+    return NextResponse.json(
+      { error: 'Failed to create state' },
+      { status: 500 }
+    );
+  }
 }
-

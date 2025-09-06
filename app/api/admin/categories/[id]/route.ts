@@ -1,61 +1,170 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createApiResponse, createApiError } from '@/lib/utils/api';
 
-const categoryUpdateSchema = z.object({
-  name_en: z.string().min(2, "English name is required").optional(),
-  name_ta: z.string().optional(),
-  slug: z.string().min(2, "Slug is required").regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with no spaces').optional(),
-  description: z.string().optional(),
-  icon: z.string().optional(),
-  image_url: z.string().url().optional().nullable(),
-  type: z.enum(['PRODUCT', 'RENTAL', 'BOTH']).optional(),
-  is_active: z.boolean().optional(),
-  sort_order: z.coerce.number().int().optional(),
-  sort_order: z.number().int().optional(),
-});
-
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
+// GET /api/admin/categories/[id] - Get single category
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id, 10);
-    const body = await request.json();
-    const validation = categoryUpdateSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid data', details: validation.error.flatten() }, { status: 400 });
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
+
+    if (isNaN(id)) {
+      return createApiError('Invalid category ID', 400);
     }
 
-    const updatedCategory = await prisma.category.update({
+    const category = await prisma.category.findUnique({
       where: { id },
-      data: validation.data,
+      include: {
+        parent: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        children: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        _count: {
+          select: { products: true }
+        }
+      }
     });
-    return NextResponse.json(updatedCategory);
 
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: `A category with this slug already exists.` }, { status: 409 });
+    if (!category) {
+      return createApiError('Category not found', 404);
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    return createApiResponse(category);
+
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    return createApiError('Failed to fetch category', 500);
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+// PUT /api/admin/categories/[id] - Update category
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
+
+    if (isNaN(id)) {
+      return createApiError('Invalid category ID', 400);
     }
 
-    try {
-        const id = parseInt(params.id, 10);
-        await prisma.category.delete({ where: { id } });
-        return new NextResponse(null, { status: 204 }); // No Content
-    } catch (error) {
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    const body = await request.json();
+    const { name_en, name_ta, name_hi, slug, image, icon, parentId, type } = body;
+
+    // Validate required fields
+    if (!name_en || !name_ta || !slug) {
+      return createApiError('Name (English), Name (Tamil), and Slug are required', 400);
     }
+
+    // Check if category exists
+    const existingCategory = await prisma.category.findUnique({
+      where: { id }
+    });
+
+    if (!existingCategory) {
+      return createApiError('Category not found', 404);
+    }
+
+    // Check if slug already exists (excluding current category)
+    const slugExists = await prisma.category.findFirst({
+      where: {
+        slug,
+        id: { not: id }
+      }
+    });
+
+    if (slugExists) {
+      return createApiError('Slug already exists', 400);
+    }
+
+    // Update category
+    const category = await prisma.category.update({
+      where: { id },
+      data: {
+        name_en,
+        name_ta,
+        name_hi,
+        slug,
+        image,
+        icon,
+        parentId: parentId ? parseInt(parentId) : null,
+        type: type || 'STORE',
+      },
+      include: {
+        parent: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        children: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        _count: {
+          select: { products: true }
+        }
+      }
+    });
+
+    return createApiResponse(category, 'Category updated successfully');
+
+  } catch (error) {
+    console.error('Error updating category:', error);
+    return createApiError('Failed to update category', 500);
+  }
+}
+
+// DELETE /api/admin/categories/[id] - Delete category
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
+
+    if (isNaN(id)) {
+      return createApiError('Invalid category ID', 400);
+    }
+
+    // Check if category exists
+    const category = await prisma.category.findUnique({
+      where: { id },
+      include: {
+        children: true,
+        _count: {
+          select: { products: true }
+        }
+      }
+    });
+
+    if (!category) {
+      return createApiError('Category not found', 404);
+    }
+
+    // Check if category has products
+    if (category._count.products > 0) {
+      return createApiError('Cannot delete category with associated products', 400);
+    }
+
+    // Check if category has children
+    if (category.children.length > 0) {
+      return createApiError('Cannot delete category with subcategories', 400);
+    }
+
+    // Delete category
+    await prisma.category.delete({
+      where: { id }
+    });
+
+    return createApiResponse({ deleted: true }, 'Category deleted successfully');
+
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return createApiError('Failed to delete category', 500);
+  }
 }

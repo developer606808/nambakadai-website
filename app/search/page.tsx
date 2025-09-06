@@ -5,6 +5,7 @@ export const metadata = {
   description: "Search results for products, stores, and rentals on Nanbakadai Farm Marketplace.",
 }
 
-export default function SearchPage({ searchParams }: { searchParams: { q?: string; city?: string } }) {
-  return <SearchPageClient searchParams={searchParams} />
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; city?: string }> }) {
+  const params = await searchParams;
+  return <SearchPageClient searchParams={params} />
 }

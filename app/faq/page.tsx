@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp, Search, MessageCircle, Phone, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import MainLayout from "@/components/main-layout"
+import { MainLayout } from "@/components/main-layout"
 import MetaTags from "@/components/seo/meta-tags"
 
 const faqData = [
@@ -142,66 +142,108 @@ export default function FAQPage() {
         keywords="FAQ, help, support, Nanbakadai, classified ads, farm products, questions, answers"
       />
       <MainLayout>
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-          {/* Hero Section */}
-          <section className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-16">
-            <div className="container mx-auto px-4 text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
-              <p className="text-xl mb-8 max-w-2xl mx-auto">Find answers to common questions about using Nanbakadai</p>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            {/* Nature-inspired floating elements */}
+            <div className="absolute top-20 left-10 w-32 h-32 bg-green-200/20 rounded-full animate-float-slow"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 bg-emerald-300/15 rounded-full animate-float-medium"></div>
+            <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-teal-200/10 rounded-full animate-float-fast"></div>
+            <div className="absolute top-1/3 right-10 w-28 h-28 bg-green-300/20 rounded-full animate-float-slow"></div>
+            <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-emerald-200/15 rounded-full animate-float-medium"></div>
 
-              {/* Search Bar */}
-              <div className="max-w-md mx-auto relative">
-                <Input
-                  type="text"
-                  placeholder="Search for answers..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-3 text-gray-900"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            {/* Leaf patterns */}
+            <div className="absolute top-16 left-1/3 text-green-300/30 text-6xl animate-sway">🌿</div>
+            <div className="absolute top-32 right-1/4 text-emerald-400/25 text-5xl animate-sway-delayed">🍃</div>
+            <div className="absolute bottom-40 left-16 text-teal-300/20 text-7xl animate-sway">🌱</div>
+            <div className="absolute bottom-16 right-16 text-green-400/30 text-4xl animate-sway-delayed">🌾</div>
+
+            {/* Subtle pattern overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-green-100/5 to-emerald-100/10"></div>
+          </div>
+
+          {/* Hero Section */}
+          <section className="relative z-10 pt-16 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mb-8 shadow-lg">
+                <MessageCircle className="text-3xl text-white" />
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-6">
+                Frequently Asked Questions
+              </h1>
+              <p className="text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+                Find answers to common questions about using Nanbakadai
+              </p>
+
+              {/* Enhanced Search Bar */}
+              <div className="max-w-lg mx-auto relative">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search for answers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-4 py-4 text-gray-900 text-lg border-2 border-white/50 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                  />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 h-6 w-6" />
+                </div>
               </div>
             </div>
           </section>
 
-          {/* FAQ Content */}
-          <section className="py-12">
-            <div className="container mx-auto px-4 max-w-4xl">
+          {/* Enhanced FAQ Content */}
+          <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-5xl mx-auto">
               {filteredFAQ.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No results found</h3>
-                  <p className="text-gray-500">Try searching with different keywords</p>
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageCircle className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-600 mb-4">No results found</h3>
+                  <p className="text-gray-500 text-lg">Try searching with different keywords</p>
                 </div>
               ) : (
                 <div className="space-y-8">
                   {filteredFAQ.map((category, categoryIndex) => (
-                    <div key={categoryIndex} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                      <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-6">
-                        <h2 className="text-2xl font-bold">{category.category}</h2>
+                    <div key={categoryIndex} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:shadow-2xl transition-all duration-300">
+                      <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6 sm:p-8 relative overflow-hidden">
+                        <div className="absolute top-4 right-4 text-white/20 text-3xl">❓</div>
+                        <h2 className="text-2xl sm:text-3xl font-bold relative z-10">{category.category}</h2>
+                        <p className="text-white/80 mt-2 text-sm sm:text-base">Find answers to common questions</p>
                       </div>
-                      <div className="divide-y divide-gray-200">
+                      <div className="divide-y divide-gray-100">
                         {category.questions.map((faq, questionIndex) => {
                           const itemId = `${categoryIndex}-${questionIndex}`
                           const isOpen = openItems.includes(itemId)
 
                           return (
-                            <div key={questionIndex} className="transition-all duration-200">
+                            <div key={questionIndex} className="transition-all duration-300">
                               <button
                                 onClick={() => toggleItem(itemId)}
-                                className="w-full text-left p-6 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors"
+                                className="w-full text-left p-6 sm:p-8 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50 focus:outline-none focus:bg-gradient-to-r focus:from-green-50/50 focus:to-emerald-50/50 transition-all duration-300 group"
                               >
                                 <div className="flex justify-between items-center">
-                                  <h3 className="text-lg font-semibold text-gray-900 pr-4">{faq.question}</h3>
-                                  {isOpen ? (
-                                    <ChevronUp className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                                  ) : (
-                                    <ChevronDown className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                                  )}
+                                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 pr-4 group-hover:text-green-700 transition-colors leading-tight">
+                                    {faq.question}
+                                  </h3>
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                    isOpen
+                                      ? 'bg-green-100 text-green-600 rotate-180'
+                                      : 'bg-gray-100 text-gray-500 group-hover:bg-green-100 group-hover:text-green-600'
+                                  }`}>
+                                    {isOpen ? (
+                                      <ChevronUp className="h-5 w-5" />
+                                    ) : (
+                                      <ChevronDown className="h-5 w-5" />
+                                    )}
+                                  </div>
                                 </div>
                               </button>
                               {isOpen && (
-                                <div className="px-6 pb-6 animate-fadeIn">
-                                  <p className="text-gray-700 leading-relaxed">{faq.answer}</p>
+                                <div className="px-6 sm:px-8 pb-6 sm:pb-8 animate-fadeIn">
+                                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+                                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{faq.answer}</p>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -215,24 +257,29 @@ export default function FAQPage() {
             </div>
           </section>
 
-          {/* Contact Support Section */}
-          <section className="bg-white py-12">
-            <div className="container mx-auto px-4 text-center">
-              <h2 className="text-3xl font-bold mb-4">Still have questions?</h2>
-              <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-                Can't find the answer you're looking for? Our support team is here to help you.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-green-500 hover:bg-green-600" asChild>
-                  <a href="/contact" className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Contact Support
-                  </a>
-                </Button>
-                <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Call Us: +1 (555) 123-4567
-                </Button>
+          {/* Enhanced Contact Support Section */}
+          <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-8 sm:p-12 text-center text-white shadow-2xl">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
+                  <MessageCircle className="text-3xl text-white" />
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-bold mb-4">Still have questions?</h2>
+                <p className="text-white/90 mb-8 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Can&apos;t find the answer you&apos;re looking for? Our support team is here to help you with any questions about Nanbakadai.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" asChild>
+                    <a href="/contact" className="flex items-center">
+                      <Mail className="h-5 w-5 mr-3" />
+                      <span className="font-medium">Contact Support</span>
+                    </a>
+                  </Button>
+                  <Button variant="outline" className="border-2 border-white text-white hover:bg-white/10 px-8 py-3 rounded-xl font-semibold backdrop-blur-sm">
+                    <Phone className="h-5 w-5 mr-3" />
+                    <span className="font-medium">Call Us: +1 (555) 123-4567</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </section>

@@ -1,70 +1,147 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createApiResponse, createApiError } from '@/lib/utils/api';
+import { Prisma } from '@prisma/client';
 
-const categorySchema = z.object({
-  name_en: z.string().min(2, "English name is required"),
-  name_ta: z.string().optional(),
-  slug: z.string().min(2, "Slug is required").regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with no spaces'),
-  description: z.string().optional(),
-  icon: z.string().optional(),
-  image_url: z.string().url().optional().nullable(),
-  type: z.enum(['PRODUCT', 'RENTAL', 'BOTH']).default('PRODUCT'),
-  is_active: z.boolean().default(true),
-  sort_order: z.coerce.number().int().optional(),
-});
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const skip = (page - 1) * limit;
-
+// GET /api/admin/categories - List categories with pagination
+export async function GET(request: NextRequest) {
   try {
-    const [categories, totalCategories] = await prisma.$transaction([
-      prisma.category.findMany({
-        skip,
-        take: limit,
-        orderBy: { sort_order: 'asc' },
-      }),
-      prisma.category.count(),
-    ]);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const type = searchParams.get('type') || '';
+    const parentId = searchParams.get('parentId');
 
-    return NextResponse.json({
-      data: categories,
-      pagination: {
-        totalCategories,
-        totalPages: Math.ceil(totalCategories / limit),
-        currentPage: page,
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.CategoryWhereInput = {};
+    
+    if (search) {
+      where.OR = [
+        { name_en: { contains: search, mode: 'insensitive' } },
+        { name_ta: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (type) {
+      where.type = type as any;
+    }
+
+    if (parentId !== null) {
+      where.parentId = parentId ? parseInt(parentId) : null;
+    }
+
+    // Get total count
+    const total = await prisma.category.count({ where });
+
+    // Get categories with pagination
+    const categories = await prisma.category.findMany({
+      where,
+      include: {
+        parent: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        children: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        _count: {
+          select: { products: true }
+        }
       },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return createApiResponse({
+      categories,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      }
+    });
+
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching categories:', error);
+    return createApiError('Failed to fetch categories', 500);
   }
 }
 
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
+// POST /api/admin/categories - Create category
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const validation = categorySchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid data', details: validation.error.flatten() }, { status: 400 });
+    // Check if request has a body
+    const contentLength = request.headers.get('content-length');
+    if (!contentLength || parseInt(contentLength) === 0) {
+      return createApiError('Request body is empty', 400);
     }
 
-    const newCategory = await prisma.category.create({ data: validation.data });
-    return NextResponse.json(newCategory, { status: 201 });
-
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: `A category with this slug already exists.` }, { status: 409 });
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      return createApiError('Invalid JSON in request body', 400);
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    if (!body || typeof body !== 'object') {
+      return createApiError('Request body must be a valid object', 400);
+    }
+
+    const { name_en, name_ta, name_hi, slug, image, icon, parentId, type } = body;
+
+    // Validate required fields
+    if (!name_en || !name_ta || !slug) {
+      return createApiError('Name (English), Name (Tamil), and Slug are required', 400);
+    }
+
+    // Check if slug already exists
+    const existingCategory = await prisma.category.findUnique({
+      where: { slug }
+    });
+
+    if (existingCategory) {
+      return createApiError('Slug already exists', 400);
+    }
+
+    // Create category
+    const category = await prisma.category.create({
+      data: {
+        name_en,
+        name_ta,
+        name_hi,
+        slug,
+        image,
+        icon,
+        parentId: parentId ? parseInt(parentId) : null,
+        type: type || 'STORE',
+      },
+      include: {
+        parent: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        children: {
+          select: { id: true, name_en: true, name_ta: true }
+        },
+        _count: {
+          select: { products: true }
+        }
+      }
+    });
+
+    return createApiResponse(category, 'Category created successfully');
+
+  } catch (error) {
+    console.error('Error creating category:', error);
+    return createApiError('Failed to create category', 500);
   }
 }

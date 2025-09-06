@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -26,8 +27,6 @@ import {
   ChevronLeft,
   ImageIcon,
 } from "lucide-react"
-import { useAppDispatch } from "@/lib/hooks"
-import { logoutUser } from "@/lib/features/auth/authSlice"
 
 interface AdminSidebarProps {
   collapsed?: boolean
@@ -36,7 +35,16 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const dispatch = useAppDispatch()
+  const { data: session, status } = useSession()
+
+  // Don't render if not authenticated or not admin
+  if (status === "loading") {
+    return null
+  }
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return null
+  }
 
   const routes = [
     {
@@ -98,7 +106,6 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
       title: "Settings",
       href: "/admin/settings",
       icon: <Settings className="h-5 w-5" />,
-      active: pathname.startsWith("/admin/settings"),
     },
     {
       title: "Reports",
@@ -132,17 +139,23 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
     },
   ]
 
-  const handleLogout = async () => {
-    await dispatch(logoutUser());
-    router.push("/login"); // Redirect to login page after logout
-  };
+  const isRouteActive = (href: string) => {
+    return pathname === href || (pathname && pathname.startsWith(href + '/'))
+  }
+
+  const handleLogout = () => {
+    // Remove admin token
+    localStorage.removeItem("adminToken")
+    // Redirect to login page
+    router.push("/admin/login")
+  }
 
   return (
     <div className={cn("flex flex-col border-r bg-background h-screen", collapsed ? "w-[70px]" : "w-[240px]")}>
       <div className="py-4 px-3 border-b flex items-center justify-center">
         {collapsed ? (
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Store className="h-5 w-5" />
+            <Store className="h-5 w-5 text-primary" />
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -162,7 +175,7 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
               href={route.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors",
-                (pathname === route.href || route.active) && "bg-accent text-accent-foreground",
+                isRouteActive(route.href) && "bg-accent text-accent-foreground",
                 collapsed && "justify-center px-2",
               )}
             >
@@ -200,5 +213,5 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

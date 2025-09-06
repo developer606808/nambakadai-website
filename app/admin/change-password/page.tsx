@@ -1,84 +1,108 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Check, AlertCircle } from "lucide-react"
+import { Loader2, Check, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useToast } from '@/components/ui/use-toast';
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, { message: "Current password is required." }),
-  newPassword: z.string()
-    .min(8, { message: "New password must be at least 8 characters." })
-    .regex(/[0-9]/, { message: "New password must contain at least one number." })
-    .regex(/[^a-zA-Z0-9]/, { message: "New password must contain at least one special character." }),
-  confirmNewPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmNewPassword, {
-  message: "New passwords do not match.",
-  path: ["confirmNewPassword"],
-});
-
-type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePasswordPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const form = useForm<ChangePasswordFormData>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmNewPassword: "",
-    },
-  });
+  // Password strength validation
+  const validatePasswordStrength = (password: string) => {
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
 
-  const onSubmit = async (data: ChangePasswordFormData) => {
-    setIsLoading(true);
-    form.clearErrors(); // Clear previous errors
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/profile/change-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: result.message || "Your password has been updated successfully.",
-        });
-        form.reset(); // Clear form fields on success
-      } else {
-        form.setError("currentPassword", { type: "manual", message: result.message });
-        toast({
-          title: "Error",
-          description: result.message || "Failed to update password.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Change password error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    return {
+      hasMinLength: password.length >= 8,
+      hasUpperCase,
+      hasLowerCase,
+      hasNumbers,
+      hasSpecialChar,
+      isValid: password.length >= 8 && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
     }
-  };
+  }
+
+  const passwordStrength = validatePasswordStrength(newPassword)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Reset states
+    setError(null)
+    setSuccess(false)
+
+    // Frontend validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All fields are required")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match")
+      return
+    }
+
+    if (!passwordStrength.isValid) {
+      setError("Password does not meet strength requirements")
+      return
+    }
+
+    // Make API call
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to change password')
+      }
+
+      setSuccess(true)
+
+      // Reset form
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccess(false)
+      }, 5000)
+
+    } catch (error) {
+      console.error('Error changing password:', error)
+      setError(error instanceof Error ? error.message : 'Failed to change password')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -94,55 +118,134 @@ export default function ChangePasswordPage() {
               Enter your current password and a new password to update your credentials.
             </CardDescription>
           </CardHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              {form.formState.errors.currentPassword && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{form.formState.errors.currentPassword.message}</AlertDescription>
+              {success && (
+                <Alert className="bg-green-50 border-green-200">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <AlertTitle className="text-green-800">Success</AlertTitle>
+                  <AlertDescription className="text-green-700">
+                    Your password has been updated successfully.
+                  </AlertDescription>
                 </Alert>
               )}
-              {form.formState.errors.newPassword && (
+
+              {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{form.formState.errors.newPassword.message}</AlertDescription>
-                </Alert>
-              )}
-              {form.formState.errors.confirmNewPassword && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{form.formState.errors.confirmNewPassword.message}</AlertDescription>
+                  <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
               <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  {...form.register("currentPassword")}
-                />
+                <div className="relative">
+                  <Input
+                    id="current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  {...form.register("newPassword")}
-                />
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Password Strength Indicator */}
+                {newPassword && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Password Requirements:</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className={`flex items-center gap-2 ${passwordStrength.hasMinLength ? 'text-green-600' : 'text-red-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordStrength.hasMinLength ? 'bg-green-500' : 'bg-red-500'}`} />
+                        At least 8 characters
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordStrength.hasUpperCase ? 'text-green-600' : 'text-red-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordStrength.hasUpperCase ? 'bg-green-500' : 'bg-red-500'}`} />
+                        One uppercase letter
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordStrength.hasLowerCase ? 'text-green-600' : 'text-red-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordStrength.hasLowerCase ? 'bg-green-500' : 'bg-red-500'}`} />
+                        One lowercase letter
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordStrength.hasNumbers ? 'text-green-600' : 'text-red-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordStrength.hasNumbers ? 'bg-green-500' : 'bg-red-500'}`} />
+                        One number
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordStrength.hasSpecialChar ? 'text-green-600' : 'text-red-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordStrength.hasSpecialChar ? 'bg-green-500' : 'bg-red-500'}`} />
+                        One special character
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  {...form.register("confirmNewPassword")}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
             <CardFooter>
@@ -161,5 +264,5 @@ export default function ChangePasswordPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

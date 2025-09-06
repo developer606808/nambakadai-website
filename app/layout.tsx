@@ -1,68 +1,62 @@
-import type React from "react";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Providers } from "@/components/providers";
+import type React from "react"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { ReduxProvider } from "@/components/providers/redux-provider"
+import { NextAuthProvider } from "@/components/providers/session-provider"
+import { I18nProvider } from "@/lib/i18n-context"
+import { Suspense } from "react"
+import { Toaster } from '@/components/ui/toaster'
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "Nanbakadai - Farm to Table Classified Ads Marketplace",
   description:
     "Connect directly with local farmers and vendors through classified ads. Buy and sell fresh farm products, organic produce, and agricultural equipment.",
-  keywords:
-    "farm products, classified ads, organic produce, local farmers, agriculture marketplace, fresh vegetables, fruits",
-  authors: [{ name: "Nanbakadai Team" }],
-  creator: "Nanbakadai",
-  publisher: "Nanbakadai",
-  robots: "index, follow",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://nanbakadai.com",
-    siteName: "Nanbakadai",
-    title: "Nanbakadai - Farm to Table Classified Ads Marketplace",
-    description:
-      "Connect directly with local farmers and vendors through classified ads. Buy and sell fresh farm products, organic produce, and agricultural equipment.",
-    images: [
-      {
-        url: "/placeholder.svg?height=630&width=1200",
-        width: 1200,
-        height: 630,
-        alt: "Nanbakadai - Farm to Table Marketplace",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Nanbakadai - Farm to Table Classified Ads Marketplace",
-    description: "Connect directly with local farmers and vendors through classified ads.",
-    images: ["/placeholder.svg?height=630&width=1200"],
-  },
-    generator: 'v0.dev'
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Favicon for all devices and screen sizes */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png" />
+        <link rel="manifest" href="/favicon_io/site.webmanifest" />
+        <link rel="shortcut icon" href="/favicon_io/favicon.ico" />
+        <meta name="msapplication-TileColor" content="#10b981" />
         <meta name="theme-color" content="#10b981" />
+
+        {/* Android Chrome icons */}
+        <link rel="icon" type="image/png" sizes="192x192" href="/favicon_io/android-chrome-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/favicon_io/android-chrome-512x512.png" />
       </head>
-      <body className={inter.className}>
-        <Providers>
-          <Suspense>
-            <main>{children}</main>
-          </Suspense>
-          <Toaster />
-        </Providers>
+      <body className={inter.className} suppressHydrationWarning>
+        <NextAuthProvider>
+          <ReduxProvider>
+            <I18nProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem={false}
+                disableTransitionOnChange
+                storageKey="nambakadai-theme"
+              >
+                <Suspense>
+                  <main>{children}</main>
+                </Suspense>
+              </ThemeProvider>
+            </I18nProvider>
+          </ReduxProvider>
+        </NextAuthProvider>
+        <Toaster />
       </body>
     </html>
-  );
+  )
 }

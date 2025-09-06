@@ -1,102 +1,177 @@
-import { createSlice, type PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit"
 import type { RootState } from "@/lib/store"
 
-export interface Store {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  ownerId: number;
-  logoUrl?: string;
-  bannerUrl?: string;
-  contactName?: string;
-  contactPhone?: string;
-  contactEmail?: string;
-  address?: string;
-  stateId?: number;
-  cityId?: number;
-  pincode?: string;
-  createdAt: string;
-  updatedAt: string;
-  isApproved: boolean;
-}
-
 interface User {
-  id: number
+  id: string
   name: string
   email: string
-  role: "USER" | "SELLER" | "ADMIN"
+  role: "buyer" | "seller" | "admin"
   avatar?: string
   verified?: boolean
-  store?: Store | null; // Changed from stores?: any[] to store?: Store | null;
 }
 
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
-  status: 'idle' | 'loading' | 'succeeded' | 'failed'
+  isLoading: boolean
   error: string | null
 }
 
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  status: 'idle',
+  isLoading: false,
   error: null,
 }
 
-// Removed loginUser async thunk. Login will now be handled directly by next-auth's signIn function.
+// Check if we're in a browser environment before accessing localStorage
+const isBrowser = typeof window !== "undefined"
 
-export const fetchUserData = createAsyncThunk(
-  'auth/fetchUserData',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await fetch('/api/user');
-      const data = await response.json();
-      if (!response.ok) {
-        return rejectWithValue(data.message || 'Failed to fetch user data');
-      }
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+// Load user from localStorage on initialization if available
+if (isBrowser) {
+  try {
+    const storedUser = localStorage.getItem("user")
+    if (storedUser) {
+      initialState.user = JSON.parse(storedUser)
+      initialState.isAuthenticated = true
     }
+  } catch (error) {
+    console.error("Error loading user from localStorage:", error)
   }
-);
+}
+
+// Async thunks for authentication
+export const loginUser = createAsyncThunk(
+  "auth/login",
+  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+    try {
+      // In a real app, this would be an API call
+      if (!email || !password) {
+        throw new Error("Email and password are required")
+      }
+
+      // Mock user data
+      const user: User = {
+        id: "user-123",
+        name: email.split("@")[0],
+        email,
+        role: email.includes("seller") ? "seller" : "buyer",
+        avatar: "/placeholder.svg?height=100&width=100",
+      }
+
+      // Store in localStorage
+      if (isBrowser) {
+        localStorage.setItem("user", JSON.stringify(user))
+      }
+
+      return user
+    } catch (error) {
+      return rejectWithValue((error as Error).message)
+    }
+  },
+)
+
+export const signupUser = createAsyncThunk(
+  "auth/signup",
+  async (
+    { name, email, password, role }: { name: string; email: string; password: string; role: "buyer" | "seller" },
+    { rejectWithValue },
+  ) => {
+    try {
+      // In a real app, this would be an API call
+      if (!name || !email || !password) {
+        throw new Error("All fields are required")
+      }
+
+      // Mock user data
+      const user: User = {
+        id: "user-" + Math.floor(Math.random() * 1000),
+        name,
+        email,
+        role,
+        avatar: "/placeholder.svg?height=100&width=100",
+      }
+
+      // Store in localStorage
+      if (isBrowser) {
+        localStorage.setItem("user", JSON.stringify(user))
+      }
+
+      return user
+    } catch (error) {
+      return rejectWithValue((error as Error).message)
+    }
+  },
+)
+
+export const logoutUser = createAsyncThunk("auth/logout", async () => {
+  // Remove from localStorage
+  if (isBrowser) {
+    localStorage.removeItem("user")
+  }
+  return null
+})
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User | null>) => {
-      state.user = action.payload;
-      state.isAuthenticated = !!action.payload;
-    },
-    logoutUser: (state) => {
-      state.user = null;
-      state.isAuthenticated = false;
+    clearError: (state) => {
+      state.error = null
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchUserData.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchUserData.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.user = action.payload;
-        state.isAuthenticated = true;
-      })
-      .addCase(fetchUserData.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      });
+    // Login
+    builder.addCase(loginUser.pending, (state) => {
+      state.isLoading = true
+      state.error = null
+    })
+    builder.addCase(loginUser.fulfilled, (state, action: PayloadAction<User>) => {
+      state.isLoading = false
+      state.isAuthenticated = true
+      state.user = action.payload
+      state.error = null
+    })
+    builder.addCase(loginUser.rejected, (state, action) => {
+      state.isLoading = false
+      state.isAuthenticated = false
+      state.user = null
+      state.error = action.payload as string
+    })
+
+    // Signup
+    builder.addCase(signupUser.pending, (state) => {
+      state.isLoading = true
+      state.error = null
+    })
+    builder.addCase(signupUser.fulfilled, (state, action: PayloadAction<User>) => {
+      state.isLoading = false
+      state.isAuthenticated = true
+      state.user = action.payload
+      state.error = null
+    })
+    builder.addCase(signupUser.rejected, (state, action) => {
+      state.isLoading = false
+      state.isAuthenticated = false
+      state.user = null
+      state.error = action.payload as string
+    })
+
+    // Logout
+    builder.addCase(logoutUser.fulfilled, (state) => {
+      state.isAuthenticated = false
+      state.user = null
+      state.error = null
+    })
   },
-});
+})
 
 // Selectors
-export const selectUser = (state: RootState) => state.auth.user;
-export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
+export const selectAuth = (state: RootState) => state.auth
+export const selectUser = (state: RootState) => state.auth.user
+export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated
+export const selectAuthLoading = (state: RootState) => state.auth.isLoading
+export const selectAuthError = (state: RootState) => state.auth.error
 
-export const { setUser, logoutUser } = authSlice.actions;
-export default authSlice.reducer;
+export const { clearError } = authSlice.actions
+export default authSlice.reducer

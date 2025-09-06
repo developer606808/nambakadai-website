@@ -1,115 +1,231 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Loader2, Eye, EyeOff, Mail, Lock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react"
-import { useAppDispatch } from "@/lib/hooks"
-import { toast } from "@/hooks/use-toast"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { signIn } from "next-auth/react" // Import signIn
-
-const formSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-});
-
-type FormData = z.infer<typeof formSchema>;
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { signIn } from "next-auth/react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
+import { loginSchema, type LoginInput } from "@/lib/validations/auth"
 
 export function LoginFormRedux() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [apiError, setApiError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const dispatch = useAppDispatch(); // Keep dispatch for potential future use or other actions
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false)
+  const [isResendingVerification, setIsResendingVerification] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [emailNotVerified, setEmailNotVerified] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
 
-  const { register, handleSubmit, formState: { errors }, setError } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    getValues,
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
-  });
+  })
 
-  const onSubmit = async (data: FormData) => {
-    setApiError("");
-    setIsLoading(true);
+  // Handle URL parameters for success/error messages
+  useEffect(() => {
+    if (!searchParams) return
+
+    const registered = searchParams.get('registered')
+    const verified = searchParams.get('verified')
+    const verificationError = searchParams.get('error')
+
+    if (registered === 'true') {
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email to verify your account before logging in.",
+        duration: 6000,
+      })
+    }
+
+    if (verified === 'true') {
+      toast({
+        title: "Email verified successfully!",
+        description: "You can now log in to your account.",
+        duration: 5000,
+      })
+    }
+
+    if (verificationError === 'verification_failed') {
+      toast({
+        title: "Email verification failed",
+        description: "The verification link is invalid or expired. Please request a new one.",
+        variant: "destructive",
+        duration: 6000,
+      })
+    }
+  }, [searchParams, toast])
+
+  const onSubmit = async (data: LoginInput) => {
+    setIsLoading(true)
+    setError(null)
+    setEmailNotVerified(null)
 
     try {
-      const result = await signIn("credentials", {
-        redirect: false, // Do not redirect, handle response manually
+      const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
-      });
+        redirect: false,
+      })
 
       if (result?.error) {
-        setApiError(result.error);
-        toast({
-          title: "Login Failed",
-          description: result.error,
-          variant: "destructive",
-        });
+        // Check if error is due to unverified email
+        if (result.error.includes('EMAIL_NOT_VERIFIED')) {
+          setEmailNotVerified(data.email)
+          setError('Please verify your email address before logging in.')
+        } else {
+          setError('Invalid email or password')
+        }
       } else {
         toast({
-          title: "Login Successful!",
-          description: "You have been successfully logged in.",
-        });
-        router.push("/"); // Redirect to home or dashboard
+          title: "Welcome back!",
+          description: "You have been logged in successfully.",
+        })
+        router.push('/') // Redirect to home page
+        router.refresh() // Refresh to update session
       }
-    } catch (err: any) {
-      setApiError("An unexpected error occurred. Please try again.");
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('An error occurred during login. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!emailNotVerified) return
+
+    setIsResendingVerification(true)
+
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: emailNotVerified }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Verification email sent!",
+          description: "Please check your inbox and click the verification link.",
+          duration: 6000,
+        })
+        setEmailNotVerified(null)
+        setError(null)
+      } else {
+        toast({
+          title: "Failed to send verification email",
+          description: result.error || "Please try again later.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Failed to send verification email. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsResendingVerification(false)
     }
-  };
+  }
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-6 bg-white p-8 rounded-lg border shadow-lg">
-      <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-          <LogIn className="h-8 w-8 text-green-600" />
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-4 right-4 text-white/20 text-4xl">🌾</div>
+        <div className="relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back</h1>
+          <p className="text-white/90 text-sm sm:text-base">Enter your credentials to access your account</p>
         </div>
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-sm text-gray-500 mt-2">Sign in to your account to continue</p>
       </div>
 
-      {apiError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-md text-sm animate-fadeIn">
-          {apiError}
-        </div>
+      <div className="p-6 sm:p-8 space-y-6">
+
+      {error && (
+        <Alert variant="destructive" className="animate-shake">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {emailNotVerified && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800">
+            <div className="space-y-2">
+              <p>Your email address is not verified. Please check your inbox for a verification email.</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
+                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+              >
+                {isResendingVerification ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Resend verification email
+                  </>
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center">
-            <Mail className="h-4 w-4 mr-2 text-gray-500" />
+          <Label htmlFor="email" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
             Email
           </Label>
           <Input
             id="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="Enter your email"
             {...register("email")}
-            className="transition-all duration-200 focus:ring-2 focus:ring-green-500"
+            className={errors.email ? "border-red-500" : ""}
           />
-          {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+          {errors.email && (
+            <p className="text-red-500 text-sm flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {errors.email.message}
+            </p>
+          )}
         </div>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="flex items-center">
-              <Lock className="h-4 w-4 mr-2 text-gray-500" />
+            <Label htmlFor="password" className="flex items-center gap-2">
+              <Lock className="w-4 h-4" />
               Password
             </Label>
             <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
@@ -120,31 +236,31 @@ export function LoginFormRedux() {
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
+              placeholder="Enter your password"
               {...register("password")}
-              className="pr-10 transition-all duration-200 focus:ring-2 focus:ring-green-500"
+              className={`pr-10 ${errors.password ? "border-red-500" : ""}`}
             />
             <button
               type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+          {errors.password && (
+            <p className="text-red-500 text-sm flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
-        <Button
-          type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 transition-all duration-200 transform hover:scale-105"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
           {isLoading ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Signing in...
-            </div>
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+            </>
           ) : (
             "Sign in"
           )}
@@ -152,13 +268,14 @@ export function LoginFormRedux() {
       </form>
 
       <div className="text-center text-sm">
-        <p>
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-green-600 hover:underline font-medium">
+        <p className="text-gray-500">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-green-600 hover:underline">
             Sign up
           </Link>
         </p>
       </div>
+      </div>
     </div>
-  );
+  )
 }

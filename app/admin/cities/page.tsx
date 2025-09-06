@@ -1,135 +1,677 @@
+"use client"
 
-'use client';
-import { useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from '@/hooks/use-toast';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Building, Loader2, Filter } from "lucide-react"
 
-const citySchema = z.object({ id: z.number().optional(), name_en: z.string().min(2), name_ta: z.string().optional(), state_id: z.coerce.number() });
-type CityFormValues = z.infer<typeof citySchema>;
-interface State { id: number; name_en: string; }
-interface City { id: number; name_en: string; state: State; }
-
-export default function AdminCitiesPage() {
-  const { toast } = useToast();
-  const [states, setStates] = useState<State[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [editing, setEditing] = useState<City | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
-
-  const { register, handleSubmit, reset, control } = useForm<CityFormValues>({ resolver: zodResolver(citySchema) });
-
-  async function fetchStates() { 
-    const res = await fetch('/api/admin/states'); 
-    if (res.ok) {
-      const { data } = await res.json();
-      setStates(data);
-    }
+interface City {
+  id: number
+  name_en: string
+  name_hi?: string
+  name_ta: string
+  stateId: number
+  createdAt: string
+  updatedAt: string
+  state: {
+    id: number
+    name_en: string
+    name_ta: string
+    stateCode: string
   }
-  async function fetchCities(page = 1) {
-    setIsLoading(true);
+  _count: {
+    products: number
+  }
+}
+
+interface State {
+  id: number
+  name_en: string
+  name_ta: string
+  stateCode: string
+}
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
+export default function CitiesPage() {
+  const [cities, setCities] = useState<City[]>([])
+  const [states, setStates] = useState<State[]>([])
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  })
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [currentCity, setCurrentCity] = useState<City | null>(null)
+  const [newCity, setNewCity] = useState({
+    name_en: "",
+    name_ta: "",
+    name_hi: "",
+    stateId: "",
+  })
+  const [searchQuery, setSearchQuery] = useState("")
+  const [stateFilter, setStateFilter] = useState("all")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  // Fetch cities from API
+  const fetchCities = async (page = 1, search = "", stateId = "all") => {
     try {
-      const res = await fetch(`/api/admin/cities?page=${page}&limit=${limit}`);
-      if (!res.ok) throw new Error("Failed to fetch cities");
-      const { data, pagination } = await res.json();
-      setCities(data);
-      setTotalPages(pagination.totalPages);
-      setCurrentPage(pagination.currentPage);
+      setIsLoading(true)
+      setError("")
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+      })
+
+      if (search) params.append('search', search)
+      if (stateId !== 'all') params.append('stateId', stateId)
+
+      const response = await fetch(`/api/admin/cities?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch cities')
+      }
+
+      setCities(data.cities)
+      setPagination(data.pagination)
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch cities." });
+      console.error('Error fetching cities:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch cities')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
+      setIsInitialLoading(false)
     }
   }
 
-  useEffect(() => { fetchStates(); fetchCities(currentPage); }, [currentPage]);
+  // Fetch states for dropdown
+  const fetchStates = async () => {
+    try {
+      const response = await fetch('/api/admin/states?page=1&limit=1000') // Get all states for dropdown
+      const data = await response.json()
 
-  const onSubmit = async (data: CityFormValues) => {
-    const url = editing ? `/api/admin/cities/${editing.id}` : '/api/admin/cities';
-    const method = editing ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    if (res.ok) {
-      toast({ title: `City ${editing ? 'updated' : 'created'}` });
-      reset({ name_en: '', name_ta: '', state_id: 0 });
-      setEditing(null);
-      fetchCities(currentPage);
-    } else {
-      toast({ variant: "destructive", title: "Error", description: "Something went wrong." });
+      if (response.ok) {
+        setStates(data.states || [])
+      }
+    } catch (error) {
+      console.error('Error fetching states:', error)
     }
-  };
+  }
 
-  const onDelete = async (id: number) => {
-    if (!confirm('Are you sure?')) return;
-    const res = await fetch(`/api/admin/cities/${id}`, { method: 'DELETE' });
-    if (res.ok) { toast({ title: "City deleted" }); fetchCities(currentPage); } else { toast({ variant: "destructive", title: "Error", description: "Failed to delete city." }); }
-  };
+  // Load data on component mount
+  useEffect(() => {
+    fetchStates()
+  }, [])
+
+  // Load cities on component mount and when filters change
+  useEffect(() => {
+    fetchCities(pagination.page, searchQuery, stateFilter)
+  }, [pagination.page, searchQuery, stateFilter])
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.page !== 1) {
+        setPagination(prev => ({ ...prev, page: 1 }))
+      } else {
+        fetchCities(1, searchQuery, stateFilter)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Form validation for cities
+  const validateCityForm = (cityData: any) => {
+    const errors: string[] = []
+
+    if (!cityData?.name_en?.trim()) {
+      errors.push('English name is required')
+    }
+    if (!cityData?.name_ta?.trim()) {
+      errors.push('Tamil name is required')
+    }
+    if (!cityData?.stateId) {
+      errors.push('State is required')
+    }
+    if (cityData?.name_en && cityData.name_en.length > 100) {
+      errors.push('English name must be less than 100 characters')
+    }
+    if (cityData?.name_ta && cityData.name_ta.length > 100) {
+      errors.push('Tamil name must be less than 100 characters')
+    }
+    if (cityData?.name_hi && cityData.name_hi.length > 100) {
+      errors.push('Hindi name must be less than 100 characters')
+    }
+
+    return errors
+  }
+
+  const handleCreateCity = async () => {
+    const validationErrors = validateCityForm(newCity)
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'))
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const response = await fetch('/api/admin/cities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newCity),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create city')
+      }
+
+      // Refresh cities list
+      await fetchCities(pagination.page, searchQuery, stateFilter)
+      setIsAddDialogOpen(false)
+      setNewCity({
+        name_en: "",
+        name_ta: "",
+        name_hi: "",
+        stateId: "",
+      })
+    } catch (error) {
+      console.error('Error creating city:', error)
+      setError(error instanceof Error ? error.message : 'Failed to create city')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEditCity = async () => {
+    const validationErrors = validateCityForm(currentCity)
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'))
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const response = await fetch(`/api/admin/cities/${currentCity!.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(currentCity),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update city')
+      }
+
+      // Refresh cities list
+      await fetchCities(pagination.page, searchQuery, stateFilter)
+      setIsEditDialogOpen(false)
+      setCurrentCity(null)
+    } catch (error) {
+      console.error('Error updating city:', error)
+      setError(error instanceof Error ? error.message : 'Failed to update city')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteCity = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+
+      const response = await fetch(`/api/admin/cities/${currentCity!.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete city')
+      }
+
+      // Refresh cities list
+      await fetchCities(pagination.page, searchQuery, stateFilter)
+      setIsDeleteDialogOpen(false)
+      setCurrentCity(null)
+    } catch (error) {
+      console.error('Error deleting city:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete city')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }))
+  }
 
   return (
-    <div className="grid gap-8 md:grid-cols-2">
-      <div>
-        <Card>
-          <CardHeader><CardTitle>{editing ? 'Edit City' : 'Create City'}</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Controller name="state_id" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
-                        <SelectTrigger><SelectValue placeholder="Select a State" /></SelectTrigger>
-                        <SelectContent>{states.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name_en}</SelectItem>)}</SelectContent>
-                    </Select>
-                )} />
-              <Input placeholder="English Name" {...register('name_en')} />
-              <Input placeholder="Tamil Name" {...register('name_ta')} />
-              <Button type="submit">{editing ? 'Update' : 'Create'}</Button>
-              {editing && <Button variant="outline" onClick={() => { setEditing(null); reset(); }}>Cancel</Button>}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-      <div>
-        <Card>
-          <CardHeader><CardTitle>Existing Cities</CardTitle></CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin" /></div>
-            ) : cities.length === 0 ? (
-              <p className="text-center text-gray-500">No cities found.</p>
-            ) : (
-              <ul className="space-y-2">
-                {cities.map(city => (
-                  <li key={city.id} className="flex justify-between items-center p-2 border rounded">
-                    <p>{city.name_en} <span className='text-gray-500'>({city.state.name_en})</span></p>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => { setEditing(city); reset({...city, state_id: city.state.id }); }}>Edit</Button>
-                      <Button variant="destructive" size="sm" onClick={() => onDelete(city.id)}>Delete</Button>
-                    </div>
-                  </li>
+    <div className="flex flex-col">
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Cities</h2>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => {
+                setNewCity({ name_en: "", name_ta: "", name_hi: "", stateId: "" })
+                setIsAddDialogOpen(true)
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add City
+            </Button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-destructive/15 text-destructive px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search cities..."
+              className="w-full bg-background pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="State" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All States</SelectItem>
+                {states.map((state) => (
+                  <SelectItem key={state.id} value={state.id.toString()}>
+                    {state.name_en}
+                  </SelectItem>
                 ))}
-              </ul>
-            )}
-            <div className="flex items-center justify-end pt-4">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} /></PaginationItem>
-                  {[...Array(totalPages)].map((_, i) => (
-                      <PaginationItem key={i}><PaginationLink isActive={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-                  ))}
-                  <PaginationItem><PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} /></PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          </CardContent>
-        </Card>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("")
+                setStateFilter("all")
+              }}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>English Name</TableHead>
+                <TableHead>Tamil Name</TableHead>
+                <TableHead>State</TableHead>
+                <TableHead className="text-right">Products</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isInitialLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    Loading cities...
+                  </TableCell>
+                </TableRow>
+              ) : cities.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No cities found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                cities.map((city: City) => (
+                  <TableRow key={city.id}>
+                    <TableCell className="font-medium">{city.name_en}</TableCell>
+                    <TableCell>{city.name_ta}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">{city.state.name_en}</span>
+                      <span className="text-muted-foreground ml-2">({city.state.stateCode})</span>
+                    </TableCell>
+                    <TableCell className="text-right">{city._count.products}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCurrentCity({
+                                ...city,
+                                name_en: city.name_en,
+                                name_ta: city.name_ta,
+                                name_hi: city.name_hi || "",
+                                stateId: city.stateId,
+                              })
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setCurrentCity(city)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {pagination.totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page > 1) handlePageChange(pagination.page - 1)
+                  }}
+                  className={pagination.page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === pagination.page}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.page < pagination.totalPages) handlePageChange(pagination.page + 1)
+                  }}
+                  className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
+
+      {/* Add City Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add City</DialogTitle>
+            <DialogDescription>Create a new city.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="add-name-en">English Name *</Label>
+              <Input
+                id="add-name-en"
+                value={newCity.name_en}
+                onChange={(e) => setNewCity({ ...newCity, name_en: e.target.value })}
+                placeholder="City name in English"
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="add-name-ta">Tamil Name *</Label>
+              <Input
+                id="add-name-ta"
+                value={newCity.name_ta}
+                onChange={(e) => setNewCity({ ...newCity, name_ta: e.target.value })}
+                placeholder="City name in Tamil"
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="add-name-hi">Hindi Name</Label>
+              <Input
+                id="add-name-hi"
+                value={newCity.name_hi}
+                onChange={(e) => setNewCity({ ...newCity, name_hi: e.target.value })}
+                placeholder="City name in Hindi (optional)"
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="add-state">State *</Label>
+              <Select
+                value={newCity.stateId}
+                onValueChange={(value) => setNewCity({ ...newCity, stateId: value })}
+              >
+                <SelectTrigger id="add-state">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.id} value={state.id.toString()}>
+                      {state.name_en} ({state.stateCode})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCity} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create City
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit City Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit City</DialogTitle>
+            <DialogDescription>Make changes to the city information.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name-en">English Name *</Label>
+              <Input
+                id="edit-name-en"
+                value={currentCity?.name_en || ""}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_en: e.target.value } : null)}
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name-ta">Tamil Name *</Label>
+              <Input
+                id="edit-name-ta"
+                value={currentCity?.name_ta || ""}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_ta: e.target.value } : null)}
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name-hi">Hindi Name</Label>
+              <Input
+                id="edit-name-hi"
+                value={currentCity?.name_hi || ""}
+                onChange={(e) => setCurrentCity(currentCity ? { ...currentCity, name_hi: e.target.value } : null)}
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-state">State *</Label>
+              <Select
+                value={currentCity?.stateId?.toString() || ""}
+                onValueChange={(value) => setCurrentCity(currentCity ? { ...currentCity, stateId: parseInt(value) || currentCity.stateId } : null)}
+              >
+                <SelectTrigger id="edit-state">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.id} value={state.id.toString()}>
+                      {state.name_en} ({state.stateCode})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditCity} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete City Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete City</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this city? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 rounded-md border p-4">
+            <Building className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">{currentCity?.name_en}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentCity?.state?.name_en} • {currentCity?._count?.products || 0} products
+              </p>
+            </div>
+          </div>
+          {(currentCity?._count?.products || 0) > 0 && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+              <p className="text-sm text-destructive font-medium">Warning!</p>
+              <p className="text-sm text-destructive/80">
+                This city has associated products. Deleting it may cause data integrity issues.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteCity} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete City"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }
