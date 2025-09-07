@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // GET /api/admin/roles/list - Get all roles for dropdown (no pagination)
 export async function GET(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      roles: roles.map(role => ({
+      roles: roles.map((role: { id: number; name: string; description: string | null; isSystem: boolean }) => ({
         id: role.id,
         name: role.name,
         description: role.description,

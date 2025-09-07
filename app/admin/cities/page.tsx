@@ -23,7 +23,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Building, Loader2, Filter } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Building, Loader2, Filter, Upload } from "lucide-react"
+import { ImportDialog } from "@/components/admin/import-dialog"
 
 interface City {
   id: number
@@ -74,6 +75,7 @@ export default function CitiesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [currentCity, setCurrentCity] = useState<City | null>(null)
   const [newCity, setNewCity] = useState({
     name_en: "",
@@ -297,6 +299,10 @@ export default function CitiesPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Cities</h2>
           <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
             <Button
               onClick={() => {
                 setNewCity({ name_en: "", name_ta: "", name_hi: "", stateId: "" })
@@ -672,6 +678,20 @@ export default function CitiesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Import Cities"
+        description="Upload a CSV file to bulk import cities. The CSV should have columns: name_en, name_ta, name_hi (optional), state_code."
+        importEndpoint="/api/admin/cities/import"
+        sampleCsvUrl="/samples/cities-sample.csv"
+        onSuccess={() => {
+          fetchCities(pagination.page, searchQuery, stateFilter)
+          setIsImportDialogOpen(false)
+        }}
+      />
     </div>
   )
 }

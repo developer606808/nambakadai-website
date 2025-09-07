@@ -3,7 +3,7 @@ import { base64ToFileServer } from './file-upload-server';
 
 // Use the server-side base64 to file conversion
 async function base64ToFile(base64Data: string): Promise<string> {
-  return await base64ToFileServer(base64Data);
+  return await base64ToFileServer(base64Data, 'banners');
 }
 
 // Migration function to convert all base64 images to files

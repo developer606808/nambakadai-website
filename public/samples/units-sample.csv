@@ -1,0 +1,14 @@
+name_en,name_ta,name_hi,symbol,category_slugs
+Kilogram,கிலோகிராம்,किलोग्राम,kg,fruits,vegetables,rice,wheat
+Gram,கிராம்,ग्राम,g,seeds,fertilizers
+Liter,லிட்டர்,लीटर,L,pesticides
+Milliliter,மில்லிலிட்டர்,मिलीलीटर,ml,pesticides
+Piece,துண்டு,टुकड़ा,pc,tools,machinery
+Dozen,டஜன்,डज़न,dz,seeds
+Quintal,குவிண்டல்,क्विंटल,q,rice,wheat
+Ton,டன்,टन,t,rice,wheat
+Meter,மீட்டர்,मीटर,m,tools
+Square Meter,சதுர மீட்டர்,वर्ग मीटर,sqm,land
+Acre,ஏக்கர்,एकड़,acre,land
+Hour,மணி நேரம்,घंटा,hr,machinery,tractors
+Day,நாள்,दिन,day,machinery,tractors

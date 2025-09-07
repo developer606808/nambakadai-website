@@ -25,7 +25,6 @@ export default function AdminLayout({
       const isAuthenticated = !!session?.user
       const isAdmin = session?.user?.role === "ADMIN"
 
-
       if (isLoading) {
         setIsAuthorized(null) // Still loading
         return
@@ -45,7 +44,18 @@ export default function AdminLayout({
     }
 
     checkAdminAuth()
-  }, [session, status, pathname, router, isAuthorized])
+  }, [session, status, pathname, router])
+
+  // Force session refresh when on login page
+  useEffect(() => {
+    if (pathname === "/admin/login") {
+      // Small delay to ensure session is cleared
+      const timer = setTimeout(() => {
+        setIsAuthorized(false)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [pathname])
 
   // Show loading state while checking auth
   if (isAuthorized === null) {

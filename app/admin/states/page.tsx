@@ -22,7 +22,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, MapPin, Loader2 } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, MapPin, Loader2, Upload } from "lucide-react"
+import { ImportDialog } from "@/components/admin/import-dialog"
 import { useToast } from "@/components/ui/use-toast"
 
 interface State {
@@ -62,6 +63,7 @@ export default function StatesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [currentState, setCurrentState] = useState<any>(null)
   const [newState, setNewState] = useState({
     name_en: "",
@@ -301,6 +303,10 @@ export default function StatesPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">States</h2>
           <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
             <Button
               onClick={() => {
                 setNewState({ name_en: "", name_ta: "", name_hi: "", stateCode: "" })
@@ -633,6 +639,20 @@ export default function StatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Import States"
+        description="Upload a CSV file to bulk import states. The CSV should have columns: name_en, name_ta, name_hi (optional), stateCode."
+        importEndpoint="/api/admin/states/import"
+        sampleCsvUrl="/samples/states-sample.csv"
+        onSuccess={() => {
+          fetchStates(pagination.page, searchQuery)
+          setIsImportDialogOpen(false)
+        }}
+      />
     </div>
   )
 }
