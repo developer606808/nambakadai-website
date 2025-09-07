@@ -22,7 +22,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Ruler, Loader2, Check, X } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Ruler, Loader2, Check, X, Upload } from "lucide-react"
+import { ImportDialog } from "@/components/admin/import-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
@@ -56,6 +57,7 @@ export default function UnitsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [currentUnit, setCurrentUnit] = useState<Partial<Unit> | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -279,6 +281,10 @@ export default function UnitsPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Units</h2>
           <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
             <Button
               onClick={() => {
                 setCurrentUnit({ name_en: "", name_ta: "", symbol: "" })
@@ -746,6 +752,20 @@ export default function UnitsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Import Units"
+        description="Upload a CSV file to bulk import units. The CSV should have columns: name_en, name_ta, name_hi (optional), symbol, category_slugs (comma-separated, optional)."
+        importEndpoint="/api/admin/units/import"
+        sampleCsvUrl="/samples/units-sample.csv"
+        onSuccess={() => {
+          fetchUnits()
+          setIsImportDialogOpen(false)
+        }}
+      />
     </div>
   )
 }

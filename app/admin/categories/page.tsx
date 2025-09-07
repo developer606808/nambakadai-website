@@ -35,10 +35,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Tag, Loader2, Filter, X, Crop } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Tag, Loader2, Filter, X, Crop, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import ReactCrop, { Crop as CropType, PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import { ImportDialog } from "@/components/admin/import-dialog"
 
 interface Category {
   id: number
@@ -83,10 +84,11 @@ export default function CategoriesPage() {
   })
 
   // Dialog states
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null)
+   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+   const [currentCategory, setCurrentCategory] = useState<Category | null>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -686,10 +688,16 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground">Manage product categories and subcategories</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="w-fit">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Category
-        </Button>
+        <div className="flex gap-2 relative">
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="w-fit">
+            <Upload className="mr-2 h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="w-fit">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Category
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -1171,6 +1179,20 @@ export default function CategoriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Import Categories"
+        description="Upload a CSV file to bulk import categories. The CSV should have columns: name_en, name_ta, name_hi (optional), slug, type (STORE or RENTAL), parent_slug (optional)."
+        importEndpoint="/api/admin/categories/import"
+        sampleCsvUrl="/samples/categories-sample.csv"
+        onSuccess={() => {
+          fetchCategories(true)
+          setIsImportDialogOpen(false)
+        }}
+      />
     </div>
   )
 }

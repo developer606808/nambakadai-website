@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -143,11 +143,11 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
     return pathname === href || (pathname && pathname.startsWith(href + '/'))
   }
 
-  const handleLogout = () => {
-    // Remove admin token
-    localStorage.removeItem("adminToken")
-    // Redirect to login page
-    router.push("/admin/login")
+  const handleLogout = async () => {
+    // Sign out using NextAuth
+    await signOut({ callbackUrl: "/admin/login" })
+    // Force a page refresh to clear any cached state
+    window.location.href = "/admin/login"
   }
 
   return (

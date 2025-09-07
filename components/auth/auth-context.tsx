@@ -28,6 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const [isRouterReady, setIsRouterReady] = useState(false)
+
+  useEffect(() => {
+    setIsRouterReady(true)
+  }, [])
 
   // Check if user is logged in on mount
   useEffect(() => {

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { uploadCategoryImageServer } from '@/lib/utils/file-upload-server'
 
 // Configuration
 const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
@@ -32,26 +30,7 @@ function generateFileName(originalName: string): string {
   return `category_${timestamp}_${random}.${extension}`
 }
 
-// Ensure upload directory exists
-async function ensureUploadDir(): Promise<string> {
-  const uploadDir = join(process.cwd(), 'public', 'uploads', 'categories')
-  console.log('Upload directory path:', uploadDir)
-
-  if (!existsSync(uploadDir)) {
-    console.log('Creating upload directory...')
-    try {
-      await mkdir(uploadDir, { recursive: true })
-      console.log('Upload directory created successfully')
-    } catch (dirError) {
-      console.error('Error creating upload directory:', dirError)
-      throw new Error('Failed to create upload directory')
-    }
-  } else {
-    console.log('Upload directory already exists')
-  }
-
-  return uploadDir
-}
+// Upload directory is now handled by the centralized utility
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,40 +85,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Ensure upload directory exists
-    const uploadDir = await ensureUploadDir()
+    // Upload file using centralized utility
+    console.log('Uploading category image using centralized utility...')
+    const uploadResult = await uploadCategoryImageServer(file)
 
-    // Generate unique filename
-    const fileName = generateFileName(file.name)
-    const filePath = join(uploadDir, fileName)
-
-    // Convert file to buffer and save
-    try {
-      console.log('Converting file to buffer...')
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      console.log('Buffer created, size:', buffer.length)
-
-      console.log('Writing file to disk...')
-      await writeFile(filePath, buffer)
-      console.log('File saved successfully to:', filePath)
-
-      // Verify file was written
-      const fs = require('fs')
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath)
-        console.log('File verification: exists, size:', stats.size)
-      } else {
-        throw new Error('File was not written to disk')
-      }
-    } catch (fileError) {
-      console.error('Error saving file:', fileError)
-      const errorMessage = fileError instanceof Error ? fileError.message : 'Unknown error'
-      throw new Error(`Failed to save file to disk: ${errorMessage}`)
+    if (!uploadResult.success) {
+      throw new Error(uploadResult.error || 'Failed to upload file')
     }
 
-    // Return the public URL
-    const publicUrl = `/uploads/categories/${fileName}`
+    const publicUrl = uploadResult.url!
+    const fileName = uploadResult.fileName!
 
     return NextResponse.json({
       success: true,
