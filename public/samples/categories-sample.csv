@@ -1,0 +1,13 @@
+name_en,name_ta,name_hi,slug,type,parent_slug
+Fruits,பழங்கள்,फल,fruits,STORE,
+Vegetables,காய்கறிகள்,सब्जियां,vegetables,STORE,
+Rice,அரிசி,चावल,rice,STORE,
+Wheat,கோதுமை,गेहूं,wheat,STORE,
+Fertilizers,உரங்கள்,उर्वरक,fertilizers,STORE,
+Pesticides,பூச்சிக்கொல்லி,कीटनाशक,pesticides,STORE,
+Seeds,விதைகள்,बीज,seeds,STORE,
+Tools,கருவிகள்,उपकरण,tools,STORE,
+Machinery,இயந்திரங்கள்,मशीनरी,machinery,STORE,
+Tractors,டிராக்டர்கள்,ट्रैक्टर,tractors,RENTAL,
+Harvesters,அறுவடை இயந்திரங்கள்,हार्वेस्टर,harvesters,RENTAL,
+Sprayers,பூச்சி தெளிப்பான்கள்,स्प्रेयर,sprayers,RENTAL,

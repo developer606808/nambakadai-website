@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform data
-    const transformedRoles = roles.map(role => ({
+    const transformedRoles = roles.map((role: { id: number; name: string; description: string | null; permissions: string[]; isSystem: boolean; _count: { users: number }; createdAt: Date }) => ({
       id: role.id,
       name: role.name,
       description: role.description,

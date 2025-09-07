@@ -9,56 +9,70 @@ datasource db {
 
 model User {
   name                    String
-  email                   String              @unique
+  email                   String               @unique
   phone                   String?
   password                String
-  role                    Role                @default(BUYER)
-  adminRoleId             Int?
-  isVerified              Boolean             @default(false)
-  isBlocked               Boolean             @default(false)
+  role                    Role                 @default(BUYER)
+  isVerified              Boolean              @default(false)
+  isBlocked               Boolean              @default(false)
   avatar                  String?
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
-  deletedAt               DateTime?
-  id                      Int                 @id @default(autoincrement())
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  id                      Int                  @id @default(autoincrement())
   currentStoreId          Int?
   deviceToken             String?
-  fcmToken                String?             // Firebase Cloud Messaging token
   emailVerificationExpiry DateTime?
-  emailVerificationToken  String?
+  fcmToken                String?
+  adminRoleId             Int?
+  deletedAt               DateTime?
   lastLoginAt             DateTime?
-  adminRole               AdminRole?          @relation(fields: [adminRoleId], references: [id])
+  emailVerificationToken  String?
+  adminRole               AdminRole?           @relation(fields: [adminRoleId], references: [id])
   communityBookmarks      CommunityBookmark[]
   communityComments       CommunityComment[]
   communityFollows        CommunityFollower[]
   communityLikes          CommunityLike[]
   communityMemberships    CommunityMember[]
   communityPosts          CommunityPost[]
-  communityReports        CommunityReport[]   @relation("UserCommunityReports")
-  reportedCommunities     CommunityReport[]   @relation("UserReportedCommunities")
-  conversations1          Conversation[]      @relation("UserConversations1")
-  conversations2          Conversation[]      @relation("UserConversations2")
+  communityReports        CommunityReport[]    @relation("UserCommunityReports")
+  reportedCommunities     CommunityReport[]    @relation("UserReportedCommunities")
+  conversations1          Conversation[]       @relation("UserConversations1")
+  conversations2          Conversation[]       @relation("UserConversations2")
   demandPosts             DemandPost[]
   demandResponses         DemandResponse[]
   following               FollowStore[]
   loginLogs               LoginLog[]
-  receivedMessages        Message[]           @relation("ReceivedMessages")
-  sentMessages            Message[]           @relation("SentMessages")
+  receivedMessages        Message[]            @relation("ReceivedMessages")
+  sentMessages            Message[]            @relation("SentMessages")
   notifications           Notification[]
   offers                  Offer[]
+  orders                  Order[]
   products                Product[]
+  productComments         ProductComment[]
+  productCommentLikes     ProductCommentLike[]
   ratings                 Rating[]
-  reportsMade             Report[]            @relation("UserReports")
-  reportedUsers           Report[]            @relation("UserReported")
+  reportsMade             Report[]             @relation("UserReports")
+  reportedUsers           Report[]             @relation("UserReported")
   stores                  Store[]
   tickets                 Ticket[]
-  currentStore            Store?              @relation("UserCurrentStore", fields: [currentStoreId], references: [id])
+  currentStore            Store?               @relation("UserCurrentStore", fields: [currentStoreId], references: [id])
   vehicles                Vehicle[]
   vehicleBookings         VehicleBooking[]
   wishlist                Wishlist[]
-  productComments         ProductComment[]
-  productCommentLikes     ProductCommentLike[]
-  orders                  Order[]
+}
+
+model AdminRole {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@index([name])
 }
 
 model Store {
@@ -79,18 +93,18 @@ model Store {
   id             Int           @id @default(autoincrement())
   userId         Int
   contactName    String?
-  slug           String         @unique @default("")
-  publicKey      String         @unique @default(dbgenerated("(gen_random_uuid())::text"))
-  stateId        Int?
   cityId         Int?
   pincode        String?
+  publicKey      String        @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  slug           String        @unique @default("")
+  stateId        Int?
   followers      FollowStore[]
   products       Product[]
   ratings        Rating[]
+  city           City?         @relation(fields: [cityId], references: [id])
+  state          State?        @relation(fields: [stateId], references: [id])
   user           User          @relation(fields: [userId], references: [id])
   currentUsers   User[]        @relation("UserCurrentStore")
-  state          State?        @relation(fields: [stateId], references: [id])
-  city           City?         @relation(fields: [cityId], references: [id])
 
   @@index([slug])
 }
@@ -100,31 +114,31 @@ model Product {
   description String
   price       Float
   images      String[]
-  isFeatured  Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  id          Int        @id @default(autoincrement())
+  isFeatured  Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  id          Int              @id @default(autoincrement())
   categoryId  Int
   storeId     Int
   userId      Int
   stateId     Int
   cityId      Int
   unitId      Int
-  slug        String     @unique
-  stock       Int        @default(0)
-  publicKey   String     @unique @default(dbgenerated("(gen_random_uuid())::text"))
-  adId        String     @unique
+  slug        String           @unique
+  stock       Int              @default(0)
+  publicKey   String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  adId        String           @unique
   offers      Offer[]
-  category    Category   @relation(fields: [categoryId], references: [id])
-  city        City       @relation(fields: [cityId], references: [id])
-  state       State      @relation(fields: [stateId], references: [id])
-  store       Store      @relation(fields: [storeId], references: [id])
-  unit        Unit       @relation(fields: [unitId], references: [id])
-  user        User       @relation(fields: [userId], references: [id])
-  reports     Report[]   @relation("ProductReports")
-  wishlist    Wishlist[]
-  comments    ProductComment[]
   orderItems  OrderItem[]
+  category    Category         @relation(fields: [categoryId], references: [id])
+  city        City             @relation(fields: [cityId], references: [id])
+  state       State            @relation(fields: [stateId], references: [id])
+  store       Store            @relation(fields: [storeId], references: [id])
+  unit        Unit             @relation(fields: [unitId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  comments    ProductComment[]
+  reports     Report[]         @relation("ProductReports")
+  wishlist    Wishlist[]
 
   @@index([slug])
 }
@@ -219,18 +233,18 @@ model Wishlist {
 }
 
 model ProductComment {
-  id        Int      @id @default(autoincrement())
+  id        Int                  @id @default(autoincrement())
   content   String
   productId Int
   userId    Int
   parentId  Int?
-  likeCount Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  parent    ProductComment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies   ProductComment[] @relation("CommentReplies")
+  likeCount Int                  @default(0)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  parent    ProductComment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   ProductComment[]     @relation("CommentReplies")
+  product   Product              @relation(fields: [productId], references: [id])
+  user      User                 @relation(fields: [userId], references: [id])
   likes     ProductCommentLike[]
 
   @@index([productId])
@@ -469,9 +483,9 @@ model Vehicle {
   minimumHours     Int?
   operatorIncluded Boolean          @default(false)
   workingWidth     Float?
-  slug             String           @unique
   publicKey        String           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   adId             String           @unique
+  slug             String           @unique
   user             User             @relation(fields: [userId], references: [id])
   bookings         VehicleBooking[]
 
@@ -604,6 +618,27 @@ model Offer {
   seller          User        @relation(fields: [sellerId], references: [id])
 }
 
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  status    OrderStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int      @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
 
 enum CommunityPrivacy {
   PUBLIC
@@ -760,40 +795,4 @@ enum Role {
   BUYER
   SELLER
   ADMIN
-}
-
-model Order {
-  id        Int         @id @default(autoincrement())
-  userId    Int
-  status    OrderStatus @default(PENDING)
-  notes     String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  items     OrderItem[]
-  user      User        @relation(fields: [userId], references: [id])
-}
-
-model OrderItem {
-  id        Int     @id @default(autoincrement())
-  orderId   Int
-  productId Int
-  quantity  Int     @default(1)
-  price     Float
-  createdAt DateTime @default(now())
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
-}
-
-model AdminRole {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  permissions String[]
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-  users       User[]
-
-  @@map("admin_roles")
 }
