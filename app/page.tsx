@@ -60,6 +60,12 @@ interface ApiProduct {
   sellerId?: string;
   sellerSlug?: string;
   sellerPublicKey?: string;
+  store?: {
+    id: number;
+    name: string;
+    slug?: string;
+    publicKey?: string;
+  };
   isBestSeller?: boolean;
 }
 
@@ -106,6 +112,8 @@ function transformForProductCard(apiProduct: ApiProduct): {
   store?: { id: number; name: string; slug?: string; publicKey?: string };
   isFeatured?: boolean;
 } {
+  console.log('Transforming product:', apiProduct);
+
   // Ensure unit is always an object with symbol property
   let unit: { symbol: string } = { symbol: 'unit' };
   if (apiProduct.unit) {
@@ -116,7 +124,7 @@ function transformForProductCard(apiProduct: ApiProduct): {
     }
   }
 
-  return {
+  const transformed = {
     id: apiProduct.id,
     title: apiProduct.title,
     slug: apiProduct.slug || `product-${apiProduct.id}`,
@@ -125,16 +133,19 @@ function transformForProductCard(apiProduct: ApiProduct): {
     price: apiProduct.price,
     unit: unit,
     location: apiProduct.location,
-    store: apiProduct.seller && apiProduct.sellerId
+    store: apiProduct.store
       ? {
-          id: parseInt(apiProduct.sellerId),
-          name: apiProduct.seller,
-          slug: apiProduct.sellerSlug,
-          publicKey: apiProduct.sellerPublicKey
+          id: apiProduct.store.id,
+          name: apiProduct.store.name,
+          slug: apiProduct.store.slug,
+          publicKey: apiProduct.store.publicKey
         }
       : undefined,
     isFeatured: apiProduct.isBestSeller || false,
   };
+
+  console.log('Transformed product:', transformed);
+  return transformed;
 }
 
 // Client Component - Main Home Page
@@ -160,6 +171,7 @@ export default function Home() {
 
         if (productsRes.status === 'fulfilled' && productsRes.value.ok) {
           const products = await productsRes.value.json();
+          console.log('Featured products API response:', products);
           setFeaturedProducts(products);
         }
 

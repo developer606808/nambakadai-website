@@ -31,10 +31,7 @@ const vehicleSchema = z.object({
   category: z.string()
     .min(1, 'Category is required'),
 
-  pricePerDay: z.number()
-    .min(1, 'Daily price must be greater than 0')
-    .max(50000, 'Daily price must be less than ₹50,000')
-    .optional(),
+  pricePerDay: z.string().optional(),
 
   pricePerHour: z.number()
     .min(1, 'Hourly price must be greater than 0')
@@ -56,47 +53,40 @@ const vehicleSchema = z.object({
     .min(1, 'At least one image is required')
     .max(5, 'Maximum 5 images allowed'),
 
-  horsepower: z.number()
-    .min(1, 'Horsepower must be greater than 0')
-    .max(500, 'Horsepower must be less than 500')
-    .optional(),
+  horsepower: z.string().optional(),
 
-  workingWidth: z.number()
-    .min(1, 'Working width must be greater than 0')
-    .max(50, 'Working width must be less than 50 feet')
-    .optional(),
+  workingWidth: z.preprocess(
+    (val) => val === '' || val === undefined ? undefined : Number(val),
+    z.number().min(1, 'Working width must be greater than 0').max(50, 'Working width must be less than 50 feet').optional()
+  ),
 
-  attachments: z.array(z.string()).optional(),
 
   operatorIncluded: z.boolean(),
 
-  minimumHours: z.number()
-    .min(1, 'Minimum hours must be at least 1')
-    .max(24, 'Minimum hours must be less than 24')
-    .optional(),
+  minimumHours: z.number().optional(),
 })
 
 type VehicleFormData = z.infer<typeof vehicleSchema>
 
 interface Vehicle {
-  id: number;
-  publicKey: string;
-  name: string;
-  description: string;
-  type: string;
-  category: string;
-  pricePerDay: number | null;
-  pricePerHour: number;
-  capacity: string;
-  fuelType: string;
-  location: string;
-  features: string[];
-  images: string[];
-  horsepower: number | null;
-  workingWidth: number | null;
-  attachments: string[];
-  operatorIncluded: boolean;
-  minimumHours: number | null;
+   id: number;
+   publicKey: string;
+   name: string;
+   description: string;
+   type: string;
+   category: string;
+   pricePerDay: number | null;
+   pricePerHour: number;
+   capacity: string;
+   fuelType: string;
+   location: string;
+   features: string[];
+   images: string[];
+   horsepower: number | null | undefined;
+   workingWidth: number | null | undefined;
+   attachments: string[];
+   operatorIncluded: boolean;
+   minimumHours: number | null | undefined;
 }
 
 export default function EditVehiclePage() {
@@ -111,11 +101,9 @@ export default function EditVehiclePage() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [selectedType, setSelectedType] = useState<string>("")
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
-  const [selectedAttachments, setSelectedAttachments] = useState<string[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [units, setUnits] = useState<any[]>([])
   const [featureInput, setFeatureInput] = useState("")
-  const [attachmentInput, setAttachmentInput] = useState("")
   const [vehicleId, setVehicleId] = useState<string>("")
   const [fetching, setFetching] = useState(false)
 
@@ -128,7 +116,12 @@ export default function EditVehiclePage() {
     setError,
     watch
   } = useForm<VehicleFormData>({
-    resolver: zodResolver(vehicleSchema)
+    defaultValues: {
+      workingWidth: undefined,
+      minimumHours: undefined,
+      horsepower: undefined,
+      pricePerDay: undefined,
+    }
   })
 
   // Fetch vehicle data
@@ -152,10 +145,10 @@ export default function EditVehiclePage() {
         Object.keys(data).forEach(key => {
           if (key === 'features') {
             setSelectedFeatures(data[key] || [])
-          } else if (key === 'attachments') {
-            setSelectedAttachments(data[key] || [])
+            setValue(key as keyof VehicleFormData, data[key])
           } else if (key === 'images') {
             setVehicleImages(data[key] || [])
+            setValue(key as keyof VehicleFormData, data[key])
           } else if (key === 'type') {
             setSelectedType(data[key])
             setValue(key as keyof VehicleFormData, data[key])
@@ -163,6 +156,9 @@ export default function EditVehiclePage() {
             setValue(key as keyof VehicleFormData, data[key])
           }
         })
+
+        console.log('Vehicle data loaded:', data)
+        console.log('Category from vehicle data:', data.category)
 
         setIsLoading(false)
       } catch (error) {
@@ -186,12 +182,21 @@ export default function EditVehiclePage() {
     if (selectedType) {
       const fetchCategories = async () => {
         try {
-          const searchTerm = getSearchTerm(selectedType)
-          const response = await fetch(`/api/categories?type=RENTAL&search=${searchTerm}`)
+          console.log('Fetching categories for type:', selectedType)
+          // Get all RENTAL categories and filter client-side based on vehicle type
+          const response = await fetch(`/api/categories?type=RENTAL`)
           const data = await response.json()
-          setCategories(data.categories || data || [])
+          const allRentalCategories = data.categories || data || []
+          console.log('All rental categories:', allRentalCategories)
+
+          // Filter categories based on selected vehicle type
+          const filteredCategories = filterCategoriesByVehicleType(allRentalCategories, selectedType)
+          console.log('Filtered categories for', selectedType, ':', filteredCategories)
+
+          setCategories(filteredCategories)
         } catch (error) {
           console.error('Error fetching categories:', error)
+          setCategories([])
         }
       }
 
@@ -200,6 +205,34 @@ export default function EditVehiclePage() {
       setCategories([])
     }
   }, [selectedType])
+
+  // Ensure category is properly selected when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0) {
+      const currentCategoryValue = watch('category')
+      console.log('Categories loaded, current category value:', currentCategoryValue)
+      console.log('Available categories:', categories.map(c => c.name_en))
+
+      // If we have a category value but it's not in the current categories list, try to find a match
+      if (currentCategoryValue) {
+        const matchingCategory = categories.find(cat => cat.name_en === currentCategoryValue)
+        if (!matchingCategory) {
+          console.log('Category not found in current list, looking for alternatives...')
+          // Try to find a category that might be a close match
+          const alternativeCategory = categories.find(cat =>
+            cat.name_en.toLowerCase().includes(currentCategoryValue.toLowerCase()) ||
+            currentCategoryValue.toLowerCase().includes(cat.name_en.toLowerCase())
+          )
+          if (alternativeCategory) {
+            console.log('Found alternative category:', alternativeCategory.name_en)
+            setValue('category', alternativeCategory.name_en)
+          }
+        } else {
+          console.log('Category found and preselected:', matchingCategory.name_en)
+        }
+      }
+    }
+  }, [categories, setValue, watch])
 
   // Fetch units
   useEffect(() => {
@@ -263,6 +296,34 @@ export default function EditVehiclePage() {
     }
   }
 
+  // Filter categories based on vehicle type
+  const filterCategoriesByVehicleType = (categories: any[], vehicleType: string) => {
+    const categoryNameMap: { [key: string]: string[] } = {
+      'TRACTOR': ['Tractor'],
+      'HARVESTING_MACHINE': ['Harvesting Machine'],
+      'SPRAYER': ['Sprayer'],
+      'TRUCK': ['Mini Truck'],
+      'LORRY': ['Mini Truck'], // Map Lorry to Mini Truck
+      'VAN': ['Mini Truck'],   // Map Van to Mini Truck
+      'PLANTING_MACHINE': [],  // No specific category
+      'THRESHING_MACHINE': [], // No specific category
+      'CULTIVATOR': [],        // No specific category
+      'OTHER_EQUIPMENT': [],   // No specific category
+    }
+
+    const allowedNames = categoryNameMap[vehicleType] || []
+    if (allowedNames.length === 0) {
+      // If no specific mapping, return all categories
+      return categories
+    }
+
+    return categories.filter(category =>
+      allowedNames.some(name =>
+        category.name_en.toLowerCase().includes(name.toLowerCase())
+      )
+    )
+  }
+
   const addFeature = () => {
     if (featureInput.trim() && watch('features').length < 10) {
       const currentFeatures = watch('features');
@@ -276,18 +337,6 @@ export default function EditVehiclePage() {
     setValue('features', currentFeatures.filter((_, i) => i !== index));
   }
 
-  const addAttachment = () => {
-    if (attachmentInput.trim() && (watch('attachments')?.length || 0) < 10) {
-      const currentAttachments = watch('attachments') || [];
-      setValue('attachments', [...currentAttachments, attachmentInput.trim()]);
-      setAttachmentInput("");
-    }
-  }
-
-  const removeAttachment = (index: number) => {
-    const currentAttachments = watch('attachments') || [];
-    setValue('attachments', currentAttachments.filter((_, i) => i !== index));
-  }
 
   const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = []
@@ -313,8 +362,15 @@ export default function EditVehiclePage() {
     return uploadedUrls
   }
 
-  const onSubmit = async (data: VehicleFormData) => {
-    if (!vehicleId) return;
+  const onSubmit = async (data: any) => {
+    console.log('Form submitted with data:', data)
+    console.log('Selected features:', selectedFeatures)
+    console.log('Vehicle ID:', vehicleId)
+
+    if (!vehicleId) {
+      console.error('No vehicle ID found')
+      return
+    }
 
     setIsSubmitting(true)
     clearErrors()
@@ -326,15 +382,18 @@ export default function EditVehiclePage() {
         imageUrls = await uploadImages()
       }
 
-      // Prepare vehicle data
+      // Prepare vehicle data with proper type conversion
       const vehicleData = {
         ...data,
         images: imageUrls,
-        pricePerDay: data.pricePerDay || null,
-        horsepower: data.horsepower || null,
-        workingWidth: data.workingWidth || null,
-        minimumHours: data.minimumHours || null,
+        features: selectedFeatures,
+        pricePerDay: (data as any).pricePerDay ? ((data as any).pricePerDay.toString().trim() === '' ? null : Number((data as any).pricePerDay)) : null,
+        horsepower: (data as any).horsepower ? ((data as any).horsepower.toString().trim() === '' ? null : Number((data as any).horsepower)) : null,
+        workingWidth: (data as any).workingWidth ? ((data as any).workingWidth.toString().trim() === '' ? null : Number((data as any).workingWidth)) : null,
+        minimumHours: (data as any).minimumHours ? ((data as any).minimumHours.toString().trim() === '' ? null : Number((data as any).minimumHours)) : null,
       }
+
+      console.log('Sending vehicle data to API:', vehicleData)
 
       const response = await fetch(`/api/vehicles/${vehicleId}`, {
         method: 'PUT',
@@ -344,7 +403,9 @@ export default function EditVehiclePage() {
         body: JSON.stringify(vehicleData),
       })
 
+      console.log('API response status:', response.status)
       const result = await response.json()
+      console.log('API response:', result)
 
       if (!response.ok) {
         if (result.errors) {
@@ -559,6 +620,22 @@ export default function EditVehiclePage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="capacity">Capacity *</Label>
+              <Input
+                id="capacity"
+                placeholder="e.g., 2 tons, 500 kg, 10 passengers"
+                {...register('capacity')}
+                className={errors.capacity ? 'border-red-500' : ''}
+              />
+              {errors.capacity && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <XCircle className="w-3 h-3" />
+                  {errors.capacity.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
@@ -615,7 +692,7 @@ export default function EditVehiclePage() {
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  {...register('pricePerDay', { valueAsNumber: true })}
+                  {...register('pricePerDay')}
                   className={errors.pricePerDay ? 'border-red-500' : ''}
                 />
                 {errors.pricePerDay && (
@@ -644,6 +721,43 @@ export default function EditVehiclePage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Features *</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  placeholder="Enter a feature"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
+                  className="flex-1"
+                />
+                <Button type="button" onClick={addFeature} className="shrink-0">Add Feature</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(watch('features') || []).map((feature, index) => (
+                  <div key={index} className="flex items-center bg-blue-100 hover:bg-blue-200 rounded-full px-3 py-2 transition-colors">
+                    <span className="text-sm font-medium">{feature}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(index)}
+                      className="ml-2 text-blue-600 hover:text-red-500 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {(!watch('features') || watch('features')?.length === 0) && (
+                <p className="text-sm text-gray-500 text-center py-4">No features added yet. Add at least one feature!</p>
+              )}
+              {errors.features && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <XCircle className="w-3 h-3" />
+                  {errors.features.message}
+                </p>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -658,49 +772,6 @@ export default function EditVehiclePage() {
 
 
 
-        {/* Attachments */}
-        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-orange-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <span className="text-lg">🔧</span>
-              </div>
-              Attachments & Implements
-            </CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              Add available attachments and implements for enhanced functionality
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                value={attachmentInput}
-                onChange={(e) => setAttachmentInput(e.target.value)}
-                placeholder="Enter an attachment or implement"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAttachment())}
-                className="flex-1"
-              />
-              <Button type="button" onClick={addAttachment} className="shrink-0">Add Attachment</Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(watch('attachments') || []).map((attachment, index) => (
-                <div key={index} className="flex items-center bg-orange-100 hover:bg-orange-200 rounded-full px-3 py-2 transition-colors">
-                  <span className="text-sm font-medium">{attachment}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(index)}
-                    className="ml-2 text-orange-600 hover:text-red-500 transition-colors"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {(!watch('attachments') || watch('attachments')?.length === 0) && (
-              <p className="text-sm text-gray-500 text-center py-4">No attachments added yet. Add attachments to increase rental value!</p>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Vehicle Images */}
         <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
@@ -720,7 +791,7 @@ export default function EditVehiclePage() {
               <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50/50 hover:bg-blue-50 transition-colors">
                 <ImageUpload
                   onImageChange={handleImageChange}
-                  aspectRatio={16/9}
+                  aspectRatio={4/3}
                   cropShape="rect"
                   maxSize={5}
                   placeholder="Click to add more images"

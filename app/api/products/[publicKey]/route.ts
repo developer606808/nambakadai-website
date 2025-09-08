@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/data/prisma';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
@@ -112,6 +112,51 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Validate required fields
+    if (!body.title || !body.description || !body.categoryId || !body.unitId) {
+      return NextResponse.json(
+        { error: 'Missing required fields: title, description, categoryId, unitId' },
+        { status: 400 }
+      );
+    }
+
+    // Validate and parse IDs
+    const categoryId = parseInt(body.categoryId);
+    const unitId = parseInt(body.unitId);
+
+    if (isNaN(categoryId) || isNaN(unitId)) {
+      return NextResponse.json(
+        { error: 'Invalid categoryId or unitId format' },
+        { status: 400 }
+      );
+    }
+
+    // Check if category exists
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true }
+    });
+
+    if (!categoryExists) {
+      return NextResponse.json(
+        { error: 'Selected category does not exist' },
+        { status: 400 }
+      );
+    }
+
+    // Check if unit exists
+    const unitExists = await prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { id: true }
+    });
+
+    if (!unitExists) {
+      return NextResponse.json(
+        { error: 'Selected unit does not exist' },
+        { status: 400 }
+      );
+    }
+
     // Check if product exists and belongs to user
     const existingProduct = await prisma.product.findUnique({
       where: { publicKey },
@@ -125,7 +170,13 @@ export async function PUT(
       );
     }
 
-    if (existingProduct.userId !== parseInt(session.user.id)) {
+    const sessionUserId = parseInt(session.user.id);
+
+    if (existingProduct.userId !== sessionUserId) {
+      console.log('User ID mismatch - access denied');
+      console.log('Session user ID:', session.user.id, typeof session.user.id);
+      console.log('Product user ID:', existingProduct.userId, typeof existingProduct.userId);
+      console.log('Parsed session user ID:', sessionUserId, typeof sessionUserId);
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -142,8 +193,8 @@ export async function PUT(
         price: parseFloat(body.price),
         stock: parseInt(body.stock),
         images: body.images,
-        categoryId: parseInt(body.categoryId),
-        unitId: parseInt(body.unitId),
+        categoryId: categoryId,
+        unitId: unitId,
       }
     });
 
@@ -200,7 +251,13 @@ export async function DELETE(
       );
     }
 
-    if (existingProduct.userId !== parseInt(session.user.id)) {
+    const sessionUserId = parseInt(session.user.id);
+
+    if (existingProduct.userId !== sessionUserId) {
+      console.log('DELETE - User ID mismatch - access denied');
+      console.log('DELETE - Session user ID:', session.user.id, typeof session.user.id);
+      console.log('DELETE - Product user ID:', existingProduct.userId, typeof existingProduct.userId);
+      console.log('DELETE - Parsed session user ID:', sessionUserId, typeof sessionUserId);
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

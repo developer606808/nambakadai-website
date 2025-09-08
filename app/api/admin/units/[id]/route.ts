@@ -98,6 +98,32 @@ export async function PUT(
       return createApiError('Symbol already exists', 400);
     }
 
+    // Validate category IDs if provided
+    let validCategoryIds: number[] = [];
+    if (categoryIds && Array.isArray(categoryIds)) {
+      console.log('🔍 Received categoryIds:', categoryIds);
+
+      // Check which categories actually exist
+      const existingCategories = await prisma.category.findMany({
+        where: {
+          id: { in: categoryIds }
+        },
+        select: { id: true }
+      });
+
+      console.log('✅ Existing categories found:', existingCategories.map(cat => cat.id));
+      validCategoryIds = existingCategories.map(cat => cat.id);
+
+      // Check if any requested categories don't exist
+      const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id));
+      console.log('❌ Invalid category IDs:', invalidCategoryIds);
+
+      // Instead of failing, filter out invalid IDs and continue with valid ones
+      if (invalidCategoryIds.length > 0) {
+        console.log(`⚠️ Filtering out ${invalidCategoryIds.length} invalid category IDs and proceeding with valid ones`);
+      }
+    }
+
     // Update unit with categories
     const unit = await prisma.unit.update({
       where: { id },
@@ -106,9 +132,9 @@ export async function PUT(
         name_ta,
         name_hi,
         symbol,
-        categories: categoryIds ? {
+        categories: validCategoryIds.length > 0 ? {
           deleteMany: {},
-          create: categoryIds.map((categoryId: number) => ({
+          create: validCategoryIds.map((categoryId: number) => ({
             category: { connect: { id: categoryId } }
           }))
         } : {

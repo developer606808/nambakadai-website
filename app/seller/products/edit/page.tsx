@@ -264,8 +264,15 @@ export default function EditProductPage() {
   }
 
   const onSubmit = async (data: ProductFormData) => {
-    if (!productId) return;
-    
+    if (!product?.publicKey) {
+      toast({
+        title: "Error",
+        description: "Product data not loaded. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true)
     clearErrors()
 
@@ -281,9 +288,11 @@ export default function EditProductPage() {
       const selectedUnit = units.find(u => u.name_en === data.unit);
 
       if (!selectedCategory) {
+        console.error('Selected category not found:', data.category);
+        console.log('Available categories:', categories.map(c => c.name_en));
         toast({
           title: "Error",
-          description: "Selected category not found.",
+          description: "Selected category not found. Please select a valid category.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -291,9 +300,11 @@ export default function EditProductPage() {
       }
 
       if (!selectedUnit) {
+        console.error('Selected unit not found:', data.unit);
+        console.log('Available units:', units.map(u => u.name_en));
         toast({
           title: "Error",
-          description: "Selected unit not found.",
+          description: "Selected unit not found. Please select a valid unit.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -310,7 +321,8 @@ export default function EditProductPage() {
         stock: Number(data.stock),
       }
 
-      const response = await fetch(`/api/products/${productId}`, {
+
+      const response = await fetch(`/api/products/${product.publicKey}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

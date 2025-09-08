@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    domains: [
+      'storage.googleapis.com',
+      'whatsnext-61b27.appspot.com',
+      'firebasestorage.googleapis.com',
+      'lh3.googleusercontent.com',
+      'cdn.jsdelivr.net'
+    ],
     localPatterns: [
       {
         pathname: '/**',

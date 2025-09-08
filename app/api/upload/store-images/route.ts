@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
-import { uploadStoreImageServer } from '@/lib/utils/file-upload-server'
+import { uploadStoreImageGCS } from '@/lib/utils/gcs-upload'
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload file using centralized utility
-    const uploadResult = await uploadStoreImageServer(file, type)
+    const uploadResult = await uploadStoreImageGCS(file, type)
 
     if (!uploadResult.success) {
       return NextResponse.json(

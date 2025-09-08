@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/data/prisma';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
 import { rateLimitMiddleware } from '@/lib/middleware/rate-limit';
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
 
     // Get session for seller-specific products
     const session = await getServerSession(authOptions);
+    console.log('Session retrieved:', session ? 'YES' : 'NO');
+    if (session) {
+      console.log('Session user:', session.user);
+    }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -34,6 +38,21 @@ export async function GET(request: NextRequest) {
     const where: Prisma.ProductWhereInput = {
       // Only show approved products
     };
+
+    // Filter for seller's own products if sellerOnly is true
+    if (sellerOnly && session) {
+      console.log('SellerOnly filtering enabled, session user:', session.user);
+      const userId = parseInt(session.user.id);
+      console.log('Parsed userId:', userId, 'isNaN:', isNaN(userId));
+      if (!isNaN(userId)) {
+        where.userId = userId;
+        console.log('Applied userId filter:', userId);
+      } else {
+        console.log('Failed to parse userId, no filter applied');
+      }
+    } else {
+      console.log('SellerOnly filtering not applied:', { sellerOnly, hasSession: !!session });
+    }
 
     // Apply filters
     if (categoryId) {
@@ -139,34 +158,42 @@ export async function GET(request: NextRequest) {
     const hasPrevPage = page > 1;
 
     // Transform products for frontend
-    const transformedProducts = products.map(product => ({
-      id: product.id,
-      title: product.title,
-      description: product.description,
-      price: product.price,
-      images: product.images,
-      category: {
-        id: product.category.id,
-        name: product.category.name_en,
-        slug: product.category.slug
-      },
-      store: {
-        id: product.store.id,
-        name: product.store.name,
-        logo: product.store.logo
-      },
-      location: `${product.city?.name_en || ''}, ${product.state?.name_en || ''}`,
-      unit: {
-        symbol: product.unit.symbol,
-        name: product.unit.name_en
-      },
-      stock: product.stock,
-      isFeatured: product.isFeatured,
-      wishlistCount: product._count.wishlist,
-      createdAt: product.createdAt,
-      slug: product.slug,
-      publicKey: product.publicKey
-    }));
+    const transformedProducts = products.map(product => {
+      console.log(`Product ${product.id} (${product.title}): categoryId=${product.categoryId}, category=${product.category?.name_en || 'null'}`);
+      return {
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        images: product.images,
+        category: product.category ? {
+          id: product.category.id,
+          name_en: product.category.name_en,
+          name_ta: product.category.name_ta,
+          slug: product.category.slug
+        } : null,
+        store: product.store ? {
+          id: product.store.id,
+          name: product.store.name,
+          logo: product.store.logo
+        } : null,
+        location: `${product.city?.name_en || ''}, ${product.state?.name_en || ''}`.trim(),
+        unit: product.unit ? {
+          id: product.unit.id,
+          symbol: product.unit.symbol,
+          name_en: product.unit.name_en
+        } : null,
+        stock: product.stock,
+        isFeatured: product.isFeatured,
+        wishlistCount: product._count.wishlist,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+        slug: product.slug,
+        publicKey: product.publicKey
+      };
+    });
+
+    console.log(`Total products returned: ${transformedProducts.length}`);
 
     return NextResponse.json({
       products: transformedProducts,
