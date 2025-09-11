@@ -65,7 +65,6 @@ const vehicleSchema = z.object({
     .max(50, 'Working width must be less than 50 feet')
     .optional(),
 
-  attachments: z.array(z.string()).optional(),
 
   operatorIncluded: z.boolean(),
 
@@ -106,10 +105,6 @@ const commonFeatures = [
   "Training Provided", "Technical Support", "Spare Parts Available", "Emergency Service"
 ]
 
-const tractorAttachments = [
-  "Rotavator", "Plough", "Cultivator", "Harrow", "Seed Drill", "Sprayer",
-  "Trailer", "Mower", "Thresher", "Water Tanker", "Leveler", "Weeder"
-]
 
 export default function NewVehiclePage() {
   const router = useRouter()
@@ -119,7 +114,6 @@ export default function NewVehiclePage() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [selectedType, setSelectedType] = useState<string>("")
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
-  const [selectedAttachments, setSelectedAttachments] = useState<string[]>([])
   const [selectedUnit, setSelectedUnit] = useState<string>("")
   const [categories, setCategories] = useState<any[]>([])
   const [units, setUnits] = useState<any[]>([])
@@ -137,8 +131,7 @@ export default function NewVehiclePage() {
     defaultValues: {
       operatorIncluded: false,
       features: [],
-      images: [],
-      attachments: []
+      images: []
     }
   })
 
@@ -147,12 +140,21 @@ export default function NewVehiclePage() {
     if (selectedType) {
       const fetchCategories = async () => {
         try {
-          const searchTerm = getSearchTerm(selectedType)
-          const response = await fetch(`/api/categories?type=RENTAL&search=${searchTerm}`)
+          console.log('Fetching categories for type:', selectedType)
+          // Get all RENTAL categories and filter client-side based on vehicle type
+          const response = await fetch(`/api/categories?type=RENTAL`)
           const data = await response.json()
-          setCategories(data.categories || data || [])
+          const allRentalCategories = data.categories || data || []
+          console.log('All rental categories:', allRentalCategories)
+
+          // Filter categories based on selected vehicle type
+          const filteredCategories = filterCategoriesByVehicleType(allRentalCategories, selectedType)
+          console.log('Filtered categories for', selectedType, ':', filteredCategories)
+
+          setCategories(filteredCategories)
         } catch (error) {
           console.error('Error fetching categories:', error)
+          setCategories([])
         }
       }
 
@@ -161,6 +163,34 @@ export default function NewVehiclePage() {
       setCategories([])
     }
   }, [selectedType])
+
+  // Ensure category is properly selected when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0) {
+      const currentCategoryValue = watch('category')
+      console.log('Categories loaded, current category value:', currentCategoryValue)
+      console.log('Available categories:', categories.map(c => c.name_en))
+
+      // If we have a category value but it's not in the current categories list, try to find a match
+      if (currentCategoryValue) {
+        const matchingCategory = categories.find(cat => cat.name_en === currentCategoryValue)
+        if (!matchingCategory) {
+          console.log('Category not found in current list, looking for alternatives...')
+          // Try to find a category that might be a close match
+          const alternativeCategory = categories.find(cat =>
+            cat.name_en.toLowerCase().includes(currentCategoryValue.toLowerCase()) ||
+            currentCategoryValue.toLowerCase().includes(cat.name_en.toLowerCase())
+          )
+          if (alternativeCategory) {
+            console.log('Found alternative category:', alternativeCategory.name_en)
+            setValue('category', alternativeCategory.name_en)
+          }
+        } else {
+          console.log('Category found and preselected:', matchingCategory.name_en)
+        }
+      }
+    }
+  }, [categories, setValue, watch])
 
   // Fetch units (for now, we'll use the existing units API)
   useEffect(() => {
@@ -242,6 +272,34 @@ export default function NewVehiclePage() {
     }
   }
 
+  // Filter categories based on vehicle type
+  const filterCategoriesByVehicleType = (categories: any[], vehicleType: string) => {
+    const categoryNameMap: { [key: string]: string[] } = {
+      'TRACTOR': ['Tractor'],
+      'HARVESTING_MACHINE': ['Harvesting Machine'],
+      'SPRAYER': ['Sprayer'],
+      'TRUCK': ['Mini Truck'],
+      'LORRY': ['Mini Truck'], // Map Lorry to Mini Truck
+      'VAN': ['Mini Truck'],   // Map Van to Mini Truck
+      'PLANTING_MACHINE': [],  // No specific category
+      'THRESHING_MACHINE': [], // No specific category
+      'CULTIVATOR': [],        // No specific category
+      'OTHER_EQUIPMENT': [],   // No specific category
+    }
+
+    const allowedNames = categoryNameMap[vehicleType] || []
+    if (allowedNames.length === 0) {
+      // If no specific mapping, return all categories
+      return categories
+    }
+
+    return categories.filter(category =>
+      allowedNames.some(name =>
+        category.name_en.toLowerCase().includes(name.toLowerCase())
+      )
+    )
+  }
+
   const handleFeatureToggle = (feature: string) => {
     const newFeatures = selectedFeatures.includes(feature)
       ? selectedFeatures.filter(f => f !== feature)
@@ -251,14 +309,6 @@ export default function NewVehiclePage() {
     setValue('features', newFeatures)
   }
 
-  const handleAttachmentToggle = (attachment: string) => {
-    const newAttachments = selectedAttachments.includes(attachment)
-      ? selectedAttachments.filter(a => a !== attachment)
-      : [...selectedAttachments, attachment]
-
-    setSelectedAttachments(newAttachments)
-    setValue('attachments', newAttachments)
-  }
 
   const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = []
@@ -302,7 +352,6 @@ export default function NewVehiclePage() {
         workingWidth: data.workingWidth ? Number(data.workingWidth) : undefined,
         minimumHours: data.minimumHours ? Number(data.minimumHours) : undefined,
         features: selectedFeatures,
-        attachments: selectedAttachments
       }
 
       const response = await fetch('/api/vehicles', {
@@ -374,14 +423,13 @@ export default function NewVehiclePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">Form Completion</span>
-              <span className="text-sm text-gray-600">4/4 sections</span>
+              <span className="text-sm text-gray-600">3/3 sections</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500" style={{width: '100%'}}></div>
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-2">
               <span>✓ Basic Info</span>
-              <span>✓ Attachments</span>
               <span>✓ Images</span>
               <span>✓ Complete</span>
             </div>
@@ -615,48 +663,6 @@ export default function NewVehiclePage() {
         </Card>
 
 
-        {/* Attachments */}
-        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-orange-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <span className="text-lg">🔧</span>
-              </div>
-              Attachments & Implements
-            </CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              Select available attachments and implements for enhanced functionality
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {tractorAttachments.map((attachment) => (
-                <div
-                  key={attachment}
-                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selectedAttachments.includes(attachment)
-                      ? 'border-orange-500 bg-orange-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-orange-300'
-                  }`}
-                  onClick={() => handleAttachmentToggle(attachment)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id={attachment}
-                      checked={selectedAttachments.includes(attachment)}
-                      onChange={() => handleAttachmentToggle(attachment)}
-                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                    />
-                    <Label htmlFor={attachment} className="text-sm font-medium cursor-pointer flex-1">
-                      {attachment}
-                    </Label>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
 
         {/* Vehicle Images */}

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { uploadVehicleImageGCS } from '@/lib/utils/gcs-upload'
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -32,16 +30,7 @@ function generateFileName(originalName: string): string {
   return `vehicle_${timestamp}_${random}.${extension}`
 }
 
-// Ensure upload directory exists
-async function ensureUploadDir(): Promise<string> {
-  const uploadDir = join(process.cwd(), 'public', 'uploads', 'vehicles')
-  
-  if (!existsSync(uploadDir)) {
-    await mkdir(uploadDir, { recursive: true })
-  }
-  
-  return uploadDir
-}
+// Upload directory is now handled by the centralized utility
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,20 +79,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Ensure upload directory exists
-    const uploadDir = await ensureUploadDir()
+    // Upload file using centralized utility
+    const uploadResult = await uploadVehicleImageGCS(file)
 
-    // Generate unique filename
-    const fileName = generateFileName(file.name)
-    const filePath = join(uploadDir, fileName)
+    if (!uploadResult.success) {
+      return NextResponse.json(
+        { error: uploadResult.error },
+        { status: 400 }
+      )
+    }
 
-    // Convert file to buffer and save
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
-
-    // Return the public URL
-    const publicUrl = `/uploads/vehicles/${fileName}`
+    const publicUrl = uploadResult.url!
+    const fileName = uploadResult.fileName!
 
     return NextResponse.json({
       success: true,

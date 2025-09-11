@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
 import { prisma } from '@/lib/data/prisma'
+import { uploadProfileImageGCS } from '@/lib/utils/gcs-upload'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,28 +42,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const extension = file.name.split('.').pop()
-    const filename = `profile-${timestamp}-${session.user.id}.${extension}`
+    // Upload file using centralized utility
+    const uploadResult = await uploadProfileImageGCS(file, session.user.id)
 
-    // Ensure upload directory exists
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'profiles')
-    try {
-      await mkdir(uploadDir, { recursive: true })
-    } catch (error) {
-      // Directory might already exist, ignore error
+    if (!uploadResult.success) {
+      return NextResponse.json(
+        { error: uploadResult.error },
+        { status: 500 }
+      )
     }
 
-    // Convert file to buffer and save
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const filepath = join(uploadDir, filename)
-
-    await writeFile(filepath, buffer)
-
     // Update user avatar in database
-    const avatarUrl = filename // Store just the filename, not the full path
+    const avatarUrl = uploadResult.fileName! // Store just the filename, not the full path
 
     await prisma.user.update({
       where: { id: parseInt(session.user.id) },

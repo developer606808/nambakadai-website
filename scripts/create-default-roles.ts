@@ -114,7 +114,7 @@ async function createDefaultRoles() {
     ]);
 
     console.log(`✅ Created ${roles.length} default roles`);
-    console.log('Roles created:', roles.map(r => r.name));
+    console.log('Roles created:', roles.map((r: { name: string }) => r.name));
 
   } catch (error) {
     console.error('❌ Error creating default roles:', error);

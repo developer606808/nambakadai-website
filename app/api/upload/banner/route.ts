@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth';
-import { uploadBannerImageServer, deleteBannerImageServer } from '@/lib/utils/file-upload-server';
+import { uploadBannerImageGCS, deleteBannerImageGCS } from '@/lib/utils/gcs-upload';
 import { validateFile } from '@/lib/utils/file-upload';
 import { createApiResponse, createApiError } from '@/lib/utils/api';
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return createApiError(validation.error || 'Invalid file', 400);
     }
 
-    const result = await uploadBannerImageServer(file);
+    const result = await uploadBannerImageGCS(file);
 
     if (!result.success) {
       return createApiError(result.error || 'Upload failed', 400);
@@ -72,7 +72,7 @@ export async function DELETE(request: NextRequest) {
       return createApiError('No image URL provided', 400);
     }
 
-    const success = await deleteBannerImageServer(imageUrl);
+    const success = await deleteBannerImageGCS(imageUrl);
 
     if (!success) {
       return createApiError('Failed to delete image', 400);

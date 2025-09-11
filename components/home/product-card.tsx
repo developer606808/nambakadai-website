@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { Heart, QrCode, Share2, MapPin, Store as StoreIcon, Eye, ShoppingCart } from "lucide-react"
+import { Heart, QrCode, Share2, MapPin, Store as StoreIcon, Eye, ShoppingCart, X } from "lucide-react"
 import { useWishlist } from "@/hooks/useWishlist"
 import { useToast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface ProductCardProps {
   id: number
@@ -41,6 +42,8 @@ export function ProductCard({
 }: ProductCardProps) {
   const { toggleWishlist, wishlistStatus } = useWishlist()
   const { toast } = useToast()
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
 
   console.log('slug',slug,'publicKey',publicKey)
 
@@ -75,12 +78,28 @@ export function ProductCard({
     }
   }
 
-  const generateQR = () => {
-    const qrUrl = `${window.location.origin}${productUrl}`
-    toast({
-      title: "QR Code",
-      description: "QR code functionality would be implemented here",
-    })
+  const generateQR = async () => {
+    try {
+      const QRCode = (await import('qrcode')).default
+      const qrUrl = `${window.location.origin}${productUrl}`
+      const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+      setQrCodeUrl(qrCodeDataUrl)
+      setIsQrDialogOpen(true)
+    } catch (error) {
+      console.error('Error generating QR code:', error)
+      toast({
+        title: "Error",
+        description: "Failed to generate QR code",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -210,6 +229,59 @@ export function ProductCard({
           </Link>
         </div>
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Product QR Code
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            {qrCodeUrl && (
+              <div className="p-4 bg-white rounded-lg border-2 border-gray-200">
+                <Image
+                  src={qrCodeUrl}
+                  alt="Product QR Code"
+                  width={200}
+                  height={200}
+                  className="rounded"
+                />
+              </div>
+            )}
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                Scan this QR code to view the product details
+              </p>
+              <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded">
+                {`${window.location.origin}${productUrl}`}
+              </p>
+            </div>
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}${productUrl}`)
+                  toast({
+                    title: "Link Copied!",
+                    description: "Product link has been copied to clipboard",
+                  })
+                }}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Copy Link
+              </button>
+              <button
+                onClick={() => setIsQrDialogOpen(false)}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
