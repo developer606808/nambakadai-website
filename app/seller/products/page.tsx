@@ -79,16 +79,13 @@ export default function SellerProducts() {
 
   const displayProducts = filteredProducts.length > 0 ? filteredProducts : products
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>
-      case "low_stock":
-        return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>
-      case "out_of_stock":
-        return <Badge className="bg-red-100 text-red-800">Out of Stock</Badge>
-      default:
-        return <Badge variant="secondary">Unknown</Badge>
+  const getStatusBadge = (stock: number) => {
+    if (stock === 0) {
+      return <Badge className="bg-red-100 text-red-800">Out of Stock</Badge>
+    } else if (stock <= 10) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>
+    } else {
+      return <Badge className="bg-green-100 text-green-800">Active</Badge>
     }
   }
 
@@ -367,7 +364,7 @@ export default function SellerProducts() {
                           className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border-2 border-gray-200"
                         />
                         <div className="absolute -top-1 -right-1">
-                          {getStatusBadge(product.status)}
+                          {getStatusBadge(product.stock)}
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -375,7 +372,7 @@ export default function SellerProducts() {
                           {product.title || product.name}
                         </h3>
                         <p className="text-sm text-gray-600 mb-2">
-                          {product.category?.name_en || "Unknown Category"}
+                          {product.category?.name_en || "No Category"}
                         </p>
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                           <div className="flex items-center space-x-1">

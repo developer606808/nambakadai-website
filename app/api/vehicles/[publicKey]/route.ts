@@ -125,7 +125,7 @@ export async function PUT(
         images: body.images,
         horsepower: body.horsepower ? parseInt(body.horsepower) : null,
         workingWidth: body.workingWidth ? parseFloat(body.workingWidth) : null,
-        attachments: body.attachments,
+        attachments: body.attachments || [],
         operatorIncluded: Boolean(body.operatorIncluded),
         minimumHours: body.minimumHours ? parseInt(body.minimumHours) : null,
       }

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(total / limit);
 
     return createApiResponse({
-      units,
+      units: transformedUnits,
       pagination: {
         page,
         limit,
@@ -99,6 +99,32 @@ export async function POST(request: NextRequest) {
       return createApiError('Symbol already exists', 400);
     }
 
+    // Validate category IDs if provided
+    let validCategoryIds: number[] = [];
+    if (categoryIds && Array.isArray(categoryIds)) {
+      console.log('🔍 Received categoryIds for creation:', categoryIds);
+
+      // Check which categories actually exist
+      const existingCategories = await prisma.category.findMany({
+        where: {
+          id: { in: categoryIds }
+        },
+        select: { id: true }
+      });
+
+      console.log('✅ Existing categories found for creation:', existingCategories.map(cat => cat.id));
+      validCategoryIds = existingCategories.map(cat => cat.id);
+
+      // Check if any requested categories don't exist
+      const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id));
+      console.log('❌ Invalid category IDs for creation:', invalidCategoryIds);
+
+      // Instead of failing, filter out invalid IDs and continue with valid ones
+      if (invalidCategoryIds.length > 0) {
+        console.log(`⚠️ Filtering out ${invalidCategoryIds.length} invalid category IDs and proceeding with valid ones for creation`);
+      }
+    }
+
     // Create unit with categories
     const unit = await prisma.unit.create({
       data: {
@@ -106,8 +132,8 @@ export async function POST(request: NextRequest) {
         name_ta,
         name_hi,
         symbol,
-        categories: categoryIds ? {
-          create: categoryIds.map((categoryId: number) => ({
+        categories: validCategoryIds.length > 0 ? {
+          create: validCategoryIds.map((categoryId: number) => ({
             category: { connect: { id: categoryId } }
           }))
         } : undefined

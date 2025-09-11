@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
 import { prisma } from '@/lib/data/prisma'
-import { uploadProfileImageServer } from '@/lib/utils/file-upload-server'
+import { uploadProfileImageGCS } from '@/lib/utils/gcs-upload'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload file using centralized utility
-    const uploadResult = await uploadProfileImageServer(file, session.user.id)
+    const uploadResult = await uploadProfileImageGCS(file, session.user.id)
 
     if (!uploadResult.success) {
       return NextResponse.json(

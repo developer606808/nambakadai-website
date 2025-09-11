@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth'
-import { uploadCategoryImageServer } from '@/lib/utils/file-upload-server'
+import { uploadCategoryImageGCS } from '@/lib/utils/gcs-upload'
 
 // Configuration
 const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Upload file using centralized utility
     console.log('Uploading category image using centralized utility...')
-    const uploadResult = await uploadCategoryImageServer(file)
+    const uploadResult = await uploadCategoryImageGCS(file)
 
     if (!uploadResult.success) {
       throw new Error(uploadResult.error || 'Failed to upload file')
