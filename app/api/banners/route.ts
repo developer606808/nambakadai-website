@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active') === 'true';
+    const limit = searchParams.get('limit');
+    const offset = searchParams.get('offset');
 
     const where = activeOnly ? { isActive: true } : {};
 
@@ -14,7 +16,9 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: {
         position: 'asc'
-      }
+      },
+      take: limit ? parseInt(limit) : undefined,
+      skip: offset ? parseInt(offset) : undefined
     });
     return createApiResponse(banners);
   } catch (error) {

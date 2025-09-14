@@ -8,14 +8,15 @@ import { Loader2, Crop as CropIcon, X } from 'lucide-react'
 import 'react-image-crop/dist/ReactCrop.css'
 
 interface ImageCropperProps {
-  isOpen: boolean
-  onClose: () => void
-  onCropComplete: (croppedImageUrl: string, croppedImageFile: File) => void
-  imageFile: File | null
-  aspectRatio?: number
-  cropShape?: 'rect' | 'round'
-  title?: string
-}
+   isOpen: boolean
+   onClose: () => void
+   onCropComplete: (croppedImageUrl: string, croppedImageFile: File) => void
+   imageFile: File | null
+   imgSrc: string
+   aspectRatio?: number
+   cropShape?: 'rect' | 'round'
+   title?: string
+ }
 
 function centerAspectCrop(
   mediaWidth: number,
@@ -38,29 +39,19 @@ function centerAspectCrop(
 }
 
 export function ImageCropper({
-  isOpen,
-  onClose,
-  onCropComplete,
-  imageFile,
-  aspectRatio = 1,
-  cropShape = 'rect',
-  title = 'Crop Image'
-}: ImageCropperProps) {
+   isOpen,
+   onClose,
+   onCropComplete,
+   imageFile,
+   imgSrc,
+   aspectRatio = 1,
+   cropShape = 'rect',
+   title = 'Crop Image'
+ }: ImageCropperProps) {
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [isProcessing, setIsProcessing] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
-  const [imgSrc, setImgSrc] = useState('')
-
-  React.useEffect(() => {
-    if (imageFile) {
-      const reader = new FileReader()
-      reader.addEventListener('load', () => {
-        setImgSrc(reader.result?.toString() || '')
-      })
-      reader.readAsDataURL(imageFile)
-    }
-  }, [imageFile])
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     if (aspectRatio) {
@@ -132,7 +123,6 @@ export function ImageCropper({
   }
 
   const handleClose = () => {
-    setImgSrc('')
     setCrop(undefined)
     setCompletedCrop(undefined)
     onClose()

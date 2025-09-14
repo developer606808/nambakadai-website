@@ -323,7 +323,7 @@ export default function SellerVehicles() {
                 <Card key={vehicle.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
                     <img
-                      src={vehicle.image}
+                      src={vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : '/placeholder-vehicle.jpg'}
                       alt={vehicle.name}
                       className="w-full h-32 object-cover rounded-lg mb-4"
                     />
