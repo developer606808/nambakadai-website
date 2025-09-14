@@ -37,3 +37,4 @@ export async function GET(request: NextRequest) {
     return createApiError('Failed to fetch units', 500);
   }
 }
+

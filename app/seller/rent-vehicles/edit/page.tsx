@@ -105,6 +105,7 @@ export default function EditVehiclePage() {
   const [units, setUnits] = useState<any[]>([])
   const [featureInput, setFeatureInput] = useState("")
   const [vehicleId, setVehicleId] = useState<string>("")
+  const [vehiclePublicKey, setVehiclePublicKey] = useState<string>("")
   const [fetching, setFetching] = useState(false)
 
   const {
@@ -138,8 +139,9 @@ export default function EditVehiclePage() {
           throw new Error(data.error || 'Failed to fetch vehicle')
         }
 
-        // Set vehicle ID
+        // Set vehicle ID and publicKey
         setVehicleId(data.id)
+        setVehiclePublicKey(data.publicKey)
 
         // Set form values
         Object.keys(data).forEach(key => {
@@ -259,16 +261,34 @@ export default function EditVehiclePage() {
       return
     }
 
-    setVehicleImages(prev => [...prev, imageUrl])
+    // Store the cropped file for later upload
     setImageFiles(prev => [...prev, imageFile])
-    setValue('images', [...vehicleImages, imageUrl])
+
+    // For preview, use the blob URL temporarily
+    setVehicleImages(prev => [...prev, imageUrl])
+
+    // Update form validation (don't include blob URLs in form data yet)
+    const currentImages = watch('images') || []
+    setValue('images', [...currentImages, imageUrl])
     clearErrors('images')
   }
 
   const handleImageRemove = (index: number) => {
+    console.log('Removing image at index:', index)
+    console.log('Current vehicleImages:', vehicleImages)
+    console.log('Current imageFiles:', imageFiles)
+
     const newImages = vehicleImages.filter((_, i) => i !== index)
-    const newFiles = imageFiles.filter((_, i) => i !== index)
-    
+    // Only remove from imageFiles if the index corresponds to a newly uploaded file
+    // New files are added to the end of the array, so we need to calculate the correct index
+    const existingImageCount = vehicleImages.length - imageFiles.length
+    const newFiles = index >= existingImageCount
+      ? imageFiles.filter((_, i) => i !== (index - existingImageCount))
+      : imageFiles
+
+    console.log('New vehicleImages:', newImages)
+    console.log('New imageFiles:', newFiles)
+
     setVehicleImages(newImages)
     setImageFiles(newFiles)
     setValue('images', newImages)
@@ -340,7 +360,8 @@ export default function EditVehiclePage() {
 
   const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = []
-    
+
+    // Upload new files
     for (const file of imageFiles) {
       const formData = new FormData()
       formData.append('file', file)
@@ -366,9 +387,10 @@ export default function EditVehiclePage() {
     console.log('Form submitted with data:', data)
     console.log('Selected features:', selectedFeatures)
     console.log('Vehicle ID:', vehicleId)
+    console.log('Vehicle PublicKey:', vehiclePublicKey)
 
-    if (!vehicleId) {
-      console.error('No vehicle ID found')
+    if (!vehiclePublicKey) {
+      console.error('No vehicle publicKey found')
       return
     }
 
@@ -376,16 +398,26 @@ export default function EditVehiclePage() {
     clearErrors()
 
     try {
-      // Upload new images if any
-      let imageUrls = vehicleImages;
+      // Handle image uploads
+      let finalImageUrls: string[] = []
+
       if (imageFiles.length > 0) {
-        imageUrls = await uploadImages()
+        // Upload new images
+        const uploadedUrls = await uploadImages()
+
+        // Combine existing uploaded images with newly uploaded ones
+        // Filter out blob URLs and keep only GCS URLs
+        const existingGcsUrls = vehicleImages.filter(url => url.startsWith('https://storage.googleapis.com'))
+        finalImageUrls = [...existingGcsUrls, ...uploadedUrls]
+      } else {
+        // No new images, just use existing ones (filter out any blob URLs)
+        finalImageUrls = vehicleImages.filter(url => url.startsWith('https://storage.googleapis.com'))
       }
 
       // Prepare vehicle data with proper type conversion
       const vehicleData = {
         ...data,
-        images: imageUrls,
+        images: finalImageUrls,
         features: selectedFeatures,
         pricePerDay: (data as any).pricePerDay ? ((data as any).pricePerDay.toString().trim() === '' ? null : Number((data as any).pricePerDay)) : null,
         horsepower: (data as any).horsepower ? ((data as any).horsepower.toString().trim() === '' ? null : Number((data as any).horsepower)) : null,
@@ -394,8 +426,9 @@ export default function EditVehiclePage() {
       }
 
       console.log('Sending vehicle data to API:', vehicleData)
+      console.log('Final image URLs being sent:', finalImageUrls)
 
-      const response = await fetch(`/api/vehicles/${vehicleId}`, {
+      const response = await fetch(`/api/vehicles/${vehiclePublicKey}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -447,7 +480,7 @@ export default function EditVehiclePage() {
     );
   }
 
-  if (!vehicleId) {
+  if (!vehicleId || !vehiclePublicKey) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-theme(spacing.16))] p-4">
         <XCircle className="w-16 h-16 text-red-500 mb-4" />

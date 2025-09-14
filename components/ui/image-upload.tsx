@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useCallback } from 'react'
-import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
 import { ImageCropper } from './image-cropper'
 import { Upload, Image as ImageIcon, X, Edit3 } from 'lucide-react'
@@ -35,6 +34,19 @@ export function ImageUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isCropperOpen, setIsCropperOpen] = useState(false)
   const [error, setError] = useState<string>('')
+  const [imgSrc, setImgSrc] = useState('')
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    if (selectedFile) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setImgSrc(reader.result?.toString() || '')
+        setIsCropperOpen(true)
+      }
+      reader.readAsDataURL(selectedFile)
+    }
+  }, [selectedFile])
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -57,10 +69,12 @@ export function ImageUpload({
     return null
   }
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // Removed onDrop function since we're not using drag & drop anymore
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return
 
-    const file = acceptedFiles[0]
+    const file = event.target.files?.[0]
     if (!file) return
 
     const validationError = validateFile(file)
@@ -71,22 +85,18 @@ export function ImageUpload({
 
     setError('')
     setSelectedFile(file)
-    setIsCropperOpen(true)
-  }, [disabled, maxSize])
+  }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
-    },
-    multiple: false,
-    disabled
-  })
+  const handleButtonClick = () => {
+    if (disabled) return
+    fileInputRef.current?.click()
+  }
 
   const handleCropComplete = (croppedImageUrl: string, croppedImageFile: File) => {
     onImageChange(croppedImageUrl, croppedImageFile)
     setIsCropperOpen(false)
     setSelectedFile(null)
+    setImgSrc('')
   }
 
   const handleRemove = () => {
@@ -144,35 +154,30 @@ export function ImageUpload({
           </div>
         </div>
       ) : (
-        <div
-          {...getRootProps()}
-          className={cn(
-            'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-            isDragActive
-              ? 'border-green-500 bg-green-50'
-              : 'border-gray-300 hover:border-gray-400',
-            disabled && 'cursor-not-allowed opacity-50',
-            error && 'border-red-500 bg-red-50'
-          )}
-        >
-          <input {...getInputProps()} />
-          <div className="space-y-4">
-            <div className="mx-auto w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              {isDragActive ? (
-                <Upload className="w-6 h-6 text-green-600" />
-              ) : (
-                <ImageIcon className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {isDragActive ? 'Drop the image here' : placeholder}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, WebP up to {maxSize}MB
-                {required && <span className="text-red-500 ml-1">*</span>}
-              </p>
-            </div>
+        <div className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+            disabled={disabled}
+          />
+          <Button
+            type="button"
+            onClick={handleButtonClick}
+            disabled={disabled}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+          >
+            <ImageIcon className="w-5 h-5 mr-2" />
+            Select Image to Upload
+          </Button>
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              PNG, JPG, WebP up to {maxSize}MB
+              {required && <span className="text-red-500 ml-1">*</span>}
+            </p>
           </div>
         </div>
       )}
@@ -189,9 +194,11 @@ export function ImageUpload({
         onClose={() => {
           setIsCropperOpen(false)
           setSelectedFile(null)
+          setImgSrc('')
         }}
         onCropComplete={handleCropComplete}
         imageFile={selectedFile}
+        imgSrc={imgSrc}
         aspectRatio={aspectRatio}
         cropShape={cropShape}
         title={cropShape === 'round' ? 'Crop Logo' : 'Crop Banner'}

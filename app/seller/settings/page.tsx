@@ -10,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { 
-  User, 
-  Store, 
-  Bell, 
-  Shield, 
-  CreditCard, 
+import { ImageUpload } from "@/components/ui/image-upload"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  User,
+  Store,
+  Bell,
+  Shield,
+  CreditCard,
   Settings as SettingsIcon,
   Camera,
   Save,
@@ -25,15 +27,20 @@ import {
   Mail,
   Globe,
   Clock,
-  Package
+  Package,
+  Upload,
+  X
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion } from "framer-motion"
 
 export default function SellerSettings() {
   const { data: session } = useSession()
+  const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false)
 
   // Initialize with current store data from session
   const [storeData, setStoreData] = useState({
@@ -71,10 +78,54 @@ export default function SellerSettings() {
     sunday: { open: "10:00", close: "14:00", closed: true }
   })
 
-  const handleSaveStore = () => {
-    // In real app, save to API
-    console.log("Saving store data:", storeData)
-    setIsEditing(false)
+  const handleSaveStore = async () => {
+    try {
+      console.log("Saving store data:", storeData)
+
+      // Save store data to API
+      const storeId = session?.user?.currentStore?.id
+      if (!storeId) {
+        throw new Error('Store ID not found')
+      }
+
+      const response = await fetch(`/api/stores/${storeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: storeData.name,
+          contactName: storeData.contactName,
+          description: storeData.description,
+          address: storeData.address,
+          phone: storeData.phone,
+          email: storeData.email,
+          website: storeData.website,
+          logo: storeData.logo,
+          banner: storeData.banner,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update store')
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Success",
+        description: "Store settings updated successfully",
+      })
+
+      setIsEditing(false)
+    } catch (error) {
+      console.error('Error saving store:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update store settings",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleSaveProfile = () => {
@@ -85,6 +136,116 @@ export default function SellerSettings() {
 
   const handleNotificationChange = (key: string, value: boolean) => {
     setNotifications(prev => ({ ...prev, [key]: value }))
+  }
+
+  // Handle logo upload
+  const handleLogoUpload = async (imageUrl: string, imageFile: File) => {
+    console.log('Logo upload triggered:', { imageUrl, imageFile })
+
+    if (!session?.user?.currentStore?.id) {
+      toast({
+        title: "Error",
+        description: "Store information not available",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsUploadingLogo(true)
+
+    try {
+      console.log('Uploading logo file:', imageFile.name, 'Size:', imageFile.size)
+
+      // Upload logo to GCS
+      const formData = new FormData()
+      formData.append('file', imageFile)
+      formData.append('type', 'logo')
+
+      const response = await fetch('/api/upload/store-images', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload logo')
+      }
+
+      const result = await response.json()
+      console.log('Logo upload result:', result)
+
+      // Update store data with new logo URL
+      setStoreData(prev => ({ ...prev, logo: result.url }))
+
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      })
+    } catch (error) {
+      console.error('Logo upload error:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload logo",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  // Handle banner upload
+  const handleBannerUpload = async (imageUrl: string, imageFile: File) => {
+    console.log('Banner upload triggered:', { imageUrl, imageFile })
+
+    if (!session?.user?.currentStore?.id) {
+      toast({
+        title: "Error",
+        description: "Store information not available",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsUploadingBanner(true)
+
+    try {
+      console.log('Uploading banner file:', imageFile.name, 'Size:', imageFile.size)
+
+      // Upload banner to GCS
+      const formData = new FormData()
+      formData.append('file', imageFile)
+      formData.append('type', 'banner')
+
+      const response = await fetch('/api/upload/store-images', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload banner')
+      }
+
+      const result = await response.json()
+      console.log('Banner upload result:', result)
+
+      // Update store data with new banner URL
+      setStoreData(prev => ({ ...prev, banner: result.url }))
+
+      toast({
+        title: "Success",
+        description: "Banner uploaded successfully",
+      })
+    } catch (error) {
+      console.error('Banner upload error:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload banner",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUploadingBanner(false)
+    }
   }
 
   // Update store data when session loads
@@ -206,53 +367,148 @@ export default function SellerSettings() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Store Images */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Store Logo</Label>
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-20 h-20">
-                      <AvatarImage src={storeData.logo} />
-                      <AvatarFallback>
-                        <Store className="w-8 h-8" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      {storeData.logo && storeData.logo !== "/api/placeholder/100/100" ? (
-                        <p className="text-sm text-green-600 mb-2">✓ Logo uploaded</p>
-                      ) : (
-                        <p className="text-sm text-gray-500 mb-2">No logo uploaded</p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Logo Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Store Logo</Label>
+                      {storeData.logo && storeData.logo !== "/api/placeholder/100/100" && (
+                        <span className="text-sm text-green-600 font-medium">✓ Uploaded</span>
                       )}
-                      {isEditing && (
-                        <Button variant="outline" size="sm">
-                          <Camera className="w-4 h-4 mr-2" />
-                          Change Logo
-                        </Button>
+                    </div>
+
+                    <div className="flex flex-col items-center space-y-4 p-6 border-2 border-dashed border-gray-300 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 transition-all duration-200 hover:border-green-400 hover:shadow-md">
+                      <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
+                        <AvatarImage src={storeData.logo} />
+                        <AvatarFallback className="bg-green-100">
+                          <Store className="w-10 h-10 text-green-600" />
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {isEditing ? (
+                        <div className="w-full space-y-3">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Upload New Logo</p>
+                            <ImageUpload
+                              onImageChange={handleLogoUpload}
+                              currentImage={storeData.logo !== "/api/placeholder/100/100" ? storeData.logo : undefined}
+                              aspectRatio={1}
+                              cropShape="round"
+                              maxSize={2}
+                              placeholder="Click here to select logo image"
+                              disabled={isUploadingLogo}
+                              className="w-full"
+                            />
+                          </div>
+                          {isUploadingLogo && (
+                            <div className="flex items-center justify-center space-x-2 text-blue-600 bg-blue-50 p-3 rounded-lg">
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-sm font-medium">Uploading logo...</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700">
+                            {storeData.logo && storeData.logo !== "/api/placeholder/100/100"
+                              ? "Logo uploaded successfully"
+                              : "No logo uploaded yet"}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Click "Edit Store" to upload
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Banner Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Store Banner</Label>
+                      {storeData.banner && storeData.banner !== "/api/placeholder/400/200" && (
+                        <span className="text-sm text-green-600 font-medium">✓ Uploaded</span>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Current Banner Preview */}
+                      <div className="relative overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100 shadow-sm">
+                        <img
+                          src={storeData.banner}
+                          alt="Store banner"
+                          className="w-full h-32 object-cover"
+                        />
+                        {(!storeData.banner || storeData.banner === "/api/placeholder/400/200") && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 bg-opacity-90">
+                            <div className="text-center text-gray-600">
+                              <Upload className="w-8 h-8 mx-auto mb-2 opacity-60" />
+                              <p className="text-sm font-medium">No banner uploaded</p>
+                              <p className="text-xs">Click "Edit Store" to upload</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Upload Section */}
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Upload New Banner</p>
+                            <ImageUpload
+                              onImageChange={handleBannerUpload}
+                              currentImage={storeData.banner !== "/api/placeholder/400/200" ? storeData.banner : undefined}
+                              aspectRatio={4/1}
+                              cropShape="rect"
+                              maxSize={5}
+                              placeholder="Click here to select banner image (4:1 ratio recommended)"
+                              disabled={isUploadingBanner}
+                              className="w-full"
+                            />
+                          </div>
+                          {isUploadingBanner && (
+                            <div className="flex items-center justify-center space-x-2 text-blue-600 bg-blue-50 p-3 rounded-lg">
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-sm font-medium">Uploading banner...</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            {storeData.banner && storeData.banner !== "/api/placeholder/400/200"
+                              ? "Banner uploaded successfully"
+                              : "No banner uploaded yet"}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Click "Edit Store" to upload
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>Store Banner</Label>
-                  <div className="space-y-2">
-                    <img
-                      src={storeData.banner}
-                      alt="Store banner"
-                      className="w-full h-24 object-cover rounded-lg border"
-                    />
-                    {storeData.banner && storeData.banner !== "/api/placeholder/400/200" ? (
-                      <p className="text-sm text-green-600">✓ Banner uploaded</p>
-                    ) : (
-                      <p className="text-sm text-gray-500">No banner uploaded</p>
-                    )}
-                    {isEditing && (
-                      <Button variant="outline" size="sm">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Change Banner
-                      </Button>
-                    )}
+
+                {/* Upload Instructions */}
+                {isEditing && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-blue-900 mb-1">Upload Instructions</h4>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                          <li>• <strong>Logo:</strong> Square image (1:1 ratio), max 2MB, will be cropped to circle</li>
+                          <li>• <strong>Banner:</strong> Wide image (4:1 ratio recommended), max 5MB, will be cropped to rectangle</li>
+                          <li>• Supported formats: JPEG, PNG, WebP</li>
+                          <li>• Click "Save Changes" to persist your uploads</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Store Details */}
